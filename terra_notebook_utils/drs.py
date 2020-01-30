@@ -6,7 +6,7 @@ from google.cloud.storage import Client
 from google.cloud.storage.blob import Blob
 from google.oauth2 import service_account
 
-from . import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
+from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 
 def _get_gcp_access_token():
     # This retrieves the access token using the default GCP account
