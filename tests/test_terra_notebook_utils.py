@@ -11,21 +11,27 @@ import terra_notebook_utils
 from terra_notebook_utils import drs
 
 class TestTerraNotebookUtils(unittest.TestCase):
-    def test_fetch_data_table_attribute(self):
+    def test_fetch_table_attribute(self):
         table = "simple_germline_variation"
-        object_name = "4e53b671-cf02-4c0b-94b9-035c4162a2ec"
+        filter_column = "name"
+        filter_val = "4e53b671-cf02-4c0b-94b9-035c4162a2ec"
         key = "object_id"
-        val = terra_notebook_utils.fetch_data_table_attribute(table, object_name, key)
+        val = terra_notebook_utils.fetch_table_attribute(table, filter_column, filter_val, key)
         self.assertEqual(val, "drs://dg.4503/695806f6-5bf7-4857-981a-9168b9470b27")
 
-    def test_fetch_data_table_object_id(self):
+    def test_fetch_table_object_id(self):
         table = "simple_germline_variation"
-        object_name = "4e53b671-cf02-4c0b-94b9-035c4162a2ec"
-        val = terra_notebook_utils.fetch_data_table_object_id(table, object_name)
-        self.assertEqual(val, "drs://dg.4503/695806f6-5bf7-4857-981a-9168b9470b27")
+        file_name = "NWD519795.freeze5.v1.vcf.gz"
+        val = terra_notebook_utils.fetch_table_object_id(table, file_name)
+        self.assertEqual(val, "drs://dg.4503/1eee029e-9060-4b56-8d7d-fb96a74d8b42")
 
     def test_get_access_token(self):
         drs._get_gcp_access_token()
+
+    def test_print_table_column(self):
+        table = "simple_germline_variation"
+        column = "file_name"
+        terra_notebook_utils.print_table_column(table, column)
 
 class TestTerraNotebookUtilsDRS(unittest.TestCase):
     @classmethod
