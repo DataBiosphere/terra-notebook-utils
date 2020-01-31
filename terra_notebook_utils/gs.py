@@ -1,4 +1,6 @@
 import io
+import os
+import json
 from urllib.parse import quote
 
 from google.cloud.storage import Client
@@ -12,10 +14,21 @@ def get_access_token():
     Retriev the access token using the default GCP account
     returns the same result as `gcloud auth print-access-token`
     """
+
     import google.auth.transport.requests
-    creds, projects = google.auth.default()
-    creds.refresh(google.auth.transport.requests.Request())
-    return creds.token
+    if os.environ.get("TERRA_NOTEBOOK_GOOGLE_ACCESS_TOKEN"):
+        token = os.environ['TERRA_NOTEBOOK_GOOGLE_ACCESS_TOKEN']
+    elif os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+        from oauth2client.service_account import ServiceAccountCredentials
+        scopes = ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email']
+        creds = ServiceAccountCredentials.from_json_keyfile_name(os.environ['GOOGLE_APPLICATION_CREDENTIALS'],
+                                                                 scopes=scopes)
+        token = creds.get_access_token().access_token
+    else:
+        creds, projects = google.auth.default()
+        creds.refresh(google.auth.transport.requests.Request())
+        token = creds.token
+    return token
 
 def get_client(credentials_data: dict=None, project: str=None):
     kwargs = dict()

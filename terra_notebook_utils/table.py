@@ -3,7 +3,11 @@ from firecloud import fiss
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME
 
 def _iter_table(table: str):
-    for item in fiss.fapi.get_entities(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME, table).json():
+    resp = fiss.fapi.get_entities(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME, table)
+    if 200 != resp.status_code:
+        print(resp.content)
+        raise Exception(f"Expected status 200, got {resp.status_code}")
+    for item in resp.json():
         yield item
 
 def _get_item_val(item: dict, key: str):

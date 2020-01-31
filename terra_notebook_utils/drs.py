@@ -21,6 +21,7 @@ def _resolve_drs_for_gs_storage(drs_url):
     if 200 == resp.status_code:
         resp_data = resp.json()
     else:
+        print(resp.content)
         raise Exception(f"expected status 200, got {resp.status_code}")
     # Get the gs url
     for url_info in resp_data['dos']['data_object']['urls']:
