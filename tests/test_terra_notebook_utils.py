@@ -8,7 +8,7 @@ sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config
 import terra_notebook_utils
-from terra_notebook_utils import drs, table
+from terra_notebook_utils import drs, table, gs
 
 class TestTerraNotebookUtilsTable(unittest.TestCase):
     def test_fetch_attribute(self):
@@ -26,7 +26,7 @@ class TestTerraNotebookUtilsTable(unittest.TestCase):
         self.assertEqual(val, "drs://dg.4503/1eee029e-9060-4b56-8d7d-fb96a74d8b42")
 
     def test_get_access_token(self):
-        drs._get_gcp_access_token()
+        gs.get_access_token()
 
     def test_print_column(self):
         table_name = "simple_germline_variation"
@@ -39,14 +39,15 @@ class TestTerraNotebookUtilsDRS(unittest.TestCase):
         cls.drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
 
     def test_resolve_drs_for_google_storage(self):
-        data_url, _ = drs._resolve_drs_for_google_storage(self.drs_url)
+        data_url, _ = drs._resolve_drs_for_gs_storage(self.drs_url)
         self.assertEqual(data_url, "gs://topmed-irc-share/genomes/NWD522743.b38.irc.v1.cram.crai")
 
     def test_download(self):
         drs.download(self.drs_url, "foo")
 
     def test_copy(self):
-        drs.copy(self.drs_url, "test_dst_object")
+        # drs.copy(self.drs_url, "test_dst_object")
+        drs.copy("drs://dg.4503/ef88aaaa-ade8-479c-ab26-f72d061f8261", "test_dst_object")
 
 if __name__ == '__main__':
     unittest.main()
