@@ -78,7 +78,7 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
         dst_bucket.blob(blob_name).upload_from_file(io.BytesIO(chunk))
 
     dst_blob_names: list = list()
-    with ThreadPoolExecutor(max_workers=4) as e:
+    with ThreadPoolExecutor(max_workers=8) as e:
         futures = list()
         for chunk in chunked_download(src_bucket, src_key):
             part_number = len(dst_blob_names) + 1
@@ -89,15 +89,9 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
             f.result()
     _compose_parts(dst_bucket, dst_blob_names, dst_key)
 
-def _iter_chunks(iterable, size=32):
-    chunks = list()
-    for itm in iterable:
-        chunks.append(itm)
-        if size == len(chunks):
-            yield chunks
-            chunks = list()
-    if chunks:
-        yield chunks
+def _iter_chunks(lst: list, size=32):
+    for i in range(0, len(lst), size):
+        yield lst[i:i + size]
 
 def _compose_parts(bucket, blob_names, dst_key):
     def _compose(names, dst_part_name):
@@ -112,7 +106,6 @@ def _compose_parts(bucket, blob_names, dst_key):
                 pass
 
     number_of_blobs = len(blob_names)
-    blobs = list()
     while True:
         if 32 >= len(blob_names):
             _compose(blob_names, dst_key)
