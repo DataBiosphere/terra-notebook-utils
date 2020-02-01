@@ -76,7 +76,6 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
         with lock:
             print("Uploading part", blob_name)
         dst_bucket.blob(blob_name).upload_from_file(io.BytesIO(chunk))
-        del chunk
 
     dst_blob_names: list = list()
     with ThreadPoolExecutor(max_workers=4) as e:
@@ -90,16 +89,43 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
             f.result()
     _compose_parts(dst_bucket, dst_blob_names, dst_key)
 
+def _iter_chunks(iterable, size=32):
+    chunks = list()
+    for itm in iterable:
+        chunks.append(itm)
+        if size == len(chunks):
+            yield chunks
+            chunks = list()
+    if chunks:
+        yield chunks
+
 def _compose_parts(bucket, blob_names, dst_key):
-    # TODO: extend this to work with num_parts > 32
-    blobs = [bucket.get_blob(b) for b in blob_names]
-    dst_blob = bucket.blob(dst_key)
-    dst_blob.compose(blobs)
-    for blob in blobs:
-        try:
-            blob.delete()
-        except Exception:
-            pass
+    def _compose(names, dst_part_name):
+        print("Composing", dst_part_name)
+        blobs = [bucket.get_blob(n) for n in names]
+        dst_blob = bucket.blob(dst_part_name)
+        dst_blob.compose(blobs)
+        for blob in blobs:
+            try:
+                blob.delete()
+            except Exception:
+                pass
+
+    number_of_blobs = len(blob_names)
+    blobs = list()
+    while True:
+        if 32 >= len(blob_names):
+            _compose(blob_names, dst_key)
+            break
+        else:
+            next_blob_names = list()
+            chunks = [ch for ch in _iter_chunks(blob_names)]
+            for ch in chunks:
+                number_of_blobs += 1
+                part_name = f"{dst_key}.cpart{number_of_blobs}"
+                _compose(ch, part_name)
+                next_blob_names.append(part_name)
+            blob_names = next_blob_names
 
 def copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.blob(src_key)
@@ -108,3 +134,6 @@ def copy(src_bucket, dst_bucket, src_key, dst_key):
         oneshot_copy(src_bucket, dst_bucket, src_key, dst_key)
     else:
         multipart_copy(src_bucket, dst_bucket, src_key, dst_key)
+    src_blob.reload()
+    dst_blob = dst_bucket.get_blob(dst_key)
+    assert src_blob.crc32c == dst_blob.crc32c

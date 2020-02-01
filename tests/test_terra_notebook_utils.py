@@ -2,6 +2,7 @@
 import os
 import sys
 import unittest
+from unittest import mock
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
@@ -52,6 +53,19 @@ class TestTerraNotebookUtilsDRS(unittest.TestCase):
     def test_multipart_copy(self):
         # This file is too large enough to trigger multipart copy
         drs.copy("drs://dg.4503/6236c17c-b3fa-4d9d-b16f-2e6bef23bd83", "test_multipart_object")
+
+    def test_compose_parts(self):
+        bucket = mock.MagicMock()
+        blob_names = [f"part.{i}" for i in range(65)]
+        gs._compose_parts(bucket, blob_names, "test_dst_key")
+
+    def test_iter_chunks(self):
+        chunk_size = 32
+        blob_names = [f"part.{i}" for i in range(65)]
+        chunks = [ch for ch in gs._iter_chunks(blob_names, chunk_size)]
+        for ch in chunks:
+            self.assertEqual(ch, blob_names[:32])
+            blob_names = blob_names[32:]
 
 if __name__ == '__main__':
     unittest.main()
