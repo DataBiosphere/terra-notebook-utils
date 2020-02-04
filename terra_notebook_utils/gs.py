@@ -1,5 +1,6 @@
 import io
 import os
+import sys
 import json
 import threading
 from urllib.parse import quote
@@ -62,9 +63,7 @@ def old_chunked_download(bucket, key: str):
         stream.seek(0)
         yield resp.content
 
-def chunked_download(bucket, key: str):
-    blob = bucket.get_blob(key)
-
+def chunked_download(blob, key: str):
     def download_part(part_number):
         start_chunk = part_number * chunk_size
         end_chunk = start_chunk + chunk_size - 1
@@ -99,16 +98,19 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     The objects are then composed into a single object, and the parts are deleted from `dst_bucket`.
     """
     lock = threading.Lock()
+    src_blob = src_bucket.get_blob(src_key)
+    number_of_parts = 1 + src_blob.size // chunk_size
 
-    def upload_chunk(chunk, blob_name):
+    def upload_chunk(chunk, part_number):
+        blob_name = _compose_part_name(dst_key, part_number)
         with lock:
-            print("Uploading part", blob_name)
+            sys.stdout.write("Uploading part %i of %i\r" % (1 + part_number, number_of_parts))
         dst_bucket.blob(blob_name).upload_from_file(io.BytesIO(chunk))
         return blob_name
 
     with ThreadPoolExecutor(max_workers=4) as e:
-        futures = [e.submit(upload_chunk, chunk, _compose_part_name(dst_key, part_number))
-                   for part_number, chunk in chunked_download(src_bucket, src_key)]
+        futures = [e.submit(upload_chunk, chunk, part_number)
+                   for part_number, chunk in chunked_download(src_blob, src_key)]
         dst_blob_names = [f.result() for f in as_completed(futures)]
     _compose_parts(dst_bucket, sorted(dst_blob_names), dst_key)
 
@@ -121,7 +123,7 @@ def _compose_parts(bucket, blob_names, dst_key):
 
     def _compose(names, dst_part_name):
         with lock:
-            print("Composing", dst_part_name)
+            sys.stdout.write("Composing %s\r" % (dst_part_name))
         blobs = [bucket.get_blob(n) for n in names]
         dst_blob = bucket.blob(dst_part_name)
         dst_blob.compose(blobs)
