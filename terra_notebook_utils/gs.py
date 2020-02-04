@@ -2,6 +2,7 @@ import io
 import os
 import sys
 import json
+
 import threading
 from urllib.parse import quote
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -12,10 +13,10 @@ from google.resumable_media.requests import ChunkedDownload
 import google.auth
 
 from terra_notebook_utils.xprofile import profile
+from terra_notebook_utils.progress_bar import ProgressBar
 import logging
 logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
 
-# chunk_size = 1024 * 1024 * 1 // 8
 chunk_size = 1024 * 1024 * 32
 
 def get_access_token():
@@ -97,14 +98,14 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     Download an upjoct in chunks from `src_bucket` and upload each chunk to `dst_bucket` as separate objets.
     The objects are then composed into a single object, and the parts are deleted from `dst_bucket`.
     """
-    lock = threading.Lock()
     src_blob = src_bucket.get_blob(src_key)
-    number_of_parts = 1 + src_blob.size // chunk_size
+    print(f"Copying from {src_bucket.name}/{src_key}")
+    print(f"Copying to {dst_bucket.name}/{dst_key}")
+    progress_bar = ProgressBar(1 + src_blob.size // chunk_size, prefix="Copying:", suffix="Parts")
 
     def upload_chunk(chunk, part_number):
         blob_name = _compose_part_name(dst_key, part_number)
-        with lock:
-            sys.stdout.write("Uploading part %i of %i\r" % (1 + part_number, number_of_parts))
+        progress_bar.update()
         dst_bucket.blob(blob_name).upload_from_file(io.BytesIO(chunk))
         return blob_name
 
@@ -112,6 +113,7 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
         futures = [e.submit(upload_chunk, chunk, part_number)
                    for part_number, chunk in chunked_download(src_blob, src_key)]
         dst_blob_names = [f.result() for f in as_completed(futures)]
+    progress_bar.finish("composing parts...")
     _compose_parts(dst_bucket, sorted(dst_blob_names), dst_key)
 
 def _iter_chunks(lst: list, size=32):
@@ -119,11 +121,7 @@ def _iter_chunks(lst: list, size=32):
         yield lst[i:i + size]
 
 def _compose_parts(bucket, blob_names, dst_key):
-    lock = threading.Lock()
-
     def _compose(names, dst_part_name):
-        with lock:
-            sys.stdout.write("Composing %s\r" % (dst_part_name))
         blobs = [bucket.get_blob(n) for n in names]
         dst_blob = bucket.blob(dst_part_name)
         dst_blob.compose(blobs)
