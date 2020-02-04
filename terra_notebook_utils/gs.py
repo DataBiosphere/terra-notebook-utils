@@ -17,8 +17,6 @@ from terra_notebook_utils.progress_bar import ProgressBar
 import logging
 logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
 
-chunk_size = 1024 * 1024 * 32
-
 def get_access_token():
     """
     Retrieve the access token using the default GCP account
@@ -52,17 +50,36 @@ def get_client(credentials_data: dict=None, project: str=None):
     return client
 
 class ChunkedDownloader:
-    def __init__(self, blob):
+    default_chunk_size = 32 * 1024 * 1024
+
+    def __init__(self, blob, chunk_size=None):
         self.blob = blob
-        self.part_numbers = list(range(1 + blob.size // chunk_size))
+        self.chunk_size = chunk_size or self.default_chunk_size
+        self.part_numbers = list(range(1 + blob.size // self.chunk_size))
+        self._buffer = None
+        self._current_part_number = None
 
     def fetch_part(self, part_number):
-        start_chunk = part_number * chunk_size
-        end_chunk = start_chunk + chunk_size - 1
+        start_chunk = part_number * self.chunk_size
+        end_chunk = start_chunk + self.chunk_size - 1
         fh = io.BytesIO()
         self.blob.download_to_file(fh, start=start_chunk, end=end_chunk)
         fh.seek(0)
         return fh.read()
+
+    def read(self, k_bytes):
+        if self._buffer is None:
+            self._buffer = bytes()
+            self._current_part_number = 0
+        while len(self._buffer) < k_bytes and self._current_part_number < self.part_numbers[-1]:
+            self._buffer += self.fetch_part(self._current_part_number)
+            self._current_part_number += 1
+        ret_data = self._buffer[:k_bytes]
+        self._buffer = self._buffer[k_bytes:]
+        return ret_data
+
+    def close(self):
+        pass
 
 def oneshot_copy(src_bucket, dst_bucket, src_key, dst_key):
     """
@@ -85,8 +102,8 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.get_blob(src_key)
     print(f"Copying from {src_bucket.name}/{src_key}")
     print(f"Copying to {dst_bucket.name}/{dst_key}")
-    progress_bar = ProgressBar(1 + src_blob.size // chunk_size, prefix="Copying:", suffix="Parts")
     downloader = ChunkedDownloader(src_blob)
+    progress_bar = ProgressBar(len(downloader.part_numbers), prefix="Copying:", suffix="Parts")
 
     def _transfer_chunk(part_number):
         data = downloader.fetch_part(part_number)
@@ -95,7 +112,7 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
         dst_bucket.blob(blob_name).upload_from_file(io.BytesIO(data))
         return blob_name
 
-    with ThreadPoolExecutor(max_workers=12) as e:
+    with ThreadPoolExecutor(max_workers=8) as e:
         futures = [e.submit(_transfer_chunk, part_number) for part_number in downloader.part_numbers]
         dst_blob_names = [f.result() for f in as_completed(futures)]
     progress_bar.finish("composing parts...")
@@ -133,7 +150,7 @@ def _compose_parts(bucket, blob_names, dst_key):
 def copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.blob(src_key)
     src_blob.reload()
-    if chunk_size >= src_blob.size:
+    if ChunkedDownloader.default_chunk_size >= src_blob.size:
         oneshot_copy(src_bucket, dst_bucket, src_key, dst_key)
     else:
         multipart_copy(src_bucket, dst_bucket, src_key, dst_key)
