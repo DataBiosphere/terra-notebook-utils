@@ -51,34 +51,18 @@ def get_client(credentials_data: dict=None, project: str=None):
         client._credentials.refresh(google.auth.transport.requests.Request())
     return client
 
-def old_chunked_download(bucket, key: str):
-    # multipart_copy took 74.58070755004883 seconds
-    blob_name = quote(key, safe="")
-    download_url = f"https://storage.googleapis.com/download/storage/v1/b/{bucket.name}/o/{blob_name}?alt=media"
-    if bucket.user_project is not None:
-        download_url += f"&userProject={bucket.user_project}"
-    stream = io.BytesIO()
-    download = ChunkedDownload(download_url, chunk_size, stream)
-    while not download.finished:
-        resp = download.consume_next_chunk(bucket.client._http)
-        stream.seek(0)
-        yield resp.content
+class ChunkedDownloader:
+    def __init__(self, blob):
+        self.blob = blob
+        self.part_numbers = list(range(1 + blob.size // chunk_size))
 
-def chunked_download(blob, key: str):
-    def download_part(part_number):
+    def fetch_part(self, part_number):
         start_chunk = part_number * chunk_size
         end_chunk = start_chunk + chunk_size - 1
         fh = io.BytesIO()
-        blob.download_to_file(fh, start=start_chunk, end=end_chunk)
+        self.blob.download_to_file(fh, start=start_chunk, end=end_chunk)
         fh.seek(0)
-        return part_number, fh.read()
-
-    with ThreadPoolExecutor(max_workers=4) as e:
-        futures = [e.submit(download_part, part_number)
-                   for part_number in range(1 + blob.size // chunk_size)]
-        for f in as_completed(futures):
-            yield f.result()
-            f.set_result(None)  # Prevent future from holding a reference to data chunk
+        return fh.read()
 
 def oneshot_copy(src_bucket, dst_bucket, src_key, dst_key):
     """
@@ -102,16 +86,17 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     print(f"Copying from {src_bucket.name}/{src_key}")
     print(f"Copying to {dst_bucket.name}/{dst_key}")
     progress_bar = ProgressBar(1 + src_blob.size // chunk_size, prefix="Copying:", suffix="Parts")
+    downloader = ChunkedDownloader(src_blob)
 
-    def upload_chunk(chunk, part_number):
+    def _transfer_chunk(part_number):
+        data = downloader.fetch_part(part_number)
         blob_name = _compose_part_name(dst_key, part_number)
         progress_bar.update()
-        dst_bucket.blob(blob_name).upload_from_file(io.BytesIO(chunk))
+        dst_bucket.blob(blob_name).upload_from_file(io.BytesIO(data))
         return blob_name
 
-    with ThreadPoolExecutor(max_workers=4) as e:
-        futures = [e.submit(upload_chunk, chunk, part_number)
-                   for part_number, chunk in chunked_download(src_blob, src_key)]
+    with ThreadPoolExecutor(max_workers=12) as e:
+        futures = [e.submit(_transfer_chunk, part_number) for part_number in downloader.part_numbers]
         dst_blob_names = [f.result() for f in as_completed(futures)]
     progress_bar.finish("composing parts...")
     _compose_parts(dst_bucket, sorted(dst_blob_names), dst_key)
@@ -156,6 +141,3 @@ def copy(src_bucket, dst_bucket, src_key, dst_key):
     dst_blob = dst_bucket.get_blob(dst_key)
     print("Finished copy", "size:", dst_blob.size)
     assert src_blob.crc32c == dst_blob.crc32c
-
-# multipart_copy took 2313.419342517853 seconds
-# Finished copy size: 227050014720
