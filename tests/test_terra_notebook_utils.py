@@ -54,8 +54,9 @@ class TestTerraNotebookUtilsDRS(unittest.TestCase):
         # This file is large enough to trigger multipart copy
         drs.copy("drs://dg.4503/6236c17c-b3fa-4d9d-b16f-2e6bef23bd83", "test_multipart_object")
 
+    # Probably don't want to run this test very often. Once a week?
+    # Disabled for now
     def _test_multipart_copy_large(self):
-        # This file is large enough to trigger multipart copy
         drs.copy("drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71", "test_multipart_object_large")
 
     def test_compose_parts(self):
