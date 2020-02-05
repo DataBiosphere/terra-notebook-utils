@@ -17,6 +17,8 @@ from terra_notebook_utils.progress_bar import ProgressBar
 import logging
 logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
 
+_default_chunk_size = 32 * 1024 * 1024
+
 def get_access_token():
     """
     Retrieve the access token using the default GCP account
@@ -50,9 +52,7 @@ def get_client(credentials_data: dict=None, project: str=None):
     return client
 
 class ChunkedDownloader:
-    default_chunk_size = 32 * 1024 * 1024
-
-    def __init__(self, blob, chunk_size=None):
+    def __init__(self, blob, chunk_size=_default_chunk_size):
         self.blob = blob
         self.chunk_size = chunk_size or self.default_chunk_size
         self.part_numbers = list(range(1 + blob.size // self.chunk_size))
@@ -150,7 +150,7 @@ def _compose_parts(bucket, blob_names, dst_key):
 def copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.blob(src_key)
     src_blob.reload()
-    if ChunkedDownloader.default_chunk_size >= src_blob.size:
+    if _default_chunk_size >= src_blob.size:
         oneshot_copy(src_bucket, dst_bucket, src_key, dst_key)
     else:
         multipart_copy(src_bucket, dst_bucket, src_key, dst_key)
