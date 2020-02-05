@@ -40,8 +40,9 @@ class TestTerraNotebookUtilsDRS(unittest.TestCase):
         cls.drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
 
     def test_resolve_drs_for_google_storage(self):
-        data_url, _ = drs._resolve_drs_for_gs_storage(self.drs_url)
-        self.assertEqual(data_url, "gs://topmed-irc-share/genomes/NWD522743.b38.irc.v1.cram.crai")
+        _, bucket_name, key = drs.resolve_drs_for_gs_storage(self.drs_url)
+        self.assertEqual(bucket_name, "topmed-irc-share")
+        self.assertEqual(key, "genomes/NWD522743.b38.irc.v1.cram.crai")
 
     def test_download(self):
         drs.download(self.drs_url, "foo")
@@ -57,12 +58,14 @@ class TestTerraNotebookUtilsDRS(unittest.TestCase):
     # Probably don't want to run this test very often. Once a week?
     # Disabled for now
     def _test_multipart_copy_large(self):
-        drs.copy("drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71", "test_multipart_object_large")
+        drs_url = "drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71"
+        drs.copy(drs_url, "test_multipart_object_large")
 
     def test_compose_parts(self):
         bucket = mock.MagicMock()
-        blob_names = [f"part.{i}" for i in range(65)]
-        gs._compose_parts(bucket, blob_names, "test_dst_key")
+        writer = gs.ChunkedWriter("test_dst_key", bucket)
+        writer._part_names = [writer._compose_part_name(i) for i in range(65)]
+        writer.close()
 
     def test_iter_chunks(self):
         chunk_size = 32

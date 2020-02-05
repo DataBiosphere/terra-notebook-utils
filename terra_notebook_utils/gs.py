@@ -2,12 +2,15 @@ import io
 import os
 import sys
 import json
+import typing
 
 import threading
 from urllib.parse import quote
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from google.cloud.storage import Client
+from google.cloud.storage.blob import Blob
+from google.cloud.storage.bucket import Bucket
 from google.oauth2 import service_account
 from google.resumable_media.requests import ChunkedDownload
 import google.auth
@@ -18,6 +21,7 @@ import logging
 logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
 
 _default_chunk_size = 32 * 1024 * 1024
+_gs_max_parts_per_compose = 32
 
 def get_access_token():
     """
@@ -39,6 +43,16 @@ def get_access_token():
         token = creds.token
     return token
 
+def reset_bond_cache():
+    import requests
+    token = get_access_token()
+    headers = {
+        'authorization': f"Bearer {token}",
+        'content-type': "application/json"
+    }
+    resp = requests.delete("http://broad-bond-prod.appspot.com/api/link/v1/fence/", headers=headers)
+    print(resp.content)
+
 def get_client(credentials_data: dict=None, project: str=None):
     kwargs = dict()
     if credentials_data is not None:
@@ -51,23 +65,23 @@ def get_client(credentials_data: dict=None, project: str=None):
         client._credentials.refresh(google.auth.transport.requests.Request())
     return client
 
-class ChunkedDownloader:
-    def __init__(self, blob, chunk_size=_default_chunk_size):
+class ChunkedReader:
+    def __init__(self, blob: Blob, chunk_size: int=_default_chunk_size):
         self.blob = blob
-        self.chunk_size = chunk_size or self.default_chunk_size
-        self.part_numbers = list(range(1 + blob.size // self.chunk_size))
-        self._buffer = None
-        self._current_part_number = None
+        self._chunk_size = chunk_size
+        self.part_numbers = list(range(1 + blob.size // self._chunk_size))
+        self._buffer: bytes = None
+        self._current_part_number: int = None
 
-    def fetch_part(self, part_number):
-        start_chunk = part_number * self.chunk_size
-        end_chunk = start_chunk + self.chunk_size - 1
+    def fetch_part(self, part_number: int):
+        start_chunk = part_number * self._chunk_size
+        end_chunk = start_chunk + self._chunk_size - 1
         fh = io.BytesIO()
         self.blob.download_to_file(fh, start=start_chunk, end=end_chunk)
         fh.seek(0)
         return fh.read()
 
-    def read(self, k_bytes):
+    def read(self, k_bytes: int) -> bytes:
         if self._buffer is None:
             self._buffer = bytes()
             self._current_part_number = 0
@@ -81,6 +95,63 @@ class ChunkedDownloader:
     def close(self):
         pass
 
+class ChunkedWriter:
+    def __init__(self, key: str, bucket: Bucket, chunk_size: int=_default_chunk_size):
+        self.key = key
+        self.bucket = bucket
+        self._chunk_size = chunk_size
+        self._part_names: typing.List[str] = list()
+        self._buffer: bytes = None
+        self._current_part_number: int = None
+
+    def put_part(self, part_number: int, data: bytes):
+        part_name = self._compose_part_name(part_number)
+        self.bucket.blob(part_name).upload_from_file(io.BytesIO(data))
+        self._part_names.append(part_name)
+
+    def write(self, data: bytes):
+        if self._buffer is None:
+            self._buffer = bytes()
+            self._current_part_number = 0
+        self._buffer += data
+        if len(self._buffer) >= self._chunk_size:
+            self.put_part(self._current_part_number, self._buffer[:self._chunk_size])
+            self._buffer = self._buffer[self._chunk_size:]
+            self._current_part_number += 1
+
+    def close(self):
+        part_names = sorted(self._part_names.copy())
+        part_numbers = [len(part_names)]
+        while True:
+            if _gs_max_parts_per_compose >= len(part_names):
+                self._compose_parts(part_names, self.key)
+                break
+            else:
+                chunks = [ch for ch in _iter_chunks(part_names)]
+                part_numbers = range(part_numbers[-1], part_numbers[-1] + len(chunks))
+                with ThreadPoolExecutor(max_workers=8) as e:
+                    futures = [e.submit(self._compose_parts, ch, self._compose_part_name(part_number))
+                               for ch, part_number in zip(chunks, part_numbers)]
+                    part_names = sorted([f.result() for f in as_completed(futures)])
+
+    def _compose_parts(self, part_names, dst_part_name):
+        blobs = [self.bucket.get_blob(name) for name in part_names]
+        dst_blob = self.bucket.blob(dst_part_name)
+        dst_blob.compose(blobs)
+        for blob in blobs:
+            try:
+                blob.delete()
+            except Exception:
+                pass
+        return dst_part_name
+
+    def _compose_part_name(self, part_number):
+        return "%s.part%06i" % (self.key, part_number)
+
+def _iter_chunks(lst: list, size=32):
+    for i in range(0, len(lst), size):
+        yield lst[i:i + size]
+
 def oneshot_copy(src_bucket, dst_bucket, src_key, dst_key):
     """
     Download an object into memory from `src_bucket` and upload it to `dst_bucket`
@@ -89,9 +160,6 @@ def oneshot_copy(src_bucket, dst_bucket, src_key, dst_key):
     src_bucket.blob(src_key).download_to_file(fh)
     fh.seek(0)
     dst_bucket.blob(dst_key).upload_from_file(fh)
-
-def _compose_part_name(key, part_number):
-    return "%spart%06i" % (key, part_number)
 
 @profile("multipart_copy")
 def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
@@ -102,50 +170,21 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.get_blob(src_key)
     print(f"Copying from {src_bucket.name}/{src_key}")
     print(f"Copying to {dst_bucket.name}/{dst_key}")
-    downloader = ChunkedDownloader(src_blob)
-    progress_bar = ProgressBar(len(downloader.part_numbers), prefix="Copying:", suffix="Parts")
+    reader = ChunkedReader(src_blob)
+    writer = ChunkedWriter(dst_key, dst_bucket)
+    progress_bar = ProgressBar(len(reader.part_numbers), prefix="Copying:", suffix="Parts")
 
     def _transfer_chunk(part_number):
-        data = downloader.fetch_part(part_number)
-        blob_name = _compose_part_name(dst_key, part_number)
+        data = reader.fetch_part(part_number)
+        writer.put_part(part_number, data)
         progress_bar.update()
-        dst_bucket.blob(blob_name).upload_from_file(io.BytesIO(data))
-        return blob_name
 
     with ThreadPoolExecutor(max_workers=8) as e:
-        futures = [e.submit(_transfer_chunk, part_number) for part_number in downloader.part_numbers]
-        dst_blob_names = [f.result() for f in as_completed(futures)]
+        futures = [e.submit(_transfer_chunk, part_number) for part_number in reader.part_numbers]
+        for f in as_completed(futures):
+            pass
     progress_bar.finish("composing parts...")
-    _compose_parts(dst_bucket, sorted(dst_blob_names), dst_key)
-
-def _iter_chunks(lst: list, size=32):
-    for i in range(0, len(lst), size):
-        yield lst[i:i + size]
-
-def _compose_parts(bucket, blob_names, dst_key):
-    def _compose(names, dst_part_name):
-        blobs = [bucket.get_blob(n) for n in names]
-        dst_blob = bucket.blob(dst_part_name)
-        dst_blob.compose(blobs)
-        for blob in blobs:
-            try:
-                blob.delete()
-            except Exception:
-                pass
-        return dst_part_name
-
-    part_numbers = [len(blob_names)]
-    while True:
-        if 32 >= len(blob_names):
-            _compose(blob_names, dst_key)
-            break
-        else:
-            chunks = [ch for ch in _iter_chunks(blob_names)]
-            part_numbers = range(part_numbers[-1], part_numbers[-1] + len(chunks))
-            with ThreadPoolExecutor(max_workers=8) as e:
-                futures = [e.submit(_compose, ch, _compose_part_name(dst_key, part_number))
-                           for ch, part_number in zip(chunks, part_numbers)]
-                blob_names = sorted([f.result() for f in as_completed(futures)])
+    writer.close()
 
 def copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.blob(src_key)

@@ -10,7 +10,7 @@ def _parse_gs_url(gs_url):
     bucket_name, object_key = gs_url[5:].split("/", 1)
     return bucket_name, object_key
 
-def _resolve_drs_for_gs_storage(drs_url):
+def fetch_drs_info(drs_url):
     access_token = gs.get_access_token()
     martha_url = "https://us-central1-broad-dsde-prod.cloudfunctions.net/martha_v2"
     headers = {
@@ -23,22 +23,24 @@ def _resolve_drs_for_gs_storage(drs_url):
     else:
         print(resp.content)
         raise Exception(f"expected status 200, got {resp.status_code}")
-    # Get the gs url
-    for url_info in resp_data['dos']['data_object']['urls']:
+    return resp_data
+
+def resolve_drs_for_gs_storage(drs_url):
+    drs_info = fetch_drs_info(drs_url)
+    credentials_data = drs_info['googleServiceAccount']['data']
+    for url_info in drs_info['dos']['data_object']['urls']:
         if url_info['url'].startswith("gs://"):
             data_url = url_info['url']
             break
     else:
         raise Exception(f"Unable to resolve GS url for {drs_url}")
-    # Get the service account credentials needed to access the gs url
-    credentials_data = resp_data['googleServiceAccount']['data']
-    return data_url, credentials_data
+    bucket_name, key = _parse_gs_url(data_url)
+    client = gs.get_client(credentials_data, project=credentials_data['project_id'])
+    return client, bucket_name, key
 
 def download(drs_url: str, filepath: str):
-    data_url, credentials_data = _resolve_drs_for_gs_storage(drs_url)
-    src_bucket, object_key = _parse_gs_url(data_url)
-    client = gs.get_client(credentials_data, project=credentials_data['project_id'])
-    blob = client.bucket(src_bucket, user_project=WORKSPACE_GOOGLE_PROJECT).blob(object_key)
+    client, bucket_name, key = resolve_drs_for_gs_storage(drs_url)
+    blob = client.bucket(bucket_name, user_project=WORKSPACE_GOOGLE_PROJECT).blob(key)
     with open(filepath, "wb") as fh:
         blob.download_to_file(fh)
 
@@ -49,9 +51,7 @@ def copy(drs_url: str, dst_key: str, dst_bucket_name: str=None):
     """
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
-    data_url, credentials_data = _resolve_drs_for_gs_storage(drs_url)
-    src_bucket_name, src_key = _parse_gs_url(data_url)
-    src_client = gs.get_client(credentials_data, project=credentials_data['project_id'])
+    src_client, src_bucket_name, src_key = resolve_drs_for_gs_storage(drs_url)
     dst_client = gs.get_client()
     src_bucket = src_client.bucket(src_bucket_name, user_project=WORKSPACE_GOOGLE_PROJECT)
     dst_bucket = dst_client.bucket(dst_bucket_name)

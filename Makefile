@@ -7,7 +7,7 @@ lint:
 	flake8 $(MODULES) *.py
 
 mypy:
-	mypy --ignore-missing-imports $(MODULES)
+	mypy --ignore-missing-imports --no-strict-optional $(MODULES)
 
 tests:
 	PYTHONWARNINGS=ignore:ResourceWarning coverage run --source=terra_notebook_utils \
