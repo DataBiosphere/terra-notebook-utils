@@ -85,7 +85,7 @@ class ChunkedReader:
         if self._buffer is None:
             self._buffer = bytes()
             self._current_part_number = 0
-        while len(self._buffer) < k_bytes and self._current_part_number < self.part_numbers[-1]:
+        while len(self._buffer) < k_bytes and self._current_part_number <= self.part_numbers[-1]:
             self._buffer += self.fetch_part(self._current_part_number)
             self._current_part_number += 1
         ret_data = self._buffer[:k_bytes]
