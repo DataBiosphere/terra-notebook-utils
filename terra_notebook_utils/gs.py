@@ -104,6 +104,9 @@ class ChunkedWriter:
         self._buffer: bytes = None
         self._current_part_number: int = None
 
+        self._executor = None
+        self._futures = None
+
     def put_part(self, part_number: int, data: bytes):
         part_name = self._compose_part_name(part_number)
         self.bucket.blob(part_name).upload_from_file(io.BytesIO(data))
@@ -113,13 +116,25 @@ class ChunkedWriter:
         if self._buffer is None:
             self._buffer = bytes()
             self._current_part_number = 0
+            self._executor = ThreadPoolExecutor(max_workers=4)
+            self._futures = set()
         self._buffer += data
         if len(self._buffer) >= self._chunk_size:
-            self.put_part(self._current_part_number, self._buffer[:self._chunk_size])
+            f = self._executor.submit(self.put_part, self._current_part_number, self._buffer[:self._chunk_size])
+            self._futures.add(f)
             self._buffer = self._buffer[self._chunk_size:]
             self._current_part_number += 1
 
+        for f in self._futures.copy():
+            if f.done():
+                self._futures.remove(f)
+
     def close(self):
+        if self._buffer is not None:
+            if len(self._buffer):
+                self.put_part(self._current_part_number, self._buffer)
+            for f in as_completed(self._futures):
+                pass
         part_names = sorted(self._part_names.copy())
         part_numbers = [len(part_names)]
         while True:
