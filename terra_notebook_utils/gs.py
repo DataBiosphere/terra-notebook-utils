@@ -5,27 +5,26 @@ import json
 import math
 import typing
 import logging
-
 import threading
-from urllib.parse import quote
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from google.cloud.storage import Client
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
 from google.oauth2 import service_account
-from google.resumable_media.requests import ChunkedDownload
 import google.auth
 
 from terra_notebook_utils.xprofile import profile
 from terra_notebook_utils.progress_bar import ProgressBar
-import logging
+
 logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
 
 _default_chunk_size = 32 * 1024 * 1024
 _gs_max_parts_per_compose = 32
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 def get_access_token():
     """
@@ -108,8 +107,8 @@ class ChunkedWriter:
         self._buffer: bytes = None
         self._current_part_number: int = None
 
-        self._executor = None
-        self._futures = None
+        self._executor: typing.Optional[ThreadPoolExecutor] = None
+        self._futures: typing.Optional[set] = None
 
     def put_part(self, part_number: int, data: bytes):
         part_name = self._compose_part_name(part_number)
@@ -199,18 +198,20 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     print(f"Copying to {dst_bucket.name}/{dst_key}")
     reader = ChunkedReader(src_blob)
     writer = ChunkedWriter(dst_key, dst_bucket)
-    progress_bar = ProgressBar(len(reader.part_numbers), prefix="Copying:", suffix="Parts")
+    progress_bar = ProgressBar(len(reader.part_numbers),
+                               prefix="Copying:",
+                               suffix=f"{math.ceil(src_blob.size / 1024 ** 2)}MB")
 
     def _transfer_chunk(part_number):
         data = reader.fetch_part(part_number)
         writer.put_part(part_number, data)
         progress_bar.update()
 
-    with ThreadPoolExecutor(max_workers=8) as e:
+    with ThreadPoolExecutor(max_workers=3) as e:
         futures = [e.submit(_transfer_chunk, part_number) for part_number in reader.part_numbers]
         for f in as_completed(futures):
             pass
-    progress_bar.finish("composing parts...")
+    progress_bar.close("composing parts...")
     writer.close()
 
 def copy(src_bucket, dst_bucket, src_key, dst_key):
