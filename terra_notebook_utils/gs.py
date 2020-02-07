@@ -2,7 +2,9 @@ import io
 import os
 import sys
 import json
+import math
 import typing
+import logging
 
 import threading
 from urllib.parse import quote
@@ -22,6 +24,8 @@ logging.getLogger("google.resumable_media.requests.download").setLevel(logging.W
 
 _default_chunk_size = 32 * 1024 * 1024
 _gs_max_parts_per_compose = 32
+
+logger = logging.getLogger(__name__)
 
 def get_access_token():
     """
@@ -69,7 +73,7 @@ class ChunkedReader:
     def __init__(self, blob: Blob, chunk_size: int=_default_chunk_size):
         self.blob = blob
         self._chunk_size = chunk_size
-        self.part_numbers = list(range(1 + blob.size // self._chunk_size))
+        self.part_numbers = list(range(math.ceil(blob.size / self._chunk_size)))
         self._buffer: bytes = None
         self._current_part_number: int = None
 
@@ -111,6 +115,7 @@ class ChunkedWriter:
         part_name = self._compose_part_name(part_number)
         self.bucket.blob(part_name).upload_from_file(io.BytesIO(data))
         self._part_names.append(part_name)
+        logger.info(f"Uploaded part {part_name}, size={len(data)}")
 
     def write(self, data: bytes):
         if self._buffer is None:
@@ -150,7 +155,14 @@ class ChunkedWriter:
                     part_names = sorted([f.result() for f in as_completed(futures)])
 
     def _compose_parts(self, part_names, dst_part_name):
-        blobs = [self.bucket.get_blob(name) for name in part_names]
+        blobs = list()
+        for name in part_names:
+            blob = self.bucket.get_blob(name)
+            if blob is None:
+                msg = f"No blob found for bucket={self.bucket.name} name={name}"
+                logger.error(msg)
+                raise Exception(msg)
+            blobs.append(blob)
         dst_blob = self.bucket.blob(dst_part_name)
         dst_blob.compose(blobs)
         for blob in blobs:
