@@ -200,7 +200,8 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     writer = ChunkedWriter(dst_key, dst_bucket)
     progress_bar = ProgressBar(len(reader.part_numbers),
                                prefix="Copying:",
-                               suffix=f"{math.ceil(src_blob.size / 1024 ** 2)}MB")
+                               size=src_blob.size / 1024 ** 2,
+                               units="MB")
 
     def _transfer_chunk(part_number):
         data = reader.fetch_part(part_number)

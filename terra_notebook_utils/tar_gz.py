@@ -26,7 +26,8 @@ def extract(src_fh, dst_bucket: typing.Optional[gs.Bucket]=None, root: typing.Op
                 dst_fh = _prepare_local(tarinfo, root)
             print(f"Inflating {tarinfo.name}")
             progress_bar = ProgressBar(ceil(tarinfo.size / _chunk_size),
-                                       suffix=f"{ceil(tarinfo.size / _chunk_size)}MB")
+                                       size=ceil(tarinfo.size / 1024 ** 2),
+                                       units="MB")
             with closing(progress_bar):
                 with closing(dst_fh):
                     _transfer_data(tf.extractfile(tarinfo), dst_fh, progress_bar)
