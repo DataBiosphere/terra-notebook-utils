@@ -73,8 +73,12 @@ class ChunkedReader:
         self.blob = blob
         self._chunk_size = chunk_size
         self.part_numbers = list(range(math.ceil(blob.size / self._chunk_size)))
+
         self._buffer: bytes = None
         self._current_part_number: int = None
+        self._executor: typing.Optional[ThreadPoolExecutor] = None
+        self._futures: typing.Optional[list] = None
+        self._read_forward_factor = 3
 
     def fetch_part(self, part_number: int):
         start_chunk = part_number * self._chunk_size
@@ -84,13 +88,27 @@ class ChunkedReader:
         fh.seek(0)
         return fh.read()
 
+    def _number_of_parts_buffered(self):
+        return len(self._buffer) // self._chunk_size + len(self._futures)
+
     def read(self, k_bytes: int) -> bytes:
         if self._buffer is None:
             self._buffer = bytes()
             self._current_part_number = 0
-        while len(self._buffer) < k_bytes and self._current_part_number <= self.part_numbers[-1]:
-            self._buffer += self.fetch_part(self._current_part_number)
-            self._current_part_number += 1
+            self._executor = ThreadPoolExecutor(max_workers=4)
+            self._futures = list()
+
+        if self._current_part_number <= self.part_numbers[-1]:
+            while self._number_of_parts_buffered() < self._read_forward_factor:
+                f = self._executor.submit(self.fetch_part, self._current_part_number)
+                self._futures.append(f)
+                self._current_part_number += 1
+
+        while len(self._buffer) < k_bytes and len(self._futures):
+            for f in as_completed(self._futures[:1]):
+                self._buffer += self._futures[0].result()
+                del self._futures[0]
+
         ret_data = self._buffer[:k_bytes]
         self._buffer = self._buffer[k_bytes:]
         return ret_data

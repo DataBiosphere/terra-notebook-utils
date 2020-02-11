@@ -79,6 +79,19 @@ class TestTerraNotebookUtilsDRS(unittest.TestCase):
             self.assertEqual(ch, blob_names[:32])
             blob_names = blob_names[32:]
 
+    def test_chunked_reader(self):
+        blob = gs.get_client().bucket("fc-d500be74-3672-458e-8e89-662a08922941").get_blob("test_dst_object")
+        data = bytes()
+        reader = gs.ChunkedReader(blob, chunk_size=1024 * 1024 * 3)
+        while True:
+            new_data = reader.read(1024 * 1024)
+            if new_data:
+                data += new_data
+            else:
+                break
+            if not new_data:
+                break
+
 class TestTerraNotebookUtilsTARGZ(unittest.TestCase):
     def test_extract(self):
         with self.subTest("Test tarball extraction to local filesystem"):
