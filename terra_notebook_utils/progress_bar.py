@@ -11,7 +11,7 @@ class ProgressBar(AbstractContextManager):
         self.prefix = prefix
         self.units = units
         self.size = size
-        self._length = 80
+        self._length = 40
         self._lock = threading.Lock()
         self._start_time = time.time()
 
