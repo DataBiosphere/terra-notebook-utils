@@ -4,6 +4,11 @@ import threading
 from math import floor, ceil
 from contextlib import AbstractContextManager
 
+def _print_bar(lock, bar: str):
+    with lock:
+        print('\r', bar, end='')
+        sys.stdout.flush()
+
 class ProgressBar(AbstractContextManager):
     def __init__(self, number_of_steps, prefix="", units="", size: int=None):
         self.number_of_steps = number_of_steps
@@ -27,8 +32,7 @@ class ProgressBar(AbstractContextManager):
             bar += f" of {self.size}{self.units}"
             bar += f" %.2f{self.units}/s" % (self.size * portion_complete / duration)
         with self._lock:
-            print(self.prefix, bar, f"({duration} seconds)", end="\r")
-            sys.stdout.flush()
+            print("\r", f"{self.prefix} {bar} ({duration} seconds)", end="")
 
     def close(self, message=None):
         with self._lock:

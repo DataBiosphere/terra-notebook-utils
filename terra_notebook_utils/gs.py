@@ -6,6 +6,7 @@ import math
 import typing
 import logging
 import threading
+from contextlib import closing
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -15,7 +16,6 @@ from google.cloud.storage.bucket import Bucket
 from google.oauth2 import service_account
 import google.auth
 
-from terra_notebook_utils.xprofile import profile
 from terra_notebook_utils.progress_bar import ProgressBar
 
 logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
@@ -187,7 +187,6 @@ def oneshot_copy(src_bucket, dst_bucket, src_key, dst_key):
     fh.seek(0)
     dst_bucket.blob(dst_key).upload_from_file(fh)
 
-@profile("multipart_copy")
 def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     """
     Download an upjoct in chunks from `src_bucket` and upload each chunk to `dst_bucket` as separate objets.
@@ -198,9 +197,9 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     print(f"Copying to {dst_bucket.name}/{dst_key}")
     reader = ChunkedReader(src_blob)
     writer = ChunkedWriter(dst_key, dst_bucket)
-    progress_bar = ProgressBar(len(reader.part_numbers),
+    progress_bar = ProgressBar(len(reader.part_numbers) + 1,
                                prefix="Copying:",
-                               size=src_blob.size / 1024 ** 2,
+                               size=src_blob.size // 1024 ** 2,
                                units="MB")
 
     def _transfer_chunk(part_number):
@@ -208,12 +207,13 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
         writer.put_part(part_number, data)
         progress_bar.update()
 
-    with ThreadPoolExecutor(max_workers=3) as e:
-        futures = [e.submit(_transfer_chunk, part_number) for part_number in reader.part_numbers]
-        for f in as_completed(futures):
-            pass
-    progress_bar.close("composing parts...")
-    writer.close()
+    with closing(progress_bar):
+        with ThreadPoolExecutor(max_workers=3) as e:
+            futures = [e.submit(_transfer_chunk, part_number) for part_number in reader.part_numbers]
+            for f in as_completed(futures):
+                pass
+        writer.close()
+        progress_bar.update()
 
 def copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.blob(src_key)
@@ -224,5 +224,4 @@ def copy(src_bucket, dst_bucket, src_key, dst_key):
         multipart_copy(src_bucket, dst_bucket, src_key, dst_key)
     src_blob.reload()
     dst_blob = dst_bucket.get_blob(dst_key)
-    print("Finished copy", "size:", dst_blob.size)
     assert src_blob.crc32c == dst_blob.crc32c
