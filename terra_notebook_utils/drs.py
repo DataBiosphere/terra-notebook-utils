@@ -4,7 +4,7 @@ import requests
 from tempfile import NamedTemporaryFile
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
-from terra_notebook_utils import gs
+from terra_notebook_utils import gs, tar_gz
 
 def _parse_gs_url(gs_url):
     bucket_name, object_key = gs_url[5:].split("/", 1)
@@ -56,3 +56,12 @@ def copy(drs_url: str, dst_key: str, dst_bucket_name: str=None):
     src_bucket = src_client.bucket(src_bucket_name, user_project=WORKSPACE_GOOGLE_PROJECT)
     dst_bucket = dst_client.bucket(dst_bucket_name)
     gs.copy(src_bucket, dst_bucket, src_key, dst_key)
+
+def extract_tar_gz(drs_url: str, dst_pfx: str=None, dst_bucket_name: str=None):
+    if dst_bucket_name is None:
+        dst_bucket_name = WORKSPACE_BUCKET
+    src_client, src_bucket_name, src_key = resolve_drs_for_gs_storage(drs_url)
+    src_bucket = src_client.bucket(src_bucket_name, user_project=WORKSPACE_GOOGLE_PROJECT)
+    dst_bucket = gs.get_client().bucket(dst_bucket_name)
+    src_fh = gs.ChunkedReader(src_bucket.get_blob(src_key), chunk_size=1024 * 1024 * 3)
+    tar_gz.extract(src_fh, dst_bucket, root=dst_pfx)
