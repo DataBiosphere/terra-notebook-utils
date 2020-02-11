@@ -10,7 +10,7 @@ from contextlib import closing
 from terra_notebook_utils import gs
 from terra_notebook_utils.progress_bar import ProgressBar
 
-_chunk_size = 1024 * 1024 * 3
+_chunk_size = 1024 * 1024 * 32
 
 def extract(src_fh, dst_bucket: typing.Optional[gs.Bucket]=None, root: typing.Optional[str]=None):
     """
