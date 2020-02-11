@@ -4,6 +4,29 @@ import threading
 from math import floor, ceil
 from contextlib import AbstractContextManager
 
+def _is_notebook():
+    try:
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            return True   # Jupyter notebook or qtconsole
+        elif shell == 'TerminalInteractiveShell':
+            return False  # Terminal running IPython
+        else:
+            return False  # Other type (?)
+    except NameError:
+        return False      # Probably standard Python interpreter
+
+def _print_bar(lock, bar: str):
+    if _is_notebook():
+        from IPython.display import display, clear_output
+        with lock:
+            clear_output(wait=True)
+            display(bar)
+    else:
+        with lock:
+            print(bar, end="\r")
+            sys.stdout.flush()
+
 class ProgressBar(AbstractContextManager):
     def __init__(self, number_of_steps, prefix="", units="", size: int=None):
         self.number_of_steps = number_of_steps
@@ -26,9 +49,8 @@ class ProgressBar(AbstractContextManager):
         if self.size is not None:
             bar += f" of {self.size}{self.units}"
             bar += f" %.2f{self.units}/s" % (self.size * portion_complete / duration)
-        with self._lock:
-            print(self.prefix, bar, f"({duration} seconds)", end="\r")
-            sys.stdout.flush()
+        bar = f"{self.prefix} {bar} ({duration} seconds)"
+        _print_bar(self._lock, bar)
 
     def close(self, message=None):
         with self._lock:
