@@ -15,7 +15,6 @@ from google.cloud.storage.bucket import Bucket
 from google.oauth2 import service_account
 import google.auth
 
-from terra_notebook_utils.xprofile import profile
 from terra_notebook_utils.progress_bar import ProgressBar
 
 logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
@@ -187,7 +186,6 @@ def oneshot_copy(src_bucket, dst_bucket, src_key, dst_key):
     fh.seek(0)
     dst_bucket.blob(dst_key).upload_from_file(fh)
 
-@profile("multipart_copy")
 def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     """
     Download an upjoct in chunks from `src_bucket` and upload each chunk to `dst_bucket` as separate objets.
@@ -212,7 +210,6 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
         futures = [e.submit(_transfer_chunk, part_number) for part_number in reader.part_numbers]
         for f in as_completed(futures):
             pass
-    progress_bar.close("composing parts...")
     writer.close()
 
 def copy(src_bucket, dst_bucket, src_key, dst_key):
@@ -224,5 +221,4 @@ def copy(src_bucket, dst_bucket, src_key, dst_key):
         multipart_copy(src_bucket, dst_bucket, src_key, dst_key)
     src_blob.reload()
     dst_blob = dst_bucket.get_blob(dst_key)
-    print("Finished copy", "size:", dst_blob.size)
     assert src_blob.crc32c == dst_blob.crc32c
