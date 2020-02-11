@@ -20,7 +20,7 @@ def _print_bar(lock, bar: str):
     if _is_notebook():
         from IPython.display import display, clear_output
         with lock:
-            clear_output(wait=True)
+            # clear_output(wait=True)
             display(bar)
     else:
         with lock:
