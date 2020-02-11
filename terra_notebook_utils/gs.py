@@ -6,6 +6,7 @@ import math
 import typing
 import logging
 import threading
+from contextlib import closing
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -196,7 +197,7 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     print(f"Copying to {dst_bucket.name}/{dst_key}")
     reader = ChunkedReader(src_blob)
     writer = ChunkedWriter(dst_key, dst_bucket)
-    progress_bar = ProgressBar(len(reader.part_numbers),
+    progress_bar = ProgressBar(len(reader.part_numbers) + 1,
                                prefix="Copying:",
                                size=src_blob.size // 1024 ** 2,
                                units="MB")
@@ -206,11 +207,13 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
         writer.put_part(part_number, data)
         progress_bar.update()
 
-    with ThreadPoolExecutor(max_workers=3) as e:
-        futures = [e.submit(_transfer_chunk, part_number) for part_number in reader.part_numbers]
-        for f in as_completed(futures):
-            pass
-    writer.close()
+    with closing(progress_bar):
+        with ThreadPoolExecutor(max_workers=3) as e:
+            futures = [e.submit(_transfer_chunk, part_number) for part_number in reader.part_numbers]
+            for f in as_completed(futures):
+                pass
+        writer.close()
+        progress_bar.update()
 
 def copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.blob(src_key)
