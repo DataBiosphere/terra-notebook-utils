@@ -7,12 +7,15 @@ from math import ceil
 from pathlib import Path
 from contextlib import closing
 
+import gs_chunked_io as gscio
+from google.cloud.storage.bucket import Bucket
+
 from terra_notebook_utils import gs
 from terra_notebook_utils.progress_bar import ProgressBar
 
 _chunk_size = 1024 * 1024 * 32
 
-def extract(src_fh, dst_bucket: typing.Optional[gs.Bucket]=None, root: typing.Optional[str]=None):
+def extract(src_fh, dst_bucket: typing.Optional[Bucket]=None, root: typing.Optional[str]=None):
     """
     Extract a tar.gz archive into the local filesystem, or a GS bucket if `dst_bucket` is provided.
     """
@@ -48,9 +51,9 @@ def _prepare_local(tarinfo: tarfile.TarInfo, root: typing.Optional[str]):
     Path(os.path.dirname(filepath)).mkdir(parents=True, exist_ok=True)
     return open(filepath, "wb")
 
-def _prepare_gs(tarinfo: tarfile.TarInfo, bucket: gs.Bucket, root: typing.Optional[str]):
+def _prepare_gs(tarinfo: tarfile.TarInfo, bucket: Bucket, root: typing.Optional[str]):
     if root is not None:
         key = f"{root}/{tarinfo.name}"
     else:
         key = tarinfo.name
-    return gs.ChunkedWriter(key, bucket, chunk_size=_chunk_size)
+    return gscio.Writer(key, bucket, chunk_size=_chunk_size)
