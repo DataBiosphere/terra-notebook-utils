@@ -15,6 +15,7 @@ from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
 from google.oauth2 import service_account
 import google.auth
+import gs_chunked_io as gscio
 
 from terra_notebook_utils.progress_bar import ProgressBar
 
@@ -213,8 +214,8 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.get_blob(src_key)
     print(f"Copying from {src_bucket.name}/{src_key}")
     print(f"Copying to {dst_bucket.name}/{dst_key}")
-    reader = ChunkedReader(src_blob)
-    writer = ChunkedWriter(dst_key, dst_bucket)
+    reader = gscio.Reader(src_blob)
+    writer = gscio.Writer(dst_key, dst_bucket)
     progress_bar = ProgressBar(len(reader.part_numbers) + 1,
                                prefix="Copying:",
                                size=src_blob.size // 1024 ** 2,
