@@ -1,2 +1,3 @@
 google-cloud-storage
+gs-chunked-io
 firecloud

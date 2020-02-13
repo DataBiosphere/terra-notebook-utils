@@ -8,6 +8,8 @@ import pytz
 from datetime import datetime
 from unittest import mock
 
+import gs_chunked_io as gscio
+
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
@@ -18,22 +20,14 @@ from terra_notebook_utils import drs, table, gs, tar_gz
 class TestTerraNotebookUtilsGS(unittest.TestCase):
     def test_compose_parts(self):
         bucket = mock.MagicMock()
-        writer = gs.ChunkedWriter("test_dst_key", bucket)
+        writer = gscio.Writer("test_dst_key", bucket)
         writer._part_names = [writer._compose_part_name(i) for i in range(65)]
         writer.close()
-
-    def test_iter_chunks(self):
-        chunk_size = 32
-        blob_names = [f"part.{i}" for i in range(65)]
-        chunks = [ch for ch in gs._iter_chunks(blob_names, chunk_size)]
-        for ch in chunks:
-            self.assertEqual(ch, blob_names[:32])
-            blob_names = blob_names[32:]
 
     def test_chunked_reader(self):
         blob = gs.get_client().bucket("fc-d500be74-3672-458e-8e89-662a08922941").get_blob("test_dst_object")
         data = bytes()
-        reader = gs.ChunkedReader(blob, chunk_size=1024 * 1024 * 3)
+        reader = gscio.Reader(blob, chunk_size=1024 * 1024 * 3)
         while True:
             new_data = reader.read(1024 * 1024)
             if new_data:
