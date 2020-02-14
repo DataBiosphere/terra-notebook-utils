@@ -17,26 +17,6 @@ from tests import config
 import terra_notebook_utils
 from terra_notebook_utils import drs, table, gs, tar_gz
 
-class TestTerraNotebookUtilsGS(unittest.TestCase):
-    def test_compose_parts(self):
-        bucket = mock.MagicMock()
-        writer = gscio.Writer("test_dst_key", bucket)
-        writer._part_names = [writer._compose_part_name(i) for i in range(65)]
-        writer.close()
-
-    def test_chunked_reader(self):
-        blob = gs.get_client().bucket("fc-d500be74-3672-458e-8e89-662a08922941").get_blob("test_dst_object")
-        data = bytes()
-        reader = gscio.Reader(blob, chunk_size=1024 * 1024 * 3)
-        while True:
-            new_data = reader.read(1024 * 1024)
-            if new_data:
-                data += new_data
-            else:
-                break
-            if not new_data:
-                break
-
 class TestTerraNotebookUtilsTable(unittest.TestCase):
     def test_fetch_attribute(self):
         table_name = "simple_germline_variation"
