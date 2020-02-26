@@ -80,25 +80,17 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.get_blob(src_key)
     print(f"Copying from {src_bucket.name}/{src_key}")
     print(f"Copying to {dst_bucket.name}/{dst_key}")
-    reader = gscio.Reader(src_blob)
-    writer = gscio.Writer(dst_key, dst_bucket)
-    progress_bar = ProgressBar(1 + reader.number_of_parts(),
-                               prefix="Copying:",
-                               size=src_blob.size // 1024 ** 2,
-                               units="MB")
-
-    def _transfer_chunk(part_number):
-        data = reader.fetch_part(part_number)
-        writer.put_part(part_number, data)
-        progress_bar.update()
-
-    with closing(progress_bar):
-        with ThreadPoolExecutor(max_workers=3) as e:
-            futures = [e.submit(_transfer_chunk, part_number) for part_number in range(reader.number_of_parts())]
-            for f in as_completed(futures):
-                pass
-        writer.close()
-        progress_bar.update()
+    with gscio.Reader(src_blob) as reader:
+        progress_bar = ProgressBar(1 + reader.number_of_chunks(),
+                                   prefix="Copying:",
+                                   size=src_blob.size // 1024 ** 2,
+                                   units="MB")
+        with closing(progress_bar):
+            with gscio.AsyncWriter(dst_key, dst_bucket) as writer:
+                for chunk in reader.for_each_chunk():
+                    writer.write(chunk)
+                    progress_bar.update()
+            progress_bar.update()
 
 def copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.blob(src_key)
