@@ -65,5 +65,5 @@ def extract_tar_gz(drs_url: str, dst_pfx: str=None, dst_bucket_name: str=None):
     src_client, src_bucket_name, src_key = resolve_drs_for_gs_storage(drs_url)
     src_bucket = src_client.bucket(src_bucket_name, user_project=WORKSPACE_GOOGLE_PROJECT)
     dst_bucket = gs.get_client().bucket(dst_bucket_name)
-    with gscio.AsyncReader(src_bucket.get_blob(src_key)) as fh:
+    with gscio.AsyncReader(src_bucket.get_blob(src_key), chunks_to_buffer=2) as fh:
         tar_gz.extract(fh, dst_bucket, root=dst_pfx)
