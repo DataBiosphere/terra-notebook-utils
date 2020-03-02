@@ -6,7 +6,6 @@ import tarfile
 from math import ceil
 from pathlib import Path
 from contextlib import closing
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import gs_chunked_io as gscio
 from google.cloud.storage.bucket import Bucket
@@ -57,5 +56,4 @@ def _prepare_gs(tarinfo: tarfile.TarInfo, bucket: Bucket, root: typing.Optional[
         key = f"{root}/{tarinfo.name}"
     else:
         key = tarinfo.name
-    e = ThreadPoolExecutor(max_workers=4)
-    return gscio.AsyncWriter(key, bucket, chunk_size=_chunk_size, executor=e)
+    return gscio.AsyncWriter(key, bucket, chunk_size=_chunk_size)
