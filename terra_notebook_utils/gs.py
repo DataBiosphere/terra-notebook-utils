@@ -80,7 +80,7 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.get_blob(src_key)
     print(f"Copying from {src_bucket.name}/{src_key}")
     print(f"Copying to {dst_bucket.name}/{dst_key}")
-    with gscio.Reader(src_blob) as reader:
+    with gscio.AsyncReader(src_blob) as reader:
         progress_bar = ProgressBar(1 + reader.number_of_chunks(),
                                    prefix="Copying:",
                                    size=src_blob.size // 1024 ** 2,
