@@ -54,12 +54,10 @@ class TestTerraNotebookUtilsDRS(unittest.TestCase):
         drs.download(self.drs_url, "foo")
 
     def test_oneshot_copy(self):
-        # This file is too small to trigger multipart copy
-        drs.copy("drs://dg.4503/ef88aaaa-ade8-479c-ab26-f72d061f8261", "test_oneshot_object")
+        drs.copy(self.drs_url, "test_oneshot_object")
 
     def test_multipart_copy(self):
-        # This file is large enough to trigger multipart copy
-        drs.copy("drs://dg.4503/6236c17c-b3fa-4d9d-b16f-2e6bef23bd83", "test_multipart_object")
+        drs.copy(self.drs_url, "test_oneshot_object", multipart_threshold=1024 * 1024)
 
     # Probably don't want to run this test very often. Once a week?
     def _test_multipart_copy_large(self):
