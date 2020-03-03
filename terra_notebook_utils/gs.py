@@ -15,9 +15,6 @@ from terra_notebook_utils.progress_bar import ProgressBar
 logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
 logging.getLogger("gs_chunked_io.writer").setLevel(logging.WARNING)
 
-_default_chunk_size = 32 * 1024 * 1024
-_gs_max_parts_per_compose = 32
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
@@ -92,10 +89,9 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
                     progress_bar.update()
             progress_bar.update()
 
-def copy(src_bucket, dst_bucket, src_key, dst_key):
-    src_blob = src_bucket.blob(src_key)
-    src_blob.reload()
-    if _default_chunk_size >= src_blob.size:
+def copy(src_bucket, dst_bucket, src_key, dst_key, multipart_threshold=1024 * 1024 * 32):
+    src_blob = src_bucket.get_blob(src_key)
+    if multipart_threshold >= src_blob.size:
         oneshot_copy(src_bucket, dst_bucket, src_key, dst_key)
     else:
         multipart_copy(src_bucket, dst_bucket, src_key, dst_key)

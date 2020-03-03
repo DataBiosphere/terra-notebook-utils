@@ -46,7 +46,7 @@ def download(drs_url: str, filepath: str):
     with open(filepath, "wb") as fh:
         blob.download_to_file(fh)
 
-def copy(drs_url: str, dst_key: str, dst_bucket_name: str=None):
+def copy(drs_url: str, dst_key: str, dst_bucket_name: str=None, multipart_threshold=1024 * 1024 * 32):
     """
     Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.
     If `dst_bucket` is None, copy into workspace bucket.
@@ -57,7 +57,7 @@ def copy(drs_url: str, dst_key: str, dst_bucket_name: str=None):
     dst_client = gs.get_client()
     src_bucket = src_client.bucket(src_bucket_name, user_project=WORKSPACE_GOOGLE_PROJECT)
     dst_bucket = dst_client.bucket(dst_bucket_name)
-    gs.copy(src_bucket, dst_bucket, src_key, dst_key)
+    gs.copy(src_bucket, dst_bucket, src_key, dst_key, multipart_threshold)
 
 def extract_tar_gz(drs_url: str, dst_pfx: str=None, dst_bucket_name: str=None):
     if dst_bucket_name is None:
