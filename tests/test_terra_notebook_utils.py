@@ -15,7 +15,9 @@ sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config
 import terra_notebook_utils
-from terra_notebook_utils import drs, table, gs, tar_gz
+from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
+from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress
+
 
 class TestTerraNotebookUtilsTable(unittest.TestCase):
     def test_fetch_attribute(self):
@@ -40,6 +42,7 @@ class TestTerraNotebookUtilsTable(unittest.TestCase):
         column = "file_name"
         table.print_column(table_name, column)
 
+
 class TestTerraNotebookUtilsDRS(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -60,14 +63,10 @@ class TestTerraNotebookUtilsDRS(unittest.TestCase):
         drs.copy(self.drs_url, "test_oneshot_object", multipart_threshold=1024 * 1024)
 
     # Probably don't want to run this test very often. Once a week?
-    def _test_multipart_copy_large(self):
-        drs_url = "drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71"
-        drs.copy(drs_url, "test_multipart_object_large")
-
-    # Probably don't want to run this test very often. Once a week?
     def _test_extract_tar_gz(self):
         drs_url = "drs://dg.4503/273f3453-4d16-4ddd-8877-dbac958a4f4d"  # Amish cohort v4 VCF
         drs.extract_tar_gz(drs_url, "test_cohort_extract")
+
 
 class TestTerraNotebookUtilsTARGZ(unittest.TestCase):
     def test_extract(self):
@@ -90,6 +89,51 @@ class TestTerraNotebookUtilsTARGZ(unittest.TestCase):
                 self.assertIsNotNone(blob)
                 age = (datetime.now(pytz.utc) - blob.time_created).total_seconds()
                 self.assertGreater(time.time() - start_time, age)
+
+
+class TestTerraNotebookUtilsProgress(unittest.TestCase):
+    def test_progress_reporter(self):
+        with progress.ProgressReporter() as pr:
+            pr.checkpoint(2)
+            pr.checkpoint(5)
+            pr.checkpoint(7)
+            time.sleep(2)
+            self.assertEqual(14, pr.units_processed)
+
+    def test_rate_limited(self):
+        rate = 50
+        with self.subTest("Should be rate limited to expected number of calls"):
+            call_info = dict(number_of_calls=0)
+
+            @progress.RateLimited(rate)
+            def rate_limited_func():
+                call_info['number_of_calls'] += 1
+
+            start_time = time.time()
+            duration = 0
+            while duration <= 4.5 * 1 / rate:
+                rate_limited_func()
+                duration = time.time() - start_time
+            self.assertEqual(5, call_info['number_of_calls'])
+
+        with self.subTest("Should get expected exception for calling too quickly"):
+            class MockRateLimitedException(Exception):
+                pass
+
+            @progress.RateLimited(rate, MockRateLimitedException)
+            def raising_rate_limited_func():
+                pass
+
+            with self.assertRaises(MockRateLimitedException):
+                raising_rate_limited_func()
+                raising_rate_limited_func()
+
+        with self.subTest("Should be able to avoid exceptions using reset"):
+            raising_rate_limited_func.reset()
+            raising_rate_limited_func()
+            raising_rate_limited_func.reset()
+            raising_rate_limited_func()
+
 
 if __name__ == '__main__':
     unittest.main()

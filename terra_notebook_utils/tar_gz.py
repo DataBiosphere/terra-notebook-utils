@@ -11,7 +11,7 @@ import gs_chunked_io as gscio
 from google.cloud.storage.bucket import Bucket
 
 from terra_notebook_utils import gs
-from terra_notebook_utils.progress_bar import ProgressBar
+from terra_notebook_utils.progress import ProgressBar
 
 _chunk_size = 1024 * 1024 * 32
 

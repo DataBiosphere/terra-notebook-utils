@@ -10,7 +10,7 @@ from google.oauth2 import service_account
 import google.auth
 import gs_chunked_io as gscio
 
-from terra_notebook_utils.progress_bar import ProgressBar
+from terra_notebook_utils.progress import ProgressBar
 
 logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
 logging.getLogger("gs_chunked_io.writer").setLevel(logging.WARNING)
