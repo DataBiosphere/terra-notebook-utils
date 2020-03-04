@@ -25,4 +25,6 @@ Credentials can be made available by logging in with the command `gcloud auth ap
 To run tests,
 1. log in with your Google credentials using `gcloud auth application-default login`,
 1. install requirements with `pip install -r requirements-dev.txt`,
+1. populate test fixtures by running `tests/fixtures/populate_workspace_data.py` in the repo root.
+   This only needs to be done once, or every time workspace data fixtures are updated.
 1. run `make test` in the package root.
