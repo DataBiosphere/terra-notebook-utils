@@ -32,17 +32,18 @@ def delete_all_entities():
 
 def upload_entities(tsv_data):
     resp = fiss.fapi.upload_entities(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME, tsv_data, model="flexible")
+    print(resp.content)
     resp.raise_for_status()
 
 delete_all_entities()
-etype = "entity:simple_germline_variation_id"
 with open("tests/fixtures/workspace_manifest.json", "rb") as fh:
     manifest = json.loads(fh.read())
-    tsv = "\t".join(["entity:simple_germline_variation_id", "object_id", "md5sum", "file_name", "file_size"])
-    for e in manifest:
-        tsv += os.linesep + "\t".join([f"{e['uuid']}",
-                                       f"drs://{e['object_id']}",
-                                       e['md5sum'],
-                                       e['file_name'],
-                                       str(e['file_size'])])
-upload_entities(tsv)
+    for table_name, vals in manifest.items():
+        tsv = "\t".join([f"entity:{table_name}_id", "object_id", "md5sum", "file_name", "file_size"])
+        for e in vals:
+            tsv += os.linesep + "\t".join([f"{e['uuid']}",
+                                           f"drs://{e['object_id']}",
+                                           e['md5sum'],
+                                           e['file_name'],
+                                           str(e['file_size'])])
+        upload_entities(tsv)
