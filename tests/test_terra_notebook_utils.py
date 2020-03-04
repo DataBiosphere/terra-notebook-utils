@@ -21,16 +21,16 @@ class TestTerraNotebookUtilsTable(unittest.TestCase):
     def test_fetch_attribute(self):
         table_name = "simple_germline_variation"
         filter_column = "name"
-        filter_val = "4e53b671-cf02-4c0b-94b9-035c4162a2ec"
+        filter_val = "5593a1fd-56d3-43a3-96cf-bbdf81c1472f"
         key = "object_id"
         val = table.fetch_attribute(table_name, filter_column, filter_val, key)
-        self.assertEqual(val, "drs://dg.4503/695806f6-5bf7-4857-981a-9168b9470b27")
+        self.assertEqual(val, "drs://dg.4503/253c3037-a273-4fb2-96af-6bc929ae3216")
 
     def test_fetch_object_id(self):
         table_name = "simple_germline_variation"
-        file_name = "NWD519795.freeze5.v1.vcf.gz"
+        file_name = "NWD484198.freeze5.v1.vcf.gz"
         val = table.fetch_object_id(table_name, file_name)
-        self.assertEqual(val, "drs://dg.4503/1eee029e-9060-4b56-8d7d-fb96a74d8b42")
+        self.assertEqual(val, "drs://dg.4503/253c3037-a273-4fb2-96af-6bc929ae3216")
 
     def test_get_access_token(self):
         gs.get_access_token()
