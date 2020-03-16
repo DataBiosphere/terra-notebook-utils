@@ -6,15 +6,10 @@ import unittest
 import glob
 import pytz
 from datetime import datetime
-from unittest import mock
-
-import gs_chunked_io as gscio
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
-from tests import config
-import terra_notebook_utils
 from terra_notebook_utils import drs, table, gs, tar_gz
 
 class TestTerraNotebookUtilsTable(unittest.TestCase):
