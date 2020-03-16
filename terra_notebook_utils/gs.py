@@ -1,9 +1,7 @@
 import io
 import os
-import json
 import logging
 from contextlib import closing
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from google.cloud.storage import Client
 from google.oauth2 import service_account

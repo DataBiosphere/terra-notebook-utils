@@ -1,6 +1,6 @@
 from firecloud import fiss
 
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME
+from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME, DRS_SCHEMA
 
 def _iter_table(table: str):
     resp = fiss.fapi.get_entities(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME, table)
@@ -35,7 +35,7 @@ def fetch_object_id(table: str, file_name: str):
 
 def fetch_drs_url(table: str, file_name: str):
     val = fetch_object_id(table, file_name)
-    if not val.startswith("drs://"):
+    if not val.startswith(DRS_SCHEMA):
         raise ValueError(f"Expected DRS url in {table} for {file_name}, got {val} instead.")
     return val
 
