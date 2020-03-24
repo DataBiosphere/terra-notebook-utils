@@ -124,14 +124,13 @@ class TestTerraNotebookUtilsProgress(unittest.TestCase):
                 pass
 
             with self.assertRaises(MockRateLimitedException):
-                raising_rate_limited_func()
-                raising_rate_limited_func()
+                for _ in range(2):
+                    raising_rate_limited_func()
 
-        with self.subTest("Should be able to avoid exceptions using reset"):
-            raising_rate_limited_func.reset()
-            raising_rate_limited_func()
-            raising_rate_limited_func.reset()
-            raising_rate_limited_func()
+        with self.subTest("Should be able to avoid rate limit exceptions using reset"):
+            for _ in range(2):
+                raising_rate_limited_func.reset()
+                raising_rate_limited_func()
 
 
 if __name__ == '__main__':
