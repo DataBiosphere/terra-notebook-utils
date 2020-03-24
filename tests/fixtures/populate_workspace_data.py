@@ -12,7 +12,7 @@ pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', "..")) 
 sys.path.insert(0, pkg_root)  # noqa
 
 import tests.config
-WORKSPACE_GOOGLE_PROJECT = os.environ['GOOGLE_PROJECT']
+WORKSPACE_GOOGLE_PROJECT = os.environ['GCLOUD_PROJECT']
 WORKSPACE_NAME = os.environ['WORKSPACE_NAME']
 
 def list_entities():
