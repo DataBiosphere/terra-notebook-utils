@@ -1,7 +1,7 @@
 import os
 
 WORKSPACE_NAME = os.environ.get('WORKSPACE_NAME', None)
-WORKSPACE_GOOGLE_PROJECT = os.environ.get('GOOGLE_PROJECT', None)
+WORKSPACE_GOOGLE_PROJECT = os.environ.get('GCLOUD_PROJECT', None)
 WORKSPACE_BUCKET = os.environ.get('WORKSPACE_BUCKET', None)
 DRS_SCHEMA = 'drs://'
 GS_SCHEMA = 'gs://'
