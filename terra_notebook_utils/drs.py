@@ -2,7 +2,7 @@ import json
 import requests
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, GS_SCHEMA
-from terra_notebook_utils import gs, tar_gz
+from terra_notebook_utils import gs, tar_gz, vcf
 
 import gs_chunked_io as gscio
 
