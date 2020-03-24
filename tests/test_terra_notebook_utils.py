@@ -15,7 +15,7 @@ sys.path.insert(0, pkg_root)  # noqa
 from tests import config
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
-from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress
+from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress, vcf
 
 
 class TestTerraNotebookUtilsTable(unittest.TestCase):
@@ -88,6 +88,36 @@ class TestTerraNotebookUtilsTARGZ(unittest.TestCase):
                 self.assertIsNotNone(blob)
                 age = (datetime.now(pytz.utc) - blob.time_created).total_seconds()
                 self.assertGreater(time.time() - start_time, age)
+
+
+class TestTerraNotebookUtilsVCF(unittest.TestCase):
+    def _test_combine_with_drs_urls(self):
+        table_name = "simple_germline_variation"
+        file_names = ["NWD269366.freeze5.v1.vcf.gz", "NWD531899.freeze5.v1.vcf.gz", "NWD961306.freeze5.v1.vcf.gz"]
+        drs_urls = [table.fetch_object_id(table_name, fname) for fname in file_names]
+        blobs = list()
+        for drs_url in drs_urls:
+            client, bucket_name, key = drs.resolve_drs_for_gs_storage(drs_url)
+            blob = client.bucket(bucket_name, user_project=WORKSPACE_GOOGLE_PROJECT).get_blob(key)
+            blobs.append(blob)
+        vcf.combine_local(blobs, "out.vcf.gz")
+
+    def _test_combine_with_bucket_objs(self):
+        keys = [
+            "consent1/HVH_phs000993_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz",
+            "phg001280.v1.TOPMed_WGS_Amish_v4.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-IRB-MDS/Amish_phs000956_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz"  # noqa
+        ]
+        bucket = gs.get_client().bucket(WORKSPACE_BUCKET)
+        blobs = [bucket.get_blob(key) for key in keys]
+        vcf.combine_local(blobs, "out.vcf.gz")
+
+    def _grab_giant(self):
+        pfx = "phg001280.v1.TOPMed_WGS_Amish_v4.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-IRB-MDS"
+        name = "Amish_phs000956_TOPMed_WGS_freeze.8.chr10.hg38.vcf.gz"
+        key = f"{pfx}/{name}"
+        client = gs.get_client()
+        blob = client.bucket(WORKSPACE_BUCKET).get_blob(key)
+        vcf.print_header(blob)
 
 
 class TestTerraNotebookUtilsProgress(unittest.TestCase):

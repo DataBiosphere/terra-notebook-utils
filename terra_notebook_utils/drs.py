@@ -2,7 +2,7 @@ import json
 import requests
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, GS_SCHEMA
-from terra_notebook_utils import gs, tar_gz
+from terra_notebook_utils import gs, tar_gz, vcf
 
 import gs_chunked_io as gscio
 
@@ -69,3 +69,13 @@ def extract_tar_gz(drs_url: str, dst_pfx: str=None, dst_bucket_name: str=None):
     dst_bucket = gs.get_client().bucket(dst_bucket_name)
     with gscio.AsyncReader(src_bucket.get_blob(src_key), chunks_to_buffer=2) as fh:
         tar_gz.extract(fh, dst_bucket, root=dst_pfx)
+
+def combine_vcfs(drs_urls: str, dst_bucket_name: str=None, dst_key: str=None):
+    if dst_bucket_name is None:
+        dst_bucket_name = WORKSPACE_BUCKET
+    blobs = list()
+    for drs_url in drs_urls:
+        client, bucket_name, key = resolve_drs_for_gs_storage(drs_url)
+        blob = client.bucket(bucket_name, user_project=WORKSPACE_GOOGLE_PROJECT).get_blob(key)
+        blobs.append(blob)
+    vcf.combine(blobs, dst_bucket_name, dst_key)
