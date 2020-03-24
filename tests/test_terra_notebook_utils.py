@@ -7,25 +7,29 @@ import glob
 import pytz
 from datetime import datetime
 
+import gs_chunked_io as gscio
+
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
-from terra_notebook_utils import drs, table, gs, tar_gz
+from tests import config
+from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
+from terra_notebook_utils import drs, table, gs, tar_gz, xprofile
 
 class TestTerraNotebookUtilsTable(unittest.TestCase):
     def test_fetch_attribute(self):
         table_name = "simple_germline_variation"
         filter_column = "name"
-        filter_val = "4e53b671-cf02-4c0b-94b9-035c4162a2ec"
+        filter_val = "74b42836-16ab-4bf7-a683-dc5e603d0bc7"
         key = "object_id"
         val = table.fetch_attribute(table_name, filter_column, filter_val, key)
-        self.assertEqual(val, "drs://dg.4503/695806f6-5bf7-4857-981a-9168b9470b27")
+        self.assertEqual(val, "drs://dg.4503/6e73a376-f7fd-47ed-ac99-0567bb5a5993")
 
     def test_fetch_object_id(self):
         table_name = "simple_germline_variation"
-        file_name = "NWD519795.freeze5.v1.vcf.gz"
+        file_name = "NWD531899.freeze5.v1.vcf.gz"
         val = table.fetch_object_id(table_name, file_name)
-        self.assertEqual(val, "drs://dg.4503/1eee029e-9060-4b56-8d7d-fb96a74d8b42")
+        self.assertEqual(val, "drs://dg.4503/651a4ad1-06b5-4534-bb2c-1f8ed51134f6")
 
     def test_get_access_token(self):
         gs.get_access_token()
@@ -55,11 +59,6 @@ class TestTerraNotebookUtilsDRS(unittest.TestCase):
         drs.copy(self.drs_url, "test_oneshot_object", multipart_threshold=1024 * 1024)
 
     # Probably don't want to run this test very often. Once a week?
-    def _test_multipart_copy_large(self):
-        drs_url = "drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71"
-        drs.copy(drs_url, "test_multipart_object_large")
-
-    # Probably don't want to run this test very often. Once a week?
     def _test_extract_tar_gz(self):
         drs_url = "drs://dg.4503/273f3453-4d16-4ddd-8877-dbac958a4f4d"  # Amish cohort v4 VCF
         drs.extract_tar_gz(drs_url, "test_cohort_extract")
@@ -85,6 +84,7 @@ class TestTerraNotebookUtilsTARGZ(unittest.TestCase):
                 self.assertIsNotNone(blob)
                 age = (datetime.now(pytz.utc) - blob.time_created).total_seconds()
                 self.assertGreater(time.time() - start_time, age)
+
 
 if __name__ == '__main__':
     unittest.main()
