@@ -5,7 +5,7 @@ from collections import namedtuple
 import gs_chunked_io as gscio
 import bgzip
 
-from terra_notebook_utils import gs, progress
+from terra_notebook_utils import gs, progress, WORKSPACE_BUCKET
 
 
 number_of_reader_threads = 4
@@ -42,13 +42,23 @@ class VCFRow(namedtuple("VCFRow", "chrom pos vid ref alt qual filt info fmt samp
                           self.fmt,
                           self.samples)
 
+    @classmethod
+    def with_line(cls, line):
+        return cls(*line.strip().split(tab, 9))
+
 
 class VCFFile:
     columns = [b"#CHROM", b"POS", b"ID", b"REF", b"ALT", b"QUAL", b"FILTER", b"INFO", b"FORMAT"]
+    chromosomes = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10", "chr11", "chr12",
+                   "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chrX"]
 
     def __init__(self, fileobj):
+        self._closed = False
         self._fileobj = fileobj
         self._parse_header()
+        self._first_data_line = next(self._fileobj)
+        self.first_row = VCFRow.with_line(next(self._fileobj))
+        self._did_yield_first_row = False
 
     def _parse_header(self):
         self.header = list()
@@ -67,8 +77,11 @@ class VCFFile:
         self.number_of_samples = len(self.sample_names)
 
     def __iter__(self):
+        if not self._did_yield_first_row:
+            self._did_yield_first_row = True
+            yield self.first_row
         for line in self._fileobj:
-            yield VCFRow(*line.strip().split(tab, 9))
+            yield VCFRow.with_line(line)
 
     def get_rows(self, number_of_rows):
         rows = [None] * number_of_rows
@@ -80,6 +93,12 @@ class VCFFile:
                 del rows[i:]
                 break
         return rows
+
+    def close(self):
+        if not self._closed:
+            self._closed = True
+            self._fileobj.close()
+            self._fileobj = None
 
 
 class _Combiner:
@@ -139,6 +158,19 @@ class _Combiner:
         pr.checkpoint(0)
 
 
+def vcf_for_blob(blob,
+                 bgizp_read_buf=memoryview(bytearray(1024 * 1024 * 1000)),
+                 gs_read_chunk_size=1024 * 1024 * 2,
+                 bgzip_raw_read_chunk_size=1024 * 1024,
+                 buffered_reader_chunk_size=1024 * 1024):
+    raw = gscio.AsyncReader(blob, chunks_to_buffer=1, chunk_size=gs_read_chunk_size)
+    gzip_reader = bgzip.BGZipAsyncReaderPreAllocated(raw,
+                                                     bgizp_read_buf,
+                                                     num_threads=number_of_reader_threads,
+                                                     raw_read_chunk_size=1024 * 1024)
+    return VCFFile(io.BufferedReader(gzip_reader, 1024 * 1024))
+
+
 def vcf_files_for_blobs(blobs):
     vcfs = list()
     for blob in blobs:
@@ -166,3 +198,39 @@ def combine_local(blobs, filepath):
     with open(filepath, "wb") as fh:
         c = _Combiner(vcfs, fh)
         c.start()
+
+
+def _headers_equal(a, b):
+    for line_a, line_b in zip(a, b):
+        if line_a.startswith(b"##bcftools_viewCommand"):
+            # TODO: Include information about which files were combined
+            pass
+        else:
+            if line_a != line_b:
+                return False
+    return True
+
+from terra_notebook_utils import xprofile
+
+@xprofile.profile()
+def prepare_merge_workflow_input(prefixes):
+    bucket = gs.get_client().bucket(WORKSPACE_BUCKET)
+    bgzip_read_buffer = memoryview(bytearray(1024 * 1024 * 50))
+    vcfs = {chrom: list() for chrom in VCFFile.chromosomes}
+    for pfx in prefixes:
+        for item in bucket.list_blobs(prefix=pfx):
+            print("Inspecting", item.name)
+            item.reload()
+            vcf = vcf_for_blob(item,
+                               bgizp_read_buf=bgzip_read_buffer,
+                               gs_read_chunk_size=1024 * 1024,
+                               bgzip_raw_read_chunk_size=1024 * 5,
+                               buffered_reader_chunk_size=1024 * 5)
+            vcf.close()
+            chrom = vcf.first_row.chrom.decode("ascii")
+            if vcf not in vcfs[chrom]:
+                if len(vcfs[chrom]):
+                    assert _headers_equal(vcf.header, vcfs[chrom][0].header)
+                vcfs[chrom].append(vcf)
+            else:
+                raise Exception("Two chromosomes in the same vcf? No bueno")

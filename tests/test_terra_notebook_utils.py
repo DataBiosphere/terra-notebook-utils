@@ -119,6 +119,10 @@ class TestTerraNotebookUtilsVCF(unittest.TestCase):
         blob = client.bucket(WORKSPACE_BUCKET).get_blob(key)
         vcf.print_header(blob)
 
+    def test_prepare_merge_workflow_input(self):
+        prefixes = ["consent1", "phg001280.v1.TOPMed_WGS_Amish_v4.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-IRB-MDS"]
+        vcf.prepare_merge_workflow_input(prefixes)
+
 
 class TestTerraNotebookUtilsProgress(unittest.TestCase):
     def test_progress_reporter(self):
