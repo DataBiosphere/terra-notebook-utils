@@ -1,11 +1,13 @@
 import io
 import os
 from collections import namedtuple
+import pandas as pd
+from uuid import uuid4
 
 import gs_chunked_io as gscio
 import bgzip
 
-from terra_notebook_utils import gs, progress, WORKSPACE_BUCKET
+from terra_notebook_utils import gs, table, progress, WORKSPACE_BUCKET
 
 
 number_of_reader_threads = 4
@@ -49,8 +51,9 @@ class VCFRow(namedtuple("VCFRow", "chrom pos vid ref alt qual filt info fmt samp
 
 class VCFFile:
     columns = [b"#CHROM", b"POS", b"ID", b"REF", b"ALT", b"QUAL", b"FILTER", b"INFO", b"FORMAT"]
-    chromosomes = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10", "chr11", "chr12",
-                   "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chrX"]
+    chromosomes = [b"chr1", b"chr2", b"chr3", b"chr4", b"chr5", b"chr6", b"chr7", b"chr8", b"chr9", b"chr10", b"chr11",
+                   b"chr12", b"chr13", b"chr14", b"chr15", b"chr16", b"chr17", b"chr18", b"chr19", b"chr20", b"chr21",
+                   b"chr22", b"chrX"]
 
     def __init__(self, fileobj):
         self._closed = False
@@ -213,24 +216,40 @@ def _headers_equal(a, b):
 from terra_notebook_utils import xprofile
 
 @xprofile.profile()
-def prepare_merge_workflow_input(prefixes):
+def prepare_merge_workflow_input(prefixes, output_pfx="merged"):
     bucket = gs.get_client().bucket(WORKSPACE_BUCKET)
     bgzip_read_buffer = memoryview(bytearray(1024 * 1024 * 50))
-    vcfs = {chrom: list() for chrom in VCFFile.chromosomes}
+    vcfs_by_chrom = {chrom: list() for chrom in VCFFile.chromosomes}
+    names_by_chrom = {chrom: list() for chrom in VCFFile.chromosomes}
     for pfx in prefixes:
         for item in bucket.list_blobs(prefix=pfx):
             print("Inspecting", item.name)
-            item.reload()
             vcf = vcf_for_blob(item,
                                bgizp_read_buf=bgzip_read_buffer,
                                gs_read_chunk_size=1024 * 1024,
                                bgzip_raw_read_chunk_size=1024 * 5,
                                buffered_reader_chunk_size=1024 * 5)
             vcf.close()
-            chrom = vcf.first_row.chrom.decode("ascii")
-            if vcf not in vcfs[chrom]:
-                if len(vcfs[chrom]):
-                    assert _headers_equal(vcf.header, vcfs[chrom][0].header)
-                vcfs[chrom].append(vcf)
+            chrom = vcf.first_row.chrom
+            if vcf not in vcfs_by_chrom[chrom]:
+                if len(vcfs_by_chrom[chrom]):
+                    assert _headers_equal(vcf.header, vcfs_by_chrom[chrom][0].header)
+                vcfs_by_chrom[chrom].append(vcf)
+                names_by_chrom[chrom].append(item.name)
             else:
                 raise Exception("Two chromosomes in the same vcf? No bueno")
+
+    data = list()
+    for chrom in names_by_chrom:
+        output_key = output_pfx + chrom.decode("ascii") + ".vcf.gz"
+        data.append([str(uuid4()), WORKSPACE_BUCKET, output_key, ",".join(names_by_chrom[chrom])])
+    df = pd.DataFrame(data, columns=["entity:merge_vcf_id", "bucket", "output_key", "input_keys"])
+
+    ents = [dict(entityType=e['entityType'], entityName=e['name'])
+            for e in table.list_entities("merge_vcf")]
+    table.delete_entities(ents)
+
+    out_data = df.to_csv(sep="\t", index=False)
+    with open("out.csv", "w") as fh:
+        fh.write(out_data)
+    table.upload_entities(out_data)

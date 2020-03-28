@@ -39,6 +39,26 @@ def fetch_drs_url(table: str, file_name: str):
         raise ValueError(f"Expected DRS url in {table} for {file_name}, got {val} instead.")
     return val
 
+def list_entities(ent_type):
+    resp = fiss.fapi.get_entities_with_type(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME)
+    resp.raise_for_status()
+    for ent in resp.json():
+        if ent['entityType'] == ent_type:
+            yield ent
+
+def delete_entities(entities):
+    resp = fiss.fapi.delete_entities(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME, entities)
+    resp.raise_for_status()
+
+def delete_all_entities():
+    entities_to_delete = [dict(entityType=e['entityType'], entityName=e['name'])
+                          for e in list_entities()]
+    delete_entities(entities_to_delete)
+
+def upload_entities(tsv_data):
+    resp = fiss.fapi.upload_entities(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME, tsv_data, model="flexible")
+    resp.raise_for_status()
+
 def print_column(table: str, column: str):
     for item in _iter_table(table):
         print(_get_item_val(item, column))
