@@ -23,7 +23,10 @@ with closing(raw):
     with bgzip.BGZipReader(raw) as bgreader:
         with io.BufferedReader(bgreader) as reader:
             for line in reader:
-                if line.startswith(b"#"):
-                    print(line.decode("ascii").strip())
+                l = line.decode("utf-8").strip()
+                if not l:
+                    continue
+                elif l.startswith("#"):
+                    print(l)
                 else:
                     break
