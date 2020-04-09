@@ -5,6 +5,7 @@ import time
 import unittest
 import glob
 import pytz
+from uuid import uuid4
 from datetime import datetime
 
 import gs_chunked_io as gscio
@@ -40,6 +41,38 @@ class TestTerraNotebookUtilsTable(unittest.TestCase):
         table_name = "simple_germline_variation"
         column = "file_name"
         table.print_column(table_name, column)
+
+    def test_table(self):
+        table_name = "test_tnu_table"
+        number_of_entities = 5
+        table.delete_table(table_name)  # remove cruft from previous failed tests
+
+        id_column = [f"{uuid4()}" for _ in range(number_of_entities)]
+        foo_column = [f"{uuid4()}" for _ in range(number_of_entities)]
+        bar_column = [f"{uuid4()}" for _ in range(number_of_entities)]
+
+        with self.subTest("Upload table entities"):
+            tsv = "\t".join([f"entity:{table_name}_id", "foo", "bar"])
+            for i in range(number_of_entities):
+                tsv += "\r" + "\t".join((id_column[i], foo_column[i], bar_column[i]))
+            table.upload_entities(tsv)
+
+        with self.subTest("list table entities"):
+            ents = [e for e in table.list_entities(table_name)]
+            self.assertEqual(number_of_entities, len(ents))
+            res_foo_column = list()
+            res_bar_column = list()
+            res_id_column = list()
+            for i, e in enumerate(ents):
+                res_id_column.append(e['name'])
+                res_foo_column.append(e['attributes']['foo'])
+                res_bar_column.append(e['attributes']['bar'])
+            self.assertEqual(sorted(id_column), sorted(res_id_column))
+            self.assertEqual(sorted(foo_column), sorted(res_foo_column))
+            self.assertEqual(sorted(bar_column), sorted(res_bar_column))
+
+        with self.subTest("delete table"):
+            table.delete_table(table_name)
 
 
 class TestTerraNotebookUtilsDRS(unittest.TestCase):
