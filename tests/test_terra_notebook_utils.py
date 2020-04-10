@@ -132,6 +132,27 @@ class TestTerraNotebookUtilsVCF(unittest.TestCase):
         self.assertEqual("chr7", vcf_info.chrom)
         self.assertEqual("10007", vcf_info.pos)
 
+    def test_prepare_merge_workflow_input(self):
+        prefixes = ["consent1",
+                    "phg001280.v1.TOPMed_WGS_Amish_v4.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-IRB-MDS"]
+
+        fmt_1 = f"{prefixes[0]}/HVH_phs000993_TOPMed_WGS_freeze.8.{{chrom}}.hg38.vcf.gz"
+        fmt_2 = f"{prefixes[1]}/Amish_phs000956_TOPMed_WGS_freeze.8.{{chrom}}.hg38.vcf.gz"
+        expected_input_keys = sorted([",".join([fmt_1.format(chrom=c), fmt_2.format(chrom=c)])
+                                      for c in vcf.VCFInfo.chromosomes if c != "chrY"])
+        expected_output_keys = sorted([f"merged/{c}.vcf.bgz" for c in vcf.VCFInfo.chromosomes if c != "chrY"])
+
+        vcf.prepare_merge_workflow_input("test_merge_input", prefixes, "merged")
+        ents = table.list_entities("test_merge_input")
+        input_keys = list()
+        output_keys = list()
+        for e in ents:
+            self.assertEqual("fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10", e['attributes']['bucket'])
+            input_keys.append(e['attributes']['input_keys'])
+            output_keys.append(e['attributes']['output_key'])
+        self.assertEqual(expected_input_keys, sorted(input_keys))
+        self.assertEqual(expected_output_keys, sorted(output_keys))
+
 
 class TestTerraNotebookUtilsProgress(unittest.TestCase):
     def test_progress_reporter(self):
