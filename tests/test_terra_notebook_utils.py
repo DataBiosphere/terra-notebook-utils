@@ -16,7 +16,7 @@ sys.path.insert(0, pkg_root)  # noqa
 from tests import config
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
-from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress
+from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress, vcf
 
 
 class TestTerraNotebookUtilsTable(unittest.TestCase):
@@ -121,6 +121,16 @@ class TestTerraNotebookUtilsTARGZ(unittest.TestCase):
                 self.assertIsNotNone(blob)
                 age = (datetime.now(pytz.utc) - blob.time_created).total_seconds()
                 self.assertGreater(time.time() - start_time, age)
+
+
+class TestTerraNotebookUtilsVCF(unittest.TestCase):
+    def test_vcf_info(self):
+        key = "consent1/HVH_phs000993_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz"
+        blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
+        buf = memoryview(bytearray(1024 * 1024 * 50))
+        vcf_info = vcf.VCFInfo.with_blob(blob, buf)
+        self.assertEqual("chr7", vcf_info.chrom)
+        self.assertEqual("10007", vcf_info.pos)
 
 
 class TestTerraNotebookUtilsProgress(unittest.TestCase):
