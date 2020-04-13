@@ -18,7 +18,7 @@ sys.path.insert(0, pkg_root)  # noqa
 from tests import config
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
-from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress, vcf
+from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress, vcf, pipes
 
 
 class TestTerraNotebookUtilsTable(unittest.TestCase):
@@ -126,41 +126,6 @@ class TestTerraNotebookUtilsTARGZ(unittest.TestCase):
 
 
 class TestTerraNotebookUtilsVCF(unittest.TestCase):
-    def test_blob_reader(self):
-        key = "test_blob_reader_obj"
-        data = os.urandom(1024 * 1024 * 50)
-        with io.BytesIO(data) as fh:
-            gs.get_client().bucket(WORKSPACE_BUCKET).blob(key).upload_from_file(fh)
-        with vcf.BlobReaderProcess(WORKSPACE_BUCKET, key) as reader:
-            in_data = bytearray()
-            with open(reader.filepath, "rb") as fh:
-                while True:
-                    d = fh.read(randint(1024, 1024 * 1024))
-                    if d:
-                        in_data += d
-                    else:
-                        break
-        self.assertEqual(data, in_data)
-
-    def test_blob_writer(self):
-        key = "test_blob_writer_obj"
-        data = os.urandom(1024 * 1024 * 50)
-        with vcf.BlobWriterProcess(WORKSPACE_BUCKET, key) as writer:
-            with open(writer.filepath, "wb") as fh:
-                out_data = bytearray(data)
-                while True:
-                    chunk_size = randint(1024, 1024 * 1024)
-                    to_write = out_data[:chunk_size]
-                    out_data = out_data[chunk_size:]
-                    if to_write:
-                        fh.write(to_write)
-                    else:
-                        break
-
-        with io.BytesIO() as fh:
-            gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key).download_to_file(fh)
-            self.assertEqual(fh.getvalue(), data)
-
     def test_vcf_info(self):
         key = "consent1/HVH_phs000993_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz"
         blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
@@ -189,6 +154,43 @@ class TestTerraNotebookUtilsVCF(unittest.TestCase):
             output_keys.append(e['attributes']['output_key'])
         self.assertEqual(expected_input_keys, sorted(input_keys))
         self.assertEqual(expected_output_keys, sorted(output_keys))
+
+
+class TestTerraNotebookUtilsNamedPipes(unittest.TestCase):
+    def test_blob_reader(self):
+        key = "test_blob_reader_obj"
+        data = os.urandom(1024 * 1024 * 50)
+        with io.BytesIO(data) as fh:
+            gs.get_client().bucket(WORKSPACE_BUCKET).blob(key).upload_from_file(fh)
+        with pipes.BlobReaderProcess(WORKSPACE_BUCKET, key) as reader:
+            in_data = bytearray()
+            with open(reader.filepath, "rb") as fh:
+                while True:
+                    d = fh.read(randint(1024, 1024 * 1024))
+                    if d:
+                        in_data += d
+                    else:
+                        break
+        self.assertEqual(data, in_data)
+
+    def test_blob_writer(self):
+        key = "test_blob_writer_obj"
+        data = os.urandom(1024 * 1024 * 50)
+        with pipes.BlobWriterProcess(WORKSPACE_BUCKET, key) as writer:
+            with open(writer.filepath, "wb") as fh:
+                out_data = bytearray(data)
+                while True:
+                    chunk_size = randint(1024, 1024 * 1024)
+                    to_write = out_data[:chunk_size]
+                    out_data = out_data[chunk_size:]
+                    if to_write:
+                        fh.write(to_write)
+                    else:
+                        break
+
+        with io.BytesIO() as fh:
+            gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key).download_to_file(fh)
+            self.assertEqual(fh.getvalue(), data)
 
 
 class TestTerraNotebookUtilsProgress(unittest.TestCase):
