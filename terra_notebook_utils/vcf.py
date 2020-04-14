@@ -1,14 +1,36 @@
 import io
+import subprocess
 from uuid import uuid4
 from multiprocessing import cpu_count
 
 import bgzip
 import gs_chunked_io as gscio
 
-from terra_notebook_utils import gs, xprofile, WORKSPACE_BUCKET
+from terra_notebook_utils import gs, pipes, xprofile, WORKSPACE_BUCKET
 
 
 cores_available = cpu_count()
+
+
+def _subsample(input_filepath, output_filepath, samples):
+    subprocess.run(["bcftools",
+                    "view",
+                    "-s", ",".join(samples),
+                    "-o", output_filepath,
+                    "-O", "z",
+                    "--threads", f"{2 * cores_available}",
+                    input_filepath])
+
+
+@xprofile.profile("subsample_local")
+def subsample_local(src_bucket_name, src_key, dst_filepath, samples):
+    reader = pipes.BlobReaderProcess(src_bucket_name, src_key)
+    try:
+        _subsample(reader.filepath, dst_filepath, samples)
+    except Exception:
+        raise
+    finally:
+        reader.close()
 
 
 class VCFInfo:

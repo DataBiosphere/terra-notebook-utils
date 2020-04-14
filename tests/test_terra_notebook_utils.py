@@ -133,13 +133,22 @@ class TestTerraNotebookUtilsVCF(unittest.TestCase):
     def test_vcf_info(self):
         key = "consent1/HVH_phs000993_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz"
         blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
-        buf = memoryview(bytearray(1024 * 1024 * 50))
-        vcf_info = vcf.VCFInfo.with_blob(blob, buf)
+        vcf_info = vcf.VCFInfo.with_blob(blob)
         self.assertEqual("chr7", vcf_info.chrom)
         self.assertEqual("10007", vcf_info.pos)
         self.assertEqual("NWD467309", vcf_info.samples[0])
         self.assertEqual("NWD272419", vcf_info.samples[-1])
         self.assertEqual(687, len(vcf_info.samples))
+
+    def test_vcf_subsample(self):
+        key = "test_vcfs/a.vcf.gz"
+        blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
+        vcf_info = vcf.VCFInfo.with_blob(blob)
+        samples = [s for s in vcf_info.samples
+                   if not randint(0, 4)]
+        vcf.subsample_local(WORKSPACE_BUCKET, key, "out.vcf.gz", samples)
+        out_vcf_info = vcf.VCFInfo.with_file("out.vcf.gz")
+        self.assertEqual(out_vcf_info.samples, samples)
 
     def test_prepare_merge_workflow_input(self):
         prefixes = ["consent1",
