@@ -137,6 +137,9 @@ class TestTerraNotebookUtilsVCF(unittest.TestCase):
         vcf_info = vcf.VCFInfo.with_blob(blob, buf)
         self.assertEqual("chr7", vcf_info.chrom)
         self.assertEqual("10007", vcf_info.pos)
+        self.assertEqual("NWD467309", vcf_info.samples[0])
+        self.assertEqual("NWD272419", vcf_info.samples[-1])
+        self.assertEqual(687, len(vcf_info.samples))
 
     def test_prepare_merge_workflow_input(self):
         prefixes = ["consent1",
