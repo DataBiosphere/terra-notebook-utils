@@ -14,8 +14,8 @@ Utilities for the [Terra notebook environment](https://support.terra.bio/hc/en-u
   `drs.copy(drs_url, "my_key", bucket=[bucket name])`
 
 ## Credentials
-Google "application default credentials" are picked up by gcloud client libraries during runtime. This are made available in the Terra notebook
-environment, so no action is required by the user.
+When running in a Terra notebook environment, no user action is required to obtain credentials. For applications outside of the Terra notebook
+environment, users should obtain "application default credentials" using the command `gcloud auth application-default login`.
 
 ### Testing
 The account used to run the test suite should be authorized to access [TopMED data](https://www.nhlbiwgs.org/) through [Gen3](https://gen3.datastage.io/).

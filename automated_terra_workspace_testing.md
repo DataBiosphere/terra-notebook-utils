@@ -1,9 +1,11 @@
 # Automated Terra Workspace Testing
 
-Automated testing of workspace features requires service account access from a virtual machine.
-This machine should be co-located in the same data warehouse (google compute region) as the Terra workspace compute environment.
+Service accounts currently cannot be granted access to controlled access data, so automated testing against controlled
+access data cannot be configured using service accounts. Instead, tests must be executed using personal developer
+credentials.
 
-Note that the firecloud API cannot be accessed from a VM using personal GCP account credentials. Why is this?
+It is possible to grant a service account access to workspace data and buckets, as described in the section below,
+which would allow automated testing against services that do not involve accessing controlled access data.
 
 ## Configuring a GCP service account with access privileges to a Terra Workspace
   1. Create a GCP service account
@@ -13,7 +15,3 @@ Note that the firecloud API cannot be accessed from a VM using personal GCP acco
 
      See [this thread](https://gatkforums.broadinstitute.org/firecloud/discussion/12981/running-the-firecloud-api-from-a-google-compute-instance) for discussion on firecloud service account access.
   1. Give your service account read/write access to the Terra workspace
-
-## Configuring a GCP service account with access to BDCatalyst data
-
-Before automated testing can begin, the service account will need to be authorized to access BDCatalyst data through Gen3. This is WIP.
