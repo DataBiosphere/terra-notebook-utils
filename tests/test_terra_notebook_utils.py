@@ -9,6 +9,7 @@ import pytz
 from uuid import uuid4
 from random import randint
 from datetime import datetime
+from functools import lru_cache
 
 import gs_chunked_io as gscio
 
@@ -16,6 +17,7 @@ pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noq
 sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config
+from tests.infra import testmode
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress, vcf, pipes
@@ -36,6 +38,7 @@ class TestTerraNotebookUtilsTable(unittest.TestCase):
         val = table.fetch_object_id(table_name, file_name)
         self.assertEqual(val, "drs://dg.4503/651a4ad1-06b5-4534-bb2c-1f8ed51134f6")
 
+    @testmode.controlled_access
     def test_get_access_token(self):
         gs.get_access_token()
 
@@ -77,6 +80,7 @@ class TestTerraNotebookUtilsTable(unittest.TestCase):
             table.delete_table(table_name)
 
 
+@testmode.controlled_access
 class TestTerraNotebookUtilsDRS(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

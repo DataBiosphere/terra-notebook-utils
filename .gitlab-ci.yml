@@ -1,0 +1,14 @@
+image: quay.io/python-devs/ci-image
+
+before_script:
+  - date && date -u
+  - virtualenv ~/venv
+  - source ~/venv/bin/activate
+  - pip install -r requirements-dev.txt
+
+stages:
+  - test
+
+test:
+  script:
+    - make test

@@ -1,7 +1,12 @@
 .PHONY: test lint mypy tests clean build install
 MODULES=terra_notebook_utils tests
 
+export TNU_TESTMODE?=workspace_access
+
 test: lint mypy tests
+
+all_test: 
+	$(MAKE) TNU_TESTMODE="workspace_access controlled_access" test
 
 lint:
 	flake8 $(MODULES) *.py
