@@ -5,7 +5,7 @@ from multiprocessing import cpu_count
 import bgzip
 import gs_chunked_io as gscio
 
-from terra_notebook_utils import gs, xprofile
+from terra_notebook_utils import gs, xprofile, WORKSPACE_BUCKET
 
 
 cores_available = cpu_count()
@@ -30,6 +30,10 @@ class VCFInfo:
         for key, val in zip(self.columns + ["data"], parts):
             setattr(self, key, val)
 
+    def print_header(self):
+        for line in self.header:
+            print(line)
+
     @classmethod
     def with_bgzip_fileobj(cls, fileobj, read_buf: memoryview, chunk_size=1024 * 1024):
         if read_buf is None:
@@ -51,6 +55,11 @@ class VCFInfo:
     def with_file(cls, filepath, read_buf: memoryview=None):
         with open(filepath, "rb") as raw:
             return cls.with_bgzip_fileobj(raw, read_buf)
+
+    @classmethod
+    def with_bucket_object(cls, key, bucket_name=WORKSPACE_BUCKET, read_buf: memoryview=None):
+        blob = gs.get_client().bucket(bucket_name).get_blob(key)
+        return cls.with_blob(blob)
 
 
 def _headers_equal(a, b):

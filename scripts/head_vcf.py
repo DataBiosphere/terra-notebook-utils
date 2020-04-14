@@ -1,32 +1,23 @@
 #!/usr/bin/env python
 import io
+import os
+import sys
 import argparse
-from contextlib import closing
 
-import bgzip
+pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
+sys.path.insert(0, pkg_root)  # noqa
+
+from terra_notebook_utils import vcf
 
 parser = argparse.ArgumentParser()
 parser.add_argument("cloudpath", help="location of file. Can be local or GCP bucket path (e.g. gs://key)")
 args = parser.parse_args()
 
 if args.cloudpath.startswith("gs://"):
-    from google.cloud.storage import Client
-    import gs_chunked_io as gscio
     cloudpath = args.cloudpath.split("gs://", 1)[1] 
     bucket_name, key = cloudpath.split("/", 1)
-    blob = Client().bucket(bucket_name).get_blob(key)
-    raw = gscio.Reader(blob)
+    info = vcf.VCFInfo.with_bucket_object(key, bucket_name)
 else:
-    raw = open(args.cloudpath, "rb")
+    info = vcf.VCFInfo.with_file(args.cloudpath)
 
-with closing(raw):
-    with bgzip.BGZipReader(raw) as bgreader:
-        with io.BufferedReader(bgreader) as reader:
-            for line in reader:
-                l = line.decode("utf-8").strip()
-                if not l:
-                    continue
-                elif l.startswith("#"):
-                    print(l)
-                else:
-                    break
+info.print_header()
