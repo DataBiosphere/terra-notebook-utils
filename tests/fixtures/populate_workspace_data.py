@@ -6,6 +6,7 @@ import os
 import sys
 import json
 
+from google.cloud.storage import Client
 from firecloud import fiss
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', ".."))  # noqa
@@ -14,6 +15,7 @@ sys.path.insert(0, pkg_root)  # noqa
 import tests.config
 WORKSPACE_GOOGLE_PROJECT = os.environ['GCLOUD_PROJECT']
 WORKSPACE_NAME = os.environ['WORKSPACE_NAME']
+WORKSPACE_BUCKET = os.environ['WORKSPACE_BUCKET']
 
 def list_entities():
     resp = fiss.fapi.get_entities_with_type(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME)
@@ -47,3 +49,10 @@ with open("tests/fixtures/workspace_manifest.json", "rb") as fh:
                                            e['file_name'],
                                            str(e['file_size'])])
         upload_entities(tsv)
+
+root = os.path.dirname(__file__)
+bucket = Client().bucket(WORKSPACE_BUCKET[5:])
+with open(os.path.join(root, "a.vcf.gz"), "rb") as fh:
+    bucket.blob("test_vcfs/a.vcf.gz").upload_from_file(fh)
+with open(os.path.join(root, "b.vcf.gz"), "rb") as fh:
+    bucket.blob("test_vcfs/b.vcf.gz").upload_from_file(fh)

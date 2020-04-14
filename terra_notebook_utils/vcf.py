@@ -1,6 +1,7 @@
 import io
 from uuid import uuid4
 from multiprocessing import cpu_count
+import subprocess
 
 import bgzip
 import gs_chunked_io as gscio
@@ -9,6 +10,42 @@ from terra_notebook_utils import gs, xprofile
 
 
 cores_available = cpu_count()
+
+
+def _merge(input_filepaths, output_filepath):
+    subprocess.run(["bcftools",
+                    "merge",
+                    "--no-index",
+                    "-o", output_filepath,
+                    "-O", "z",
+                    "--threads", f"{2 * cores_available}"]
+                   + [fp for fp in input_filepaths])
+
+
+@xprofile.profile("combine")
+def combine(src_bucket_name, src_keys, dst_bucket_name, dst_key):
+    readers = [pipes.BlobReaderProcess(src_bucket_name, key) for key in src_keys]
+    writer = pipes.BlobWriterProcess(dst_bucket_name, dst_key)
+    try:
+        _merge([r.filepath for r in readers], writer.filepath)
+    except Exception:
+        raise
+    finally:
+        for reader in readers:
+            reader.close()
+        writer.close()
+
+
+@xprofile.profile("combine_local")
+def combine_local(src_bucket_name, keys, out_filepath):
+    readers = [pipes.BlobReaderProcess(src_bucket_name, key) for key in keys]
+    try:
+        _merge([r.filepath for r in readers], out_filepath)
+    except Exception:
+        raise
+    finally:
+        for reader in readers:
+            reader.close()
 
 
 class VCFInfo:

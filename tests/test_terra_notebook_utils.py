@@ -143,6 +143,9 @@ class TestTerraNotebookUtilsVCF(unittest.TestCase):
         vcf_info = vcf.VCFInfo.with_file(path)
         self.assertEqual("chr7", vcf_info.chrom)
         self.assertEqual("10007", vcf_info.pos)
+        self.assertEqual("NWD467309", vcf_info.samples[0])
+        self.assertEqual("NWD272419", vcf_info.samples[-1])
+        self.assertEqual(687, len(vcf_info.samples))
 
     def test_prepare_merge_workflow_input(self):
         prefixes = ["consent1",
@@ -165,8 +168,60 @@ class TestTerraNotebookUtilsVCF(unittest.TestCase):
         self.assertEqual(expected_input_keys, sorted(input_keys))
         self.assertEqual(expected_output_keys, sorted(output_keys))
 
+    def test_combine(self):
+        keys = ["test_vcfs/a.vcf.gz", "test_vcfs/b.vcf.gz"]
+        output_key = "test_bcftools_combined.vcf.gz"
+        vcf.combine(WORKSPACE_BUCKET, keys, WORKSPACE_BUCKET, output_key)
+        blob = gs.get_client().bucket(WORKSPACE_BUCKET).blob(output_key)
+        info = vcf.VCFInfo.with_blob(blob)
+        self._assert_vcf_info(info)
 
-class TestTerraNotebookUtilsNamedPipes(unittest.TestCase):
+    def test_combine_local(self):
+        keys = ["test_vcfs/a.vcf.gz", "test_vcfs/b.vcf.gz"]
+        vcf.combine_local(WORKSPACE_BUCKET, keys, "test_bcftools_combined.vcf.gz")
+        info = vcf.VCFInfo.with_file("test_bcftools_combined.vcf.gz")
+        self._assert_vcf_info(info)
+
+    def _assert_vcf_info(self, info):
+        root = os.path.dirname(__file__)
+        expected_info = vcf.VCFInfo.with_file(os.path.join(root, "fixtures/expected.vcf.gz"))
+        self.assertTrue(vcf._headers_equal(info.header, expected_info.header))
+        for name in vcf.VCFInfo.columns:
+            self.assertEqual(getattr(info, name), getattr(expected_info, name))
+
+    # Long running test on full VCF data
+    # run with `python tests/test_terra_notebook_utils.py TestTerraNotebookUtilsVCF._test_combine_full`  # noqa
+    def _test_combine_full(self):
+        keys = [
+            "consent1/HVH_phs000993_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz",
+            "phg001280.v1.TOPMed_WGS_Amish_v4.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-IRB-MDS/Amish_phs000956_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz"  # noqa
+        ]
+        vcf.combine(WORKSPACE_BUCKET, keys, WORKSPACE_BUCKET, "bcftools_combined.vcf.gz")
+
+    # Long running test on full VCF data
+    # run with `python tests/test_terra_notebook_utils.py TestTerraNotebookUtilsVCF._test_combine_local_full`  # noqa
+    def _test_combine_local_full(self):
+        keys = [
+            "consent1/HVH_phs000993_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz",
+            "phg001280.v1.TOPMed_WGS_Amish_v4.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-IRB-MDS/Amish_phs000956_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz"  # noqa
+        ]
+        vcf.combine_local(WORKSPACE_BUCKET, keys, "out.vcf.gz")
+
+    # TODO: fix this test:
+    #       vcf.combine* should accept user_project to work with downloader-pays objects
+    def _test_combine_with_drs_urls(self):
+        table_name = "simple_germline_variation"
+        file_names = ["NWD269366.freeze5.v1.vcf.gz", "NWD531899.freeze5.v1.vcf.gz", "NWD961306.freeze5.v1.vcf.gz"]
+        drs_urls = [table.fetch_object_id(table_name, fname) for fname in file_names]
+        blobs = list()
+        for drs_url in drs_urls:
+            client, bucket_name, key = drs.resolve_drs_for_gs_storage(drs_url)
+            blob = client.bucket(bucket_name, user_project=WORKSPACE_GOOGLE_PROJECT).get_blob(key)
+            blobs.append(blob)
+        vcf.combine_local(blobs, "out.vcf.gz")
+
+
+class TestTerraNotebookUtilsPipes(unittest.TestCase):
     def test_blob_reader(self):
         key = "test_blob_reader_obj"
         data = os.urandom(1024 * 1024 * 50)
