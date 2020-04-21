@@ -1,4 +1,3 @@
-.PHONY: test lint mypy tests clean build install
 MODULES=terra_notebook_utils tests
 
 export TNU_TESTMODE?=workspace_access
@@ -32,3 +31,5 @@ build: version clean
 
 install: build
 	pip install --upgrade dist/*.whl
+
+.PHONY: test lint mypy tests clean build install
