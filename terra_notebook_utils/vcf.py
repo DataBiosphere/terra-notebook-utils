@@ -21,7 +21,10 @@ class VCFInfo:
             line = line.decode("utf-8").strip()
             if line.startswith("##"):
                 self.header.append(line)
-            elif not line or line.startswith("#"):
+            elif line.startswith("#"):
+                self.header.append(line)
+                self.samples = line.split("\t")[len(self.columns):]
+            elif not line:
                 continue
             else:
                 first_data_line = line
