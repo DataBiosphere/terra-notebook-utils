@@ -46,15 +46,29 @@ class VCFInfo:
                 return cls(reader)
 
     @classmethod
+    def with_gzip_fileobj(cls, fileobj, read_buf: memoryview, chunk_size=1024 * 1024):
+        import gzip
+        gzip_reader = gzip.GzipFile(fileobj=fileobj)
+        return cls(gzip_reader)
+
+    @classmethod
     def with_blob(cls, blob, read_buf: memoryview=None):
         chunk_size = 1024 * 1024
-        with gscio.AsyncReader(blob, chunks_to_buffer=1, chunk_size=chunk_size) as raw:
-            return cls.with_bgzip_fileobj(raw, read_buf, chunk_size)
+        try:
+            with gscio.AsyncReader(blob, chunks_to_buffer=1, chunk_size=chunk_size) as raw:
+                return cls.with_bgzip_fileobj(raw, read_buf, chunk_size)
+        except bgzip.BGZIPException:
+            with gscio.AsyncReader(blob, chunks_to_buffer=1, chunk_size=chunk_size) as raw:
+                return cls.with_gzip_fileobj(raw, read_buf, chunk_size)
 
     @classmethod
     def with_file(cls, filepath, read_buf: memoryview=None):
         with open(filepath, "rb") as raw:
-            return cls.with_bgzip_fileobj(raw, read_buf)
+            try:
+                return cls.with_bgzip_fileobj(raw, read_buf)
+            except bgzip.BGZIPException:
+                raw.seek(0)
+                return cls.with_gzip_fileobj(raw, read_buf)
 
     @classmethod
     def with_bucket_object(cls, key, bucket_name=WORKSPACE_BUCKET, read_buf: memoryview=None):

@@ -133,8 +133,14 @@ class TestTerraNotebookUtilsVCF(unittest.TestCase):
     def test_vcf_info(self):
         key = "consent1/HVH_phs000993_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz"
         blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
-        buf = memoryview(bytearray(1024 * 1024 * 50))
-        vcf_info = vcf.VCFInfo.with_blob(blob, buf)
+        vcf_info = vcf.VCFInfo.with_blob(blob)
+        self.assertEqual("chr7", vcf_info.chrom)
+        self.assertEqual("10007", vcf_info.pos)
+
+    def test_vcf_info_non_block_gzipped(self):
+        path = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(path, "fixtures", "non_block_gzipped.vcf.gz")
+        vcf_info = vcf.VCFInfo.with_file(path)
         self.assertEqual("chr7", vcf_info.chrom)
         self.assertEqual("10007", vcf_info.pos)
 
