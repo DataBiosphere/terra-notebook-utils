@@ -84,7 +84,7 @@ def _headers_equal(a, b):
         if line_a.startswith("##bcftools_viewCommand"):
             # TODO: Include information about which files were combined
             pass
-        else:
+        elif line_a.startswith("##"):
             if line_a != line_b:
                 return False
     return True
