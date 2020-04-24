@@ -246,5 +246,11 @@ class TestTerraNotebookUtilsProgress(unittest.TestCase):
                 raising_rate_limited_func()
 
 
+class TestTerraNotebookUtilsGS(unittest.TestCase):
+    def test_list(self):
+        for key in gs.list(prefix="consent1"):
+            print(key)
+
+
 if __name__ == '__main__':
     unittest.main()
