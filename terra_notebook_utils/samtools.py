@@ -16,10 +16,14 @@ try:
     p = _run([htsfile_path, "--version"], capture_output=True)
     htsfile_available = True
 except (FileNotFoundError, subprocess.CalledProcessError):
+    print("WARNING: htsfile unavailable: htslib build failed during installation. "
+          "         try `pip install -v terra-notebook-utils` to diagnose the problem")
     htsfile_available = False
 
 try:
     p = _run([bcftools_path, "--version"], capture_output=True)
     bcftools_available = True
 except (FileNotFoundError, subprocess.CalledProcessError):
+    print("WARNING: htsfile unavailable: bcftools build failed during installation. "
+          "         try `pip install -v terra-notebook-utils` to diagnose the problem")
     bcftools_available = False
