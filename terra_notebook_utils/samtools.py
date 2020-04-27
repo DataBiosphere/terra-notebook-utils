@@ -17,7 +17,7 @@ def _samtools_binary_path(name):
     for root in roots:
         path = os.path.join(root, name)
         try:
-            _run([path, "--version"], capture_output=True)
+            _run([path, "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             return path
         except (FileNotFoundError, subprocess.CalledProcessError):
             pass
