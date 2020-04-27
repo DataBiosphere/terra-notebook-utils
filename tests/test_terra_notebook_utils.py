@@ -247,8 +247,8 @@ class TestTerraNotebookUtilsProgress(unittest.TestCase):
 
 
 class TestTerraNotebookUtilsGS(unittest.TestCase):
-    def test_list(self):
-        for key in gs.list(prefix="consent1"):
+    def test_list_bucket(self):
+        for key in gs.list_bucket(prefix="consent1"):
             print(key)
 
 

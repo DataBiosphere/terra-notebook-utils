@@ -98,6 +98,6 @@ def copy(src_bucket, dst_bucket, src_key, dst_key, multipart_threshold=1024 * 10
     dst_blob = dst_bucket.get_blob(dst_key)
     assert src_blob.crc32c == dst_blob.crc32c
 
-def list(bucket=WORKSPACE_BUCKET, prefix=""):
+def list_bucket(bucket=WORKSPACE_BUCKET, prefix=""):
     for blob in get_client().bucket(bucket).list_blobs(prefix=prefix):
         yield blob.name
