@@ -3,6 +3,7 @@ import glob
 import gzip
 import tarfile
 import subprocess
+import traceback
 from setuptools import setup, find_packages
 from setuptools.command import install, build_py
 
@@ -18,11 +19,15 @@ def _run(cmd: list, **kwargs):
 class BuildPy(build_py.build_py):
     def run(self):
         super().run()
-        _run(["tar", "xzf", "htslib.tar.gz", "-C", "build"])
-        _run(["tar", "xzf", "bcftools.tar.gz", "-C", "build"])
-        _run(["./configure"], cwd="build/htslib")
-        _run(["make"], cwd="build/htslib")
-        _run(["make"], cwd="build/bcftools")
+        try:
+            _run(["tar", "xzf", "htslib.tar.gz", "-C", "build"])
+            _run(["tar", "xzf", "bcftools.tar.gz", "-C", "build"])
+            _run(["./configure"], cwd="build/htslib")
+            _run(["make"], cwd="build/htslib")
+            _run(["make"], cwd="build/bcftools")
+        except subprocess.CalledProcessError as e:
+            print("Failed to build htslib/bcftools:")
+            traceback.print_exc()
 
 
 class Install(install.install):
@@ -33,20 +38,24 @@ class Install(install.install):
         libdir = os.path.join(root, os.path.abspath(self.install_lib))
         includedir = os.path.join(root, os.path.abspath(self.install_headers))
         datadir = os.path.join(root, os.path.abspath(self.install_data))
-        _run(["make",
-              f"bindir={bindir}",
-              f"includedir={includedir}",
-              f"libdir={libdir}",
-              f"libexecdir={libdir}",
-              f"datarootdir={datadir}",
-              f"INSTALL_MAN=:",
-              "install"], cwd="build/htslib")
-        _run(["make",
-              f"bindir={bindir}",
-              f"libdir={libdir}",
-              f"libexecdir={libdir}",
-              f"INSTALL_MAN=:",
-              "install"], cwd="build/bcftools")
+        try:
+            _run(["make",
+                  f"bindir={bindir}",
+                  f"includedir={includedir}",
+                  f"libdir={libdir}",
+                  f"libexecdir={libdir}",
+                  f"datarootdir={datadir}",
+                  f"INSTALL_MAN=:",
+                  "install"], cwd="build/htslib")
+            _run(["make",
+                  f"bindir={bindir}",
+                  f"libdir={libdir}",
+                  f"libexecdir={libdir}",
+                  f"INSTALL_MAN=:",
+                  "install"], cwd="build/bcftools")
+        except subprocess.CalledProcessError as e:
+            print("Failed to package htslib/bcftools")
+            traceback.print_exc()
 
 
 setup(
