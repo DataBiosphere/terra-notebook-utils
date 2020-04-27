@@ -25,7 +25,7 @@ class BuildPy(build_py.build_py):
             _run(["./configure"], cwd="build/htslib")
             _run(["make"], cwd="build/htslib")
             _run(["make"], cwd="build/bcftools")
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             print("Failed to build htslib/bcftools:")
             traceback.print_exc()
 
@@ -53,7 +53,7 @@ class Install(install.install):
                   f"libexecdir={libdir}",
                   f"INSTALL_MAN=:",
                   "install"], cwd="build/bcftools")
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             print("Failed to package htslib/bcftools")
             traceback.print_exc()
 
