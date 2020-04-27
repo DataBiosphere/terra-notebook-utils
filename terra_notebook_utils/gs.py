@@ -8,6 +8,7 @@ from google.oauth2 import service_account
 import google.auth
 import gs_chunked_io as gscio
 
+from terra_notebook_utils import WORKSPACE_BUCKET
 from terra_notebook_utils.progress import ProgressBar
 
 logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
@@ -96,3 +97,7 @@ def copy(src_bucket, dst_bucket, src_key, dst_key, multipart_threshold=1024 * 10
     src_blob.reload()
     dst_blob = dst_bucket.get_blob(dst_key)
     assert src_blob.crc32c == dst_blob.crc32c
+
+def list_bucket(prefix="", bucket=WORKSPACE_BUCKET):
+    for blob in get_client().bucket(bucket).list_blobs(prefix=prefix):
+        yield blob.name
