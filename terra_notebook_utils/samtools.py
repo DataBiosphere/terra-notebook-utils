@@ -2,28 +2,31 @@ import os
 import sys
 import subprocess
 
+paths = dict(htsfile=None, bcftools=None)
+
 def _run(cmd: list, **kwargs):
     p = subprocess.run(cmd, **kwargs)
     p.check_returncode()
     return p
 
-bin_root = os.path.abspath(os.path.dirname(sys.executable))
-htsfile_path = os.path.join(bin_root, "htsfile")
-bcftools_path = os.path.join(bin_root, "bcftools")
-bcftools_available = os.path.isfile(bcftools_path)
+def _samtools_binary_path(name):
+    roots = [
+        os.path.abspath(os.path.dirname(sys.executable)),  # typical bin path in a virtual env
+        "/home/jupyter-user/.local/bin"  # terra installation path
+    ]
+    for root in roots:
+        path = os.path.join(root, name)
+        try:
+            _run([path, "--version"], capture_output=True)
+            return path
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            pass
+    return None
 
-try:
-    p = _run([htsfile_path, "--version"], capture_output=True)
-    htsfile_available = True
-except (FileNotFoundError, subprocess.CalledProcessError):
-    print("WARNING: htsfile unavailable: htslib build failed during installation. "
-          "         try `pip install -v terra-notebook-utils` to diagnose the problem")
-    htsfile_available = False
+for name in paths:
+    paths[name] = _samtools_binary_path(name)
+    if paths[name] is None:
+        print(f"WARNING: {name} unavailable: htslib or bcftools build failed during installation. "
+              "          try `pip install -v terra-notebook-utils` to diagnose the problem")
 
-try:
-    p = _run([bcftools_path, "--version"], capture_output=True)
-    bcftools_available = True
-except (FileNotFoundError, subprocess.CalledProcessError):
-    print("WARNING: htsfile unavailable: bcftools build failed during installation. "
-          "         try `pip install -v terra-notebook-utils` to diagnose the problem")
-    bcftools_available = False
+available = {name: paths[name] is not None for name in paths}
