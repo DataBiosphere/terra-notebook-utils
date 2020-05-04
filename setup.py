@@ -4,10 +4,15 @@ from setuptools import setup, find_packages
 
 install_requires = [line.rstrip() for line in open(os.path.join(os.path.dirname(__file__), "requirements.txt"))]
 
+with open("README.md") as fh:
+    long_description = fh.read()
+
 setup(
     name="terra-notebook-utils",
     version="0.0.0",
     description="Utilities for the Terra notebook environment.",
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     url="https://github.com/DataBiosphere/terra-notebook-utils",
     author="Brian Hannafious",
     author_email="bhannafi@ucsc.edu",
