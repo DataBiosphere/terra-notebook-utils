@@ -26,3 +26,12 @@ To run tests,
 1. log in with your Google credentials using `gcloud auth application-default login`,
 1. install requirements with `pip install -r requirements-dev.txt`,
 1. run `make test` in the package root.
+
+## Links
+Project home page [GitHub](https://github.com/DataBiosphere/terra-notebook-utils)  
+Package distribution [PyPI](https://pypi.org/project/terra-notebook-utils)
+
+### Bugs
+Please report bugs, issues, feature requests, etc. on [GitHub](https://github.com/DataBiosphere/terra-notebook-utils).
+
+![](https://biodata-integration-tests.net/xbrianh/terra-notebook-utils/badges/master/pipeline.svg) ![](https://badge.fury.io/py/terra-notebook-utils.svg)
