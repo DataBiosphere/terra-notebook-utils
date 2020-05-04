@@ -1,2 +1,2 @@
-include htslib.tar.gz
-include bcftools.tar.gz
+include pyproject.toml
+include htslib.tar.gz bcftools.tar.gz
