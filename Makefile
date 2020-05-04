@@ -1,4 +1,5 @@
-.PHONY: test lint mypy tests clean build install
+include common.mk
+
 MODULES=terra_notebook_utils tests
 
 export TNU_TESTMODE?=workspace_access
@@ -27,8 +28,12 @@ clean:
 	git clean -dfx
 
 build: version clean
-	-rm -rf dist
 	python setup.py bdist_wheel
+
+sdist: clean
+	python setup.py sdist
 
 install: build
 	pip install --upgrade dist/*.whl
+
+.PHONY: test lint mypy tests clean build install
