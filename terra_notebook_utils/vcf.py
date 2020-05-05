@@ -73,11 +73,6 @@ class VCFInfo:
                 raw.seek(0)
                 return cls.with_gzip_fileobj(raw, read_buf)
 
-    @classmethod
-    def with_bucket_object(cls, key, bucket_name=WORKSPACE_BUCKET, read_buf: memoryview=None):
-        blob = gs.get_client().bucket(bucket_name).get_blob(key)
-        return cls.with_blob(blob)
-
 
 def _headers_equal(a, b):
     for line_a, line_b in zip(a, b):
