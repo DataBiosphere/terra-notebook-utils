@@ -9,6 +9,7 @@ import base64
 import tempfile
 import unittest
 import argparse
+from random import randint
 from uuid import uuid4
 from contextlib import redirect_stdout, redirect_stderr
 from tempfile import NamedTemporaryFile
@@ -26,6 +27,7 @@ import terra_notebook_utils.cli.vcf
 import terra_notebook_utils.cli.workspace
 import terra_notebook_utils.cli.profile
 import terra_notebook_utils.cli.drs
+import terra_notebook_utils.cli.table
 from terra_notebook_utils.cli import Config
 from terra_notebook_utils.cli import TNUCommandDispatch
 
@@ -108,9 +110,9 @@ class _CLITestCase(unittest.TestCase):
             Config.write()
             args = argparse.Namespace(**dict(**self.common_kwargs, **kwargs))
             out = io.StringIO()
-            with redirect_stderr(out):
-                with redirect_stdout(out):
-                    cmd(args)
+            with redirect_stdout(out):
+                cmd(args)
+            return out.getvalue().strip()
 
 
 class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
@@ -206,6 +208,47 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             blob.download_to_file(out)
             self.assertEqual(self.expected_crc32c, blob.crc32c)
             self.assertEqual(_crc32c(out.getvalue()), blob.crc32c)
+
+
+class TestTerraNotebookUtilsCLI_Table(_CLITestCase):
+    common_kwargs = dict(workspace=WORKSPACE_NAME, namespace=WORKSPACE_GOOGLE_PROJECT)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.table = "simple_germline_variation"
+        with open("tests/fixtures/workspace_manifest.json") as fh:
+            cls.table_data = json.loads(fh.read(), parse_int=str)[cls.table]
+        cls.columns = list(cls.table_data[0].keys())
+        cls.columns.remove("entity_id")
+
+    def setUp(self):
+        self.row_index = randint(0, len(self.table_data) - 1)
+        self.entity_id = self.table_data[self.row_index]['entity_id']
+        self.column = self.columns[randint(0, len(self.columns) - 1)]
+        self.cell_value = self.table_data[self.row_index][self.column]
+
+    def test_list(self):
+        self._test_cmd(terra_notebook_utils.cli.table.list_tables)
+
+    def test_get(self):
+        self._test_cmd(terra_notebook_utils.cli.table.get_table, table="simple_germline_variation")
+
+    def test_get_row(self):
+        out = self._test_cmd(terra_notebook_utils.cli.table.get_row,
+                             table=self.table,
+                             id=self.entity_id)
+        row = json.loads(out)
+        row['entity_id'] = row.pop(f"{self.table}_id")
+        self.assertEqual(row, self.table_data[self.row_index])
+
+    def test_get_cell(self):
+        column_index = randint(0, len(self.columns) - 1)
+        column = self.columns[column_index]
+        out = self._test_cmd(terra_notebook_utils.cli.table.get_cell,
+                             table=self.table,
+                             id=self.entity_id,
+                             column=column)
+        self.assertEqual(self.table_data[self.row_index][column], out)
 
 
 def _crc32c(data: bytes) -> str:

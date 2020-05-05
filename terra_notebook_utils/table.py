@@ -2,8 +2,8 @@ from firecloud import fiss
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME, DRS_SCHEMA
 
-def _iter_table(table: str):
-    resp = fiss.fapi.get_entities(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME, table)
+def _iter_table(table: str, workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT, workspace_name: str=WORKSPACE_NAME):
+    resp = fiss.fapi.get_entities(workspace_google_project, workspace_name, table)
     if 200 != resp.status_code:
         print(resp.content)
         raise Exception(f"Expected status 200, got {resp.status_code}")
@@ -39,12 +39,27 @@ def fetch_drs_url(table: str, file_name: str):
         raise ValueError(f"Expected DRS url in {table} for {file_name}, got {val} instead.")
     return val
 
-def list_entities(ent_type):
-    resp = fiss.fapi.get_entities_with_type(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME)
+def list_tables(workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT, workspace_name: str=WORKSPACE_NAME):
+    resp = fiss.fapi.list_entity_types(workspace_google_project, workspace_name)
+    resp.raise_for_status()
+    for ent_type, data in resp.json().items():
+        yield ent_type, data['attributeNames']
+
+def list_entities(ent_type: str,
+                  workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT,
+                  workspace_name: str=WORKSPACE_NAME):
+    resp = fiss.fapi.get_entities(workspace_google_project, workspace_name, ent_type)
     resp.raise_for_status()
     for ent in resp.json():
-        if ent['entityType'] == ent_type:
-            yield ent
+        yield ent
+
+def get_row(table: str,
+            entity_id: str,
+            workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT,
+            workspace_name: str=WORKSPACE_NAME):
+    resp = fiss.fapi.get_entity(workspace_google_project, workspace_name, table, entity_id)
+    resp.raise_for_status()
+    return resp.json()
 
 def delete_entities(entities: list):
     ents = [dict(entityType=e['entityType'], entityName=e['name'])
