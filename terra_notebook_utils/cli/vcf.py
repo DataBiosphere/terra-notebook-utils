@@ -1,5 +1,5 @@
 """
-VCF information
+Get information about VCF files
 """
 import typing
 import argparse
@@ -13,11 +13,14 @@ vcf_cli = dispatch.target("vcf", help=__doc__)
 
 
 @vcf_cli.action("head",
-                arguments={"path": dict(),
+                arguments={"path": dict(help="local path, gs://, or drs://"),
                            "--billing-project": dict(type=str, required=False)})
 def head(args: argparse.Namespace):
     """
-    Print VCF header. May be a local file, a Google Storage object, or a DRS object.
+    Print VCF header. `path` be a local file, a Google Storage object, or a DRS object:
+        tnu vcf head local-filepath
+        tnu vcf head gs://my-key.vcf.gz
+        tnu vcf head drs://guid --billing-project my-billing-project
     """
     if args.path.startswith("gs://"):
         from terra_notebook_utils import gs
