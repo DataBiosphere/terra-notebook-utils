@@ -5,7 +5,7 @@ from multiprocessing import cpu_count
 import bgzip
 import gs_chunked_io as gscio
 
-from terra_notebook_utils import gs, xprofile, WORKSPACE_BUCKET
+from terra_notebook_utils import gs, xprofile
 
 
 cores_available = cpu_count()

@@ -24,7 +24,7 @@ def head(args: argparse.Namespace):
     """
     if args.path.startswith("gs://"):
         from terra_notebook_utils import gs
-        path = args.path.split("gs://", 1)[1] 
+        path = args.path.split("gs://", 1)[1]
         bucket_name, key = path.split("/", 1)
         blob = gs.get_client().bucket(bucket_name).blob(key)
         info = vcf.VCFInfo.with_blob(blob)
