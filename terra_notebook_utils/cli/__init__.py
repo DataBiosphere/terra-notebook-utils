@@ -20,13 +20,9 @@ scripts/tnu vcf head --billing-project my_billing_project
 ```
 """
 import os
-import logging
 import argparse
 from argparse import RawTextHelpFormatter
 import traceback
-
-
-logger = logging.getLogger(__name__)
 
 
 class _target:
@@ -105,7 +101,7 @@ class TNUCommandDispatch:
             try:
                 action(args)
             except Exception:
-                logger.error(traceback.format_exc())
+                print(traceback.format_exc())
         except SystemExit:
             pass
         except AttributeError:
