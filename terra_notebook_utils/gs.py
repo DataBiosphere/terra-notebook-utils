@@ -1,6 +1,7 @@
 import io
 import os
 import logging
+import warnings
 from contextlib import closing
 
 from google.cloud.storage import Client
@@ -11,11 +12,17 @@ import gs_chunked_io as gscio
 from terra_notebook_utils import WORKSPACE_BUCKET
 from terra_notebook_utils.progress import ProgressBar
 
+
 logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
 logging.getLogger("gs_chunked_io.writer").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
+
+
+# Suppress the annoying google gcloud _CLOUD_SDK_CREDENTIALS_WARNING warnings
+warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
+
 
 def get_access_token():
     """
