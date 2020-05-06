@@ -20,9 +20,40 @@ scripts/tnu vcf head --billing-project my_billing_project
 ```
 """
 import os
+import json
 import argparse
 from argparse import RawTextHelpFormatter
 import traceback
+
+
+class Config:
+    attributes = ["workspace", "workspace_google_project"]
+    workspace = None
+    workspace_google_project = None
+    _path = os.path.join(os.path.expanduser("~"), ".tnu_config")
+
+    @classmethod
+    def load(cls):
+        if not os.path.exists(cls._path):
+            cls.write()
+        else:
+            for key, val in cls.get().items():
+                if key in cls.attributes:
+                    setattr(cls, key, val)
+
+    @classmethod
+    def write(cls):
+        data = {key: getattr(cls, key) for key in cls.attributes}
+        with open(cls._path, "w") as fh:
+            fh.write(json.dumps(data))
+
+    @classmethod
+    def get(cls):
+        with open(cls._path) as fh:
+            data = json.loads(fh.read())
+        return data
+
+Config.load()
 
 
 class _target:
