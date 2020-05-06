@@ -37,9 +37,7 @@ class Config:
         if not os.path.exists(cls._path):
             cls.write()
         else:
-            with open(cls._path) as fh:
-                data = json.loads(fh.read())
-            for key, val in data.items():
+            for key, val in cls.get().items():
                 if key in cls.attributes:
                     setattr(cls, key, val)
 
@@ -48,6 +46,12 @@ class Config:
         data = {key: getattr(cls, key) for key in cls.attributes}
         with open(cls._path, "w") as fh:
             fh.write(json.dumps(data))
+
+    @classmethod
+    def get(cls):
+        with open(cls._path) as fh:
+            data = json.loads(fh.read())
+        return data
 
 Config.load()
 
