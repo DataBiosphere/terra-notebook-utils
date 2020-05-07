@@ -33,6 +33,14 @@ class VCFInfo:
         for key, val in zip(self.columns + ["data"], parts):
             setattr(self, key, val)
 
+    @property
+    def length(self):
+        for line in self.header:
+            if "length" in line and f"{self.chrom}," in line:
+                length = line.rsplit("=", 1)[-1].replace(">", "")
+                return int(length)
+        return None
+
     def print_header(self):
         for line in self.header:
             print(line)
