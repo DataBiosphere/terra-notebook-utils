@@ -19,6 +19,7 @@ from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKS
 import terra_notebook_utils.cli.config
 import terra_notebook_utils.cli.vcf
 import terra_notebook_utils.cli.workspace
+import terra_notebook_utils.cli.profile
 from terra_notebook_utils.cli import Config
 from terra_notebook_utils.cli import TNUCommandDispatch
 
@@ -165,6 +166,11 @@ class TestTerraNotebookUtilsCLI_Workspace(_CLITestCase):
         self._test_cmd(terra_notebook_utils.cli.workspace.get_workspace,
                        workspace=WORKSPACE_NAME,
                        namespace="firecloud-cgl")
+
+
+class TestTerraNotebookUtilsCLI_Profile(_CLITestCase):
+    def test_list_billing_projects(self):
+        self._test_cmd(terra_notebook_utils.cli.profile.list_billing_projects)
 
 
 if __name__ == '__main__':
