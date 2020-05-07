@@ -18,6 +18,7 @@ from tests.infra import testmode
 from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 import terra_notebook_utils.cli.config
 import terra_notebook_utils.cli.vcf
+import terra_notebook_utils.cli.workspace
 from terra_notebook_utils.cli import Config
 from terra_notebook_utils.cli import TNUCommandDispatch
 
@@ -89,62 +90,81 @@ class TestTerraNotebookUtilsCLI(unittest.TestCase):
             self.assertEqual(data, dict(workspace=new_workspace, workspace_google_project=new_workspace_google_project))
 
 
-class TestTerraNotebookUtilsCLI_VCF(unittest.TestCase):
-    def test_head(self):
-        with self.subTest("Test gs:// object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.head,
-                           "gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10"
-                           "/consent1"
-                           "/HVH_phs000993_TOPMed_WGS_freeze.8.chr10.hg38.vcf.gz")
+class _CLITestCase(unittest.TestCase):
+    common_kwargs: dict = dict()
 
-        with self.subTest("Test local object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.head, "tests/fixtures/non_block_gzipped.vcf.gz")
-
-    @testmode.controlled_access
-    def test_head_drs(self):
-        with self.subTest("Test drs:// object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.head, "drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7")
-    def test_samples(self):
-        with self.subTest("Test gs:// object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.samples,
-                           "gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10"
-                           "/consent1"
-                           "/HVH_phs000993_TOPMed_WGS_freeze.8.chr10.hg38.vcf.gz")
-
-        with self.subTest("Test local object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.samples, "tests/fixtures/non_block_gzipped.vcf.gz")
-
-    @testmode.controlled_access
-    def test_samples_drs(self):
-        with self.subTest("Test drs:// object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.samples, "drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7")
-
-    def test_stats(self):
-        with self.subTest("Test gs:// object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.stats,
-                           "gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10"
-                           "/consent1"
-                           "/HVH_phs000993_TOPMed_WGS_freeze.8.chr10.hg38.vcf.gz")
-
-        with self.subTest("Test local object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.stats, "tests/fixtures/non_block_gzipped.vcf.gz")
-
-    @testmode.controlled_access
-    def test_stats_drs(self):
-        with self.subTest("Test drs:// object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.stats, "drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7")
-
-    def _test_cmd(self, cmd: typing.Callable, path: str):
+    def _test_cmd(self, cmd: typing.Callable, **kwargs):
         with NamedTemporaryFile() as tf:
             Config._path = tf.name
             Config.workspace = WORKSPACE_NAME  # type: ignore
             Config.workspace_google_project = WORKSPACE_GOOGLE_PROJECT  # type: ignore
             Config.write()
-            args = argparse.Namespace(path=path, google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+            args = argparse.Namespace(**dict(**self.common_kwargs, **kwargs))
             out = io.StringIO()
             with redirect_stderr(out):
                 with redirect_stdout(out):
                     cmd(args)
+
+
+class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
+    common_kwargs = dict(google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+
+    def test_head(self):
+        with self.subTest("Test gs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.vcf.head,
+                           path="gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10"
+                                "/consent1"
+                                "/HVH_phs000993_TOPMed_WGS_freeze.8.chr10.hg38.vcf.gz")
+
+        with self.subTest("Test local object"):
+            self._test_cmd(terra_notebook_utils.cli.vcf.head, path="tests/fixtures/non_block_gzipped.vcf.gz")
+
+    @testmode.controlled_access
+    def test_head_drs(self):
+        with self.subTest("Test drs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.vcf.head, path="drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7")
+
+    def test_samples(self):
+        with self.subTest("Test gs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.vcf.samples,
+                           path="gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10"
+                                "/consent1"
+                                "/HVH_phs000993_TOPMed_WGS_freeze.8.chr10.hg38.vcf.gz")
+
+        with self.subTest("Test local object"):
+            self._test_cmd(terra_notebook_utils.cli.vcf.samples, path="tests/fixtures/non_block_gzipped.vcf.gz")
+
+    @testmode.controlled_access
+    def test_samples_drs(self):
+        with self.subTest("Test drs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.vcf.samples,
+                           path="drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7")
+
+    def test_stats(self):
+        with self.subTest("Test gs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.vcf.stats,
+                           path="gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10"
+                                "/consent1"
+                                "/HVH_phs000993_TOPMed_WGS_freeze.8.chr10.hg38.vcf.gz")
+
+        with self.subTest("Test local object"):
+            self._test_cmd(terra_notebook_utils.cli.vcf.stats, path="tests/fixtures/non_block_gzipped.vcf.gz")
+
+    @testmode.controlled_access
+    def test_stats_drs(self):
+        with self.subTest("Test drs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.vcf.stats,
+                           path="drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7")
+
+
+class TestTerraNotebookUtilsCLI_Workspace(_CLITestCase):
+    def test_list(self):
+        self._test_cmd(terra_notebook_utils.cli.workspace.list_workspaces)
+
+    def test_get(self):
+        self._test_cmd(terra_notebook_utils.cli.workspace.get_workspace,
+                       workspace=WORKSPACE_NAME,
+                       namespace="firecloud-cgl")
 
 
 if __name__ == '__main__':
