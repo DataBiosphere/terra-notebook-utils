@@ -6,6 +6,7 @@ pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noq
 sys.path.insert(0, pkg_root)  # noqa
 
 import terra_notebook_utils.cli.config
+import terra_notebook_utils.cli.vcf
 from terra_notebook_utils.cli import dispatch
 
 

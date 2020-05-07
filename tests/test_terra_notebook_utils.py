@@ -18,7 +18,6 @@ sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config
 from tests.infra import testmode
-
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress, vcf, pipes
 
