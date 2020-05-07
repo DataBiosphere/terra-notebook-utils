@@ -7,6 +7,7 @@ sys.path.insert(0, pkg_root)  # noqa
 
 import terra_notebook_utils.cli.config
 import terra_notebook_utils.cli.vcf
+import terra_notebook_utils.cli.workspace
 from terra_notebook_utils.cli import dispatch
 
 
