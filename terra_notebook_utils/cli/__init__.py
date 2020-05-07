@@ -22,7 +22,7 @@ scripts/tnu vcf head --billing-project my_billing_project
 import os
 import json
 import argparse
-from argparse import RawTextHelpFormatter
+from argparse import RawDescriptionHelpFormatter
 import traceback
 
 
@@ -67,11 +67,11 @@ class _target:
         if mutually_exclusive is None:
             mutually_exclusive = dispatcher.targets[self.target_name]['mutually_exclusive'] or list()
 
-        def register_action(obj):
+        def register_action(func):
             parser = dispatcher.targets[self.target_name]['subparser'].add_parser(
                 name,
-                help=obj.__doc__,
-                formatter_class=RawTextHelpFormatter
+                description=func.__doc__,
+                formatter_class=RawDescriptionHelpFormatter
             )
             action_arguments = dispatcher.targets[self.target_name]['arguments'].copy()
             action_arguments.update(arguments)
@@ -83,9 +83,9 @@ class _target:
                 for argname in mutually_exclusive:
                     kwargs = action_arguments.get(argname) or dict()
                     group.add_argument(argname, **kwargs)
-            parser.set_defaults(func=obj)
-            dispatcher.actions[obj] = dict(target=dispatcher.targets[self.target_name], name=name)
-            return obj
+            parser.set_defaults(func=func)
+            dispatcher.actions[func] = dict(target=dispatcher.targets[self.target_name], name=name)
+            return func
         return register_action
 
 class TNUCommandDispatch:
@@ -114,7 +114,7 @@ class TNUCommandDispatch:
     actions: dict = dict()
 
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description=self.__doc__, formatter_class=RawTextHelpFormatter)
+        self.parser = argparse.ArgumentParser(description=self.__doc__, formatter_class=RawDescriptionHelpFormatter)
         self.parser_targets = self.parser.add_subparsers()
 
     def target(self, name: str, *, arguments: dict=None, mutually_exclusive: list=None, help=None):
