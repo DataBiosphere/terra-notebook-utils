@@ -1,5 +1,5 @@
 """
-Get information about VCF files
+VCF file utilities
 """
 import json
 import typing
