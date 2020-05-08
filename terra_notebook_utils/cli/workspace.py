@@ -36,6 +36,18 @@ def get_workspace(args: argparse.Namespace):
     data = workspace.get_workspace(args.workspace, args.namespace)
     print(json.dumps(data, indent=2))
 
+@workspace_cli.action("get-bucket", arguments={
+    "--workspace": dict(type=str, required=False, default=Config.workspace, help="workspace name"),
+    "--namespace": dict(type=str, required=False, default=None, help="workspace namespace"),
+})
+def get_workspace_bucket(args: argparse.Namespace):
+    """
+    Get workspace bucket
+    """
+    data = workspace.get_workspace(args.workspace, args.namespace)
+    bucket_name = data.get('workspace', dict()).get('bucketName', None)
+    print(bucket_name)
+
 @workspace_cli.action("delete-workflow-logs", arguments={
     "--workspace": dict(type=str,
                         default=Config.workspace,

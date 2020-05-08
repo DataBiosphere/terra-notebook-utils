@@ -3,23 +3,29 @@ import io
 import os
 import sys
 import json
+import struct
 import typing
+import base64
+import tempfile
 import unittest
 import argparse
 from uuid import uuid4
 from contextlib import redirect_stdout, redirect_stderr
 from tempfile import NamedTemporaryFile
 
+import crc32c
+
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config
 from tests.infra import testmode
-from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
+from terra_notebook_utils import gs, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 import terra_notebook_utils.cli.config
 import terra_notebook_utils.cli.vcf
 import terra_notebook_utils.cli.workspace
 import terra_notebook_utils.cli.profile
+import terra_notebook_utils.cli.drs
 from terra_notebook_utils.cli import Config
 from terra_notebook_utils.cli import TNUCommandDispatch
 
@@ -171,6 +177,40 @@ class TestTerraNotebookUtilsCLI_Workspace(_CLITestCase):
 class TestTerraNotebookUtilsCLI_Profile(_CLITestCase):
     def test_list_billing_projects(self):
         self._test_cmd(terra_notebook_utils.cli.profile.list_billing_projects)
+
+
+class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
+    drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
+    expected_crc32c = "LE1Syw=="
+
+    @testmode.controlled_access
+    def test_cp(self):
+        with self.subTest("test local"):
+            with tempfile.NamedTemporaryFile() as tf:
+                self._test_cmd(terra_notebook_utils.cli.drs.drs_cp,
+                               drs_url=self.drs_url,
+                               dst=tf.name,
+                               google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+                with open(tf.name, "rb") as fh:
+                    data = fh.read()
+                self.assertEqual(_crc32c(data), self.expected_crc32c)
+
+        with self.subTest("test gs"):
+            key = "test-drs-cli-object"
+            self._test_cmd(terra_notebook_utils.cli.drs.drs_cp,
+                           drs_url=self.drs_url,
+                           dst=f"gs://{WORKSPACE_BUCKET}/{key}",
+                           google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+            blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
+            out = io.BytesIO()
+            blob.download_to_file(out)
+            self.assertEqual(self.expected_crc32c, blob.crc32c)
+            self.assertEqual(_crc32c(out.getvalue()), blob.crc32c)
+
+
+def _crc32c(data: bytes) -> str:
+    # Compute Google's wonky base64 encoded crc32c checksum
+    return base64.b64encode(crc32c.Checksum(data).digest()).decode("utf-8")
 
 
 if __name__ == '__main__':
