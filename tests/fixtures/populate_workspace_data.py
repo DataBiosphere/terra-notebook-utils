@@ -41,8 +41,8 @@ with open("tests/fixtures/workspace_manifest.json", "rb") as fh:
     for table_name, vals in manifest.items():
         tsv = "\t".join([f"entity:{table_name}_id", "object_id", "md5sum", "file_name", "file_size"])
         for e in vals:
-            tsv += os.linesep + "\t".join([f"{e['uuid']}",
-                                           f"drs://{e['object_id']}",
+            tsv += os.linesep + "\t".join([f"{e['entity_id']}",
+                                           e['object_id'],
                                            e['md5sum'],
                                            e['file_name'],
                                            str(e['file_size'])])

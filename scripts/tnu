@@ -10,6 +10,7 @@ import terra_notebook_utils.cli.vcf
 import terra_notebook_utils.cli.workspace
 import terra_notebook_utils.cli.profile
 import terra_notebook_utils.cli.drs
+import terra_notebook_utils.cli.table
 from terra_notebook_utils.cli import dispatch
 
 
