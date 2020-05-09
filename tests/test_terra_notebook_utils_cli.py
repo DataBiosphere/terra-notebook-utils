@@ -22,60 +22,23 @@ sys.path.insert(0, pkg_root)  # noqa
 from tests import config
 from tests.infra import testmode
 from terra_notebook_utils import gs, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
+from terra_notebook_utils.cli import Config
 import terra_notebook_utils.cli.config
 import terra_notebook_utils.cli.vcf
 import terra_notebook_utils.cli.workspace
 import terra_notebook_utils.cli.profile
 import terra_notebook_utils.cli.drs
 import terra_notebook_utils.cli.table
-from terra_notebook_utils.cli import Config
-from terra_notebook_utils.cli import TNUCommandDispatch
 
 
-class TestTerraNotebookUtilsCLI(unittest.TestCase):
-    def test_dispatch(self):
-        with self.subTest("dispatch without mutually exclusive arguments"):
-            self._test_dispatch()
-
-        with self.subTest("dispatch with mutually exclusive arguments"):
-            self._test_dispatch(mutually_exclusive=True)
-
-        with self.subTest("dispatch with action overrides"):
-            self._test_dispatch(action_overrides=True)
-
-    def _test_dispatch(self, mutually_exclusive=None, action_overrides=False):
-        dispatch = TNUCommandDispatch()
-        target = dispatch.target(
-            "my_target",
-            arguments={
-                "foo": dict(default="george", type=int),
-                "--argument-a": None,
-                "--argument-b": dict(default="bar"),
-            },
-            mutually_exclusive=(["--argument-a", "--argument-b"] if mutually_exclusive else None)
-        )
-
-        if action_overrides:
-            @target.action("my_action", arguments={"foo": None, "--bar": dict(default="bars")})
-            def my_action(args):
-                self.assertEqual(args.argument_b, "LSDKFJ")
-                self.assertEqual(args.foo, "24")
-                self.assertEqual(args.bar, "bars")
-        else:
-            @target.action("my_action")
-            def my_action(args):
-                self.assertEqual(args.argument_b, "LSDKFJ")
-                self.assertEqual(args.foo, 24)
-
-        dispatch(["my_target", "my_action", "24", "--argument-b", "LSDKFJ"])
-
+class TestTerraNotebookUtilsCLI_Config(unittest.TestCase):
     def test_config_print(self):
         workspace = f"{uuid4()}"
         workspace_google_project = f"{uuid4()}"
         with NamedTemporaryFile() as tf:
-            Config._path = tf.name
-            Config.workspace = workspace
-            Config.workspace_google_project = workspace_google_project
+            Config.path = tf.name
+            Config.info['workspace'] = workspace
+            Config.info['workspace_google_project'] = workspace_google_project
             Config.write()
             args = argparse.Namespace()
             out = io.StringIO()
@@ -88,7 +51,7 @@ class TestTerraNotebookUtilsCLI(unittest.TestCase):
         new_workspace = f"{uuid4()}"
         new_workspace_google_project = f"{uuid4()}"
         with NamedTemporaryFile() as tf:
-            Config._path = tf.name
+            Config.path = tf.name
             Config.write()
             args = argparse.Namespace(key="workspace", value=new_workspace)
             terra_notebook_utils.cli.config.config_set(args)
@@ -104,7 +67,7 @@ class _CLITestCase(unittest.TestCase):
 
     def _test_cmd(self, cmd: typing.Callable, **kwargs):
         with NamedTemporaryFile() as tf:
-            Config._path = tf.name
+            Config.path = tf.name
             Config.workspace = WORKSPACE_NAME  # type: ignore
             Config.workspace_google_project = WORKSPACE_GOOGLE_PROJECT  # type: ignore
             Config.write()

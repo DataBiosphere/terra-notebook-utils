@@ -11,10 +11,10 @@ from terra_notebook_utils import workspace
 from terra_notebook_utils.cli import Config, dispatch
 
 
-workspace_cli = dispatch.target("workspace", help=__doc__)
+workspace_cli = dispatch.group("workspace", help=__doc__)
 
 
-@workspace_cli.action("list")
+@workspace_cli.command("list")
 def list_workspaces(args: argparse.Namespace):
     """
     List workspaces available to the current usuer
@@ -25,7 +25,7 @@ def list_workspaces(args: argparse.Namespace):
                   for ws in data]
     print(json.dumps(workspaces, indent=2))
 
-@workspace_cli.action("get", arguments={
+@workspace_cli.command("get", arguments={
     "--workspace": dict(type=str, required=True, help="workspace name"),
     "--namespace": dict(type=str, required=False, default=None, help="workspace namespace"),
 })
@@ -36,8 +36,8 @@ def get_workspace(args: argparse.Namespace):
     data = workspace.get_workspace(args.workspace, args.namespace)
     print(json.dumps(data, indent=2))
 
-@workspace_cli.action("get-bucket", arguments={
-    "--workspace": dict(type=str, required=False, default=Config.workspace, help="workspace name"),
+@workspace_cli.command("get-bucket", arguments={
+    "--workspace": dict(type=str, required=False, default=Config.info['workspace'], help="workspace name"),
     "--namespace": dict(type=str, required=False, default=None, help="workspace namespace"),
 })
 def get_workspace_bucket(args: argparse.Namespace):
@@ -48,9 +48,9 @@ def get_workspace_bucket(args: argparse.Namespace):
     bucket_name = data.get('workspace', dict()).get('bucketName', None)
     print(bucket_name)
 
-@workspace_cli.action("delete-workflow-logs", arguments={
+@workspace_cli.command("delete-workflow-logs", arguments={
     "--workspace": dict(type=str,
-                        default=Config.workspace,
+                        default=Config.info['workspace'],
                         help="If ommitted, the CLI configured workspace will be used.")
 })
 def delete_workflow_logs(args: argparse.Namespace):
