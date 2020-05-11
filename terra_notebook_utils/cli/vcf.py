@@ -10,14 +10,14 @@ from terra_notebook_utils.cli import dispatch, Config
 import google.cloud.storage.blob
 
 
-vcf_cli = dispatch.target("vcf", help=__doc__, arguments={
+vcf_cli = dispatch.group("vcf", help=__doc__, arguments={
     "path": dict(
         help="local path, gs://, or drs://"
     ),
     "--google-billing-project": dict(
         type=str,
         required=False,
-        default=Config.workspace_google_project,
+        default=Config.info['workspace_google_project'],
         help=("The billing project for GS requests. "
               "If omitted, the CLI configured `workspace_google_project` will be used. "
               "Note that DRS URLs also involve a GS request.")
@@ -25,7 +25,7 @@ vcf_cli = dispatch.target("vcf", help=__doc__, arguments={
 })
 
 
-@vcf_cli.action("head")
+@vcf_cli.command("head")
 def head(args: argparse.Namespace):
     """
     Output VCF header.
@@ -37,7 +37,7 @@ def head(args: argparse.Namespace):
         info = vcf.VCFInfo.with_file(args.path)
     info.print_header()
 
-@vcf_cli.action("samples")
+@vcf_cli.command("samples")
 def samples(args: argparse.Namespace):
     """
     Output VCF samples.
@@ -49,7 +49,7 @@ def samples(args: argparse.Namespace):
         info = vcf.VCFInfo.with_file(args.path)
     print(json.dumps(info.samples, indent=2))
 
-@vcf_cli.action("stats")
+@vcf_cli.command("stats")
 def stats(args: argparse.Namespace):
     """
     Output VCF stats.

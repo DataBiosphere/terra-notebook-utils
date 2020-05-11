@@ -10,16 +10,16 @@ from terra_notebook_utils.cli import dispatch, Config
 import google.cloud.storage.blob
 
 
-drs_cli = dispatch.target("drs", help=__doc__)
+drs_cli = dispatch.group("drs", help=__doc__)
 
 
-@drs_cli.action("cp", arguments={
+@drs_cli.command("cp", arguments={
     "drs_url": dict(type=str),
     "dst": dict(type=str),
     "--google-billing-project": dict(
         type=str,
         required=False,
-        default=Config.workspace_google_project,
+        default=Config.info['workspace_google_project'],
         help=("The billing project for GS requests. "
               "If omitted, the CLI configured `workspace_google_project` will be used. "
               "Note that DRS URLs also involve a GS request.")

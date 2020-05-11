@@ -10,7 +10,7 @@ from terra_notebook_utils.cli import dispatch, Config
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT
 
 
-table_cli = dispatch.target("table", help=__doc__, arguments={
+table_cli = dispatch.group("table", help=__doc__, arguments={
     "--workspace": dict(
         type=str,
         default=None,
@@ -25,7 +25,7 @@ table_cli = dispatch.target("table", help=__doc__, arguments={
 })
 
 
-@table_cli.action("list")
+@table_cli.command("list")
 def list_tables(args: argparse.Namespace):
     """
     List all tables, with column headers, in the workspace
@@ -36,7 +36,7 @@ def list_tables(args: argparse.Namespace):
         out[t] = attributes
     print(json.dumps(out, indent=2))
 
-@table_cli.action("get", arguments={
+@table_cli.command("get", arguments={
     "--table": dict(type=str, required=True, help="table name")
 })
 def get_table(args: argparse.Namespace):
@@ -49,7 +49,7 @@ def get_table(args: argparse.Namespace):
         data[f'{args.table}_id'] = e['name']
         print(json.dumps(data, indent=2))
 
-@table_cli.action("get-row", arguments={
+@table_cli.command("get-row", arguments={
     "--table": dict(type=str, required=True, help="table name"),
     "--id": dict(type=str, required=True, help="table name"),
 })
@@ -63,7 +63,7 @@ def get_row(args: argparse.Namespace):
     data[f'{args.table}_id'] = e['name']
     print(json.dumps(data, indent=2))
 
-@table_cli.action("get-cell", arguments={
+@table_cli.command("get-cell", arguments={
     "--table": dict(type=str, required=True, help="table name"),
     "--id": dict(type=str, required=True, help="id of entity"),
     "--column": dict(type=str, required=True, help="column name"),
@@ -78,9 +78,9 @@ def get_cell(args: argparse.Namespace):
             print(e['attributes'][args.column])
 
 def _resolve_workspace_and_namespace(args: argparse.Namespace):
-    args.workspace = args.workspace or Config.workspace
-    if args.workspace == Config.workspace:
-        args.namespace = Config.workspace_google_project
+    args.workspace = args.workspace or Config.info['workspace']
+    if args.workspace == Config.info['workspace']:
+        args.namespace = Config.info['workspace_google_project']
     else:
         from terra_notebook_utils.workspace import get_workspace_namespace
         args.namespace = get_workspace_namespace(args.workspace)
