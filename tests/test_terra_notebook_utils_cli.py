@@ -53,10 +53,10 @@ class TestTerraNotebookUtilsCLI_Config(unittest.TestCase):
         with NamedTemporaryFile() as tf:
             Config.path = tf.name
             Config.write()
-            args = argparse.Namespace(key="workspace", value=new_workspace)
-            terra_notebook_utils.cli.config.config_set(args)
-            args = argparse.Namespace(key="workspace_google_project", value=new_workspace_google_project)
-            terra_notebook_utils.cli.config.config_set(args)
+            args = argparse.Namespace(workspace=new_workspace)
+            terra_notebook_utils.cli.config.set_config_workspace(args)
+            args = argparse.Namespace(billing_project=new_workspace_google_project)
+            terra_notebook_utils.cli.config.set_config_billing_project(args)
             with open(tf.name) as fh:
                 data = json.loads(fh.read())
             self.assertEqual(data, dict(workspace=new_workspace, workspace_google_project=new_workspace_google_project))
