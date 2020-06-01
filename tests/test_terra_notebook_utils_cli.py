@@ -6,6 +6,7 @@ import json
 import struct
 import typing
 import base64
+import warnings
 import tempfile
 import unittest
 import argparse
@@ -64,6 +65,12 @@ class TestTerraNotebookUtilsCLI_Config(unittest.TestCase):
 
 class _CLITestCase(unittest.TestCase):
     common_kwargs: dict = dict()
+
+    def setUp(self):
+        # Suppress the annoying google gcloud _CLOUD_SDK_CREDENTIALS_WARNING warnings
+        warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
+        # Suppress unclosed socket warnings
+        warnings.simplefilter("ignore", ResourceWarning)
 
     def _test_cmd(self, cmd: typing.Callable, **kwargs):
         with NamedTemporaryFile() as tf:
