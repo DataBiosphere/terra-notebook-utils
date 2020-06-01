@@ -11,23 +11,23 @@ config_cli = dispatch.group("config", help=__doc__)
 
 
 @config_cli.command("set-workspace", arguments={
-    "value": dict()
+    "workspace": dict()
 })
 def set_config_workspace(args: argparse.Namespace):
     """
     Set workspace for cli commands
     """
-    Config.info["workspace"] = args.value
+    Config.info["workspace"] = args.workspace
     Config.write()
 
 @config_cli.command("set-workspace-google-project", arguments={
-    "value": dict()
+    "billing_project": dict()
 })
 def set_config_billing_project(args: argparse.Namespace):
     """
     Set billing project for cli commands
     """
-    Config.info["workspace_google_project"] = args.value
+    Config.info["workspace_google_project"] = args.billing_project
     Config.write()
 
 @config_cli.command("print")
