@@ -70,8 +70,10 @@ def delete_entities(entities: list):
 def delete_table(ent_type: str):
     delete_entities([e for e in list_entities(ent_type)])
 
-def upload_entities(tsv_data):
-    resp = fiss.fapi.upload_entities(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME, tsv_data, model="flexible")
+def upload_entities(tsv_data,
+                    workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT,
+                    workspace_name: str=WORKSPACE_NAME):
+    resp = fiss.fapi.upload_entities(workspace_google_project, workspace_name, tsv_data, model="flexible")
     resp.raise_for_status()
 
 def print_column(table: str, column: str):
