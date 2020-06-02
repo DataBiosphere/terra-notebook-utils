@@ -114,12 +114,12 @@ def prepare_merge_workflow_input(table_name, prefixes, output_pfx):
             else:
                 raise Exception("Two chromosomes in the same vcf?")
 
-    tsv = "\t".join([f"entity:{table_name}_id", "bucket", "output_key", "input_keys"])
+    tsv = "\t".join([f"entity:{table_name}_id", "output", "inputs"])
     for chrom, names in names_by_chrom.items():
         if names:
-            output_key = f"{output_pfx}/{chrom}.vcf.bgz"
-            input_keys = ",".join(names)
-            tsv += "\r" + "\t".join([f"{uuid4()}", WORKSPACE_BUCKET, output_key, input_keys])
+            output = f"gs://{WORKSPACE_BUCKET}/{output_pfx}/{chrom}.vcf.bgz"
+            inputs = [f"gs://{WORKSPACE_BUCKET}/{n}" for n in names]
+            tsv += "\r" + "\t".join([f"{uuid4()}", output, ",".join(inputs)])
 
     table.delete_table(f"{table_name}_set")  # This table is produced by workflows and must be deleted first
     table.delete_table(f"{table_name}")

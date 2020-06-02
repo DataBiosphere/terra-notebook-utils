@@ -3,6 +3,7 @@ import io
 import os
 import sys
 import time
+import warnings
 import unittest
 import warnings
 import glob
@@ -145,6 +146,12 @@ class TestTerraNotebookUtilsTARGZ(unittest.TestCase):
 
 
 class TestTerraNotebookUtilsVCF(unittest.TestCase):
+    def setUp(self):
+        # Suppress the annoying google gcloud _CLOUD_SDK_CREDENTIALS_WARNING warnings
+        warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
+        # Suppress unclosed socket warnings
+        warnings.simplefilter("ignore", ResourceWarning)
+
     def test_vcf_info(self):
         key = "consent1/HVH_phs000993_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz"
         blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
@@ -163,20 +170,20 @@ class TestTerraNotebookUtilsVCF(unittest.TestCase):
         prefixes = ["consent1",
                     "phg001280.v1.TOPMed_WGS_Amish_v4.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-IRB-MDS"]
 
-        fmt_1 = f"{prefixes[0]}/HVH_phs000993_TOPMed_WGS_freeze.8.{{chrom}}.hg38.vcf.gz"
-        fmt_2 = f"{prefixes[1]}/Amish_phs000956_TOPMed_WGS_freeze.8.{{chrom}}.hg38.vcf.gz"
+        fmt_1 = f"gs://{WORKSPACE_BUCKET}/{prefixes[0]}/HVH_phs000993_TOPMed_WGS_freeze.8.{{chrom}}.hg38.vcf.gz"
+        fmt_2 = f"gs://{WORKSPACE_BUCKET}/{prefixes[1]}/Amish_phs000956_TOPMed_WGS_freeze.8.{{chrom}}.hg38.vcf.gz"
         expected_input_keys = sorted([",".join([fmt_1.format(chrom=c), fmt_2.format(chrom=c)])
                                       for c in vcf.VCFInfo.chromosomes if c != "chrY"])
-        expected_output_keys = sorted([f"merged/{c}.vcf.bgz" for c in vcf.VCFInfo.chromosomes if c != "chrY"])
+        expected_output_keys = sorted([f"gs://{WORKSPACE_BUCKET}/merged/{c}.vcf.bgz"
+                                       for c in vcf.VCFInfo.chromosomes if c != "chrY"])
 
         vcf.prepare_merge_workflow_input("test_merge_input", prefixes, "merged")
         ents = table.list_entities("test_merge_input")
         input_keys = list()
         output_keys = list()
         for e in ents:
-            self.assertEqual("fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10", e['attributes']['bucket'])
-            input_keys.append(e['attributes']['input_keys'])
-            output_keys.append(e['attributes']['output_key'])
+            input_keys.append(e['attributes']['inputs'])
+            output_keys.append(e['attributes']['output'])
         self.assertEqual(expected_input_keys, sorted(input_keys))
         self.assertEqual(expected_output_keys, sorted(output_keys))
 
