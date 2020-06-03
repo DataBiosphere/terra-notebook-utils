@@ -1,18 +1,18 @@
 import json
 import requests
 
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, GS_SCHEMA
+from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, _GS_SCHEMA
 from terra_notebook_utils import gs, tar_gz
 
 import gs_chunked_io as gscio
 
 
 def _parse_gs_url(gs_url):
-    if gs_url.startswith(GS_SCHEMA):
-        bucket_name, object_key = gs_url[len(GS_SCHEMA):].split("/", 1)
+    if gs_url.startswith(_GS_SCHEMA):
+        bucket_name, object_key = gs_url[len(_GS_SCHEMA):].split("/", 1)
         return bucket_name, object_key
     else:
-        raise RuntimeError(f'Invalid gs url schema.  {gs_url} does not start with {GS_SCHEMA}')
+        raise RuntimeError(f'Invalid gs url schema.  {gs_url} does not start with {_GS_SCHEMA}')
 
 def fetch_drs_info(drs_url):
     access_token = gs.get_access_token()
@@ -33,7 +33,7 @@ def resolve_drs_for_gs_storage(drs_url):
     drs_info = fetch_drs_info(drs_url)
     credentials_data = drs_info['googleServiceAccount']['data']
     for url_info in drs_info['dos']['data_object']['urls']:
-        if url_info['url'].startswith(GS_SCHEMA):
+        if url_info['url'].startswith(_GS_SCHEMA):
             data_url = url_info['url']
             break
     else:
