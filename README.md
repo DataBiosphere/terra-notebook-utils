@@ -10,7 +10,7 @@ From the CLI:
 pip install terra-notebook-utils
 ```
 
-In a Jupyter notebook:
+In a Jupyter notebook (note the ipython magic "[%pip](https://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-pip)"):
 ```
 %pip install terra-notebook-utils
 ```
