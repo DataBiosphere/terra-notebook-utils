@@ -54,6 +54,18 @@ tnu vcf -h
 tnu profile list-billing-projects
 ```
 
+### CLI Configuration
+
+Several CLI commands target a workspace or require a Google billing project. Defaults can be configured using the
+commands
+```
+tnu config set-workspace my-workspace
+tnu config set-workspace-google-project my-billing-project
+```
+
+Alternatively, workspace and billing project can be passed in to individual commands instead of, or as overrides to,
+the configured defaults. See command help, e.g. `tnu table get --help`, for usage information.
+
 ### The DRS API and CLI
 
 terra-notebook-utils provides several methods and CLI commands useful for working with
