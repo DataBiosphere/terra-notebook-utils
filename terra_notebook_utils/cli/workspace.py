@@ -1,6 +1,3 @@
-"""
-Workspace information and operations
-"""
 import json
 import typing
 import argparse
@@ -11,7 +8,7 @@ from terra_notebook_utils import workspace
 from terra_notebook_utils.cli import Config, dispatch
 
 
-workspace_cli = dispatch.group("workspace", help=__doc__)
+workspace_cli = dispatch.group("workspace", help=workspace.__doc__)
 
 
 @workspace_cli.command("list")
@@ -19,6 +16,7 @@ def list_workspaces(args: argparse.Namespace):
     """
     List workspaces available to the current usuer
     """
+    list_workspaces.__doc__ = workspace.list_workspaces.__doc__
     data = workspace.list_workspaces()
     info_keys = ["name", "createdBy", "bucketName", "namespace"]
     workspaces = [{key: ws['workspace'][key] for key in info_keys}

@@ -1,13 +1,10 @@
-"""
-Utilities for working with DRS objects
-"""
 import argparse
 
 from terra_notebook_utils import drs
 from terra_notebook_utils.cli import dispatch, Config
 
 
-drs_cli = dispatch.group("drs", help=__doc__, arguments={
+drs_cli = dispatch.group("drs", help=drs.__doc__, arguments={
     "--google-billing-project": dict(
         type=str,
         required=False,

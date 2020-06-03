@@ -1,6 +1,3 @@
-"""
-VCF file utilities
-"""
 import json
 import typing
 import argparse
@@ -10,7 +7,7 @@ from terra_notebook_utils.cli import dispatch, Config
 import google.cloud.storage.blob
 
 
-vcf_cli = dispatch.group("vcf", help=__doc__, arguments={
+vcf_cli = dispatch.group("vcf", help=vcf.__doc__, arguments={
     "path": dict(
         help="local path, gs://, or drs://"
     ),

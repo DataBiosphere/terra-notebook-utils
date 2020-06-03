@@ -1,6 +1,3 @@
-"""
-Miscelenious user profile commands
-"""
 import json
 import argparse
 
@@ -8,7 +5,7 @@ from terra_notebook_utils import profile
 from terra_notebook_utils.cli import dispatch
 
 
-profile_cli = dispatch.group("profile", help=__doc__)
+profile_cli = dispatch.group("profile", help=profile.__doc__)
 
 
 @profile_cli.command("list-billing-projects")

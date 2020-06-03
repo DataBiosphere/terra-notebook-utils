@@ -1,3 +1,6 @@
+"""
+Workspace information and operations
+"""
 import typing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -13,11 +16,17 @@ def get_workspace(workspace: str=WORKSPACE_NAME, namespace: str=None) -> dict:
     return resp.json()
 
 def list_workspaces() -> typing.List[dict]:
+    """
+    List workspaces available to current user.
+    """
     resp = fiss.fapi.list_workspaces()
     resp.raise_for_status()
     return resp.json()
 
 def get_workspace_bucket(workspace: str=WORKSPACE_NAME) -> str:
+    """
+    Get Google Storage bucket associated with a workspace.
+    """
     for ws in list_workspaces():
         if ws['workspace']['name'] == workspace:
             return ws['workspace']['bucketName']
@@ -34,6 +43,9 @@ def get_workspace_namespace(workspace: str=WORKSPACE_NAME) -> str:
     return None
 
 def remove_workflow_logs(bucket_name=WORKSPACE_BUCKET, submission_id: str=None) -> typing.List[str]:
+    """
+    Experimental: do not use
+    """
     bucket = gs.get_client().bucket(bucket_name)
 
     def _is_workflow_log(blob):

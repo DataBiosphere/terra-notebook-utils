@@ -1,3 +1,6 @@
+"""
+Terra data table commands
+"""
 from firecloud import fiss
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME

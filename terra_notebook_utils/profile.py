@@ -1,3 +1,6 @@
+"""
+Miscelenious user profile commands
+"""
 from firecloud import fiss
 
 
