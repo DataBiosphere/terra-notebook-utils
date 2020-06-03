@@ -42,21 +42,23 @@ def resolve_drs_for_gs_storage(drs_url):
     client = gs.get_client(credentials_data, project=credentials_data['project_id'])
     return client, bucket_name, key
 
-def download(drs_url: str, filepath: str, google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
+def copy_to_local(drs_url: str, filepath: str, google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
+    assert drs_url.startswith("drs://")
     client, bucket_name, key = resolve_drs_for_gs_storage(drs_url)
     blob = client.bucket(bucket_name, user_project=google_billing_project).blob(key)
     with open(filepath, "wb") as fh:
         blob.download_to_file(fh)
 
-def copy(drs_url: str,
-         dst_key: str,
-         dst_bucket_name: str=None,
-         multipart_threshold: int=1024 * 1024 * 32,
-         google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
+def copy_to_bucket(drs_url: str,
+                   dst_key: str,
+                   dst_bucket_name: str=None,
+                   multipart_threshold: int=1024 * 1024 * 32,
+                   google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
     """
     Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.
     If `dst_bucket` is None, copy into workspace bucket.
     """
+    assert drs_url.startswith("drs://")
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
     src_client, src_bucket_name, src_key = resolve_drs_for_gs_storage(drs_url)
@@ -65,6 +67,17 @@ def copy(drs_url: str,
     dst_bucket = dst_client.bucket(dst_bucket_name)
     gs.copy(src_bucket, dst_bucket, src_key, dst_key, multipart_threshold)
 
+def copy(drs_url: str, dst: str, google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
+    assert drs_url.startswith("drs://")
+    if dst.startswith("gs://"):
+        parts = dst[5:].split("/", 1)
+        if 1 >= len(parts):
+            raise ValueError("gs:// url should contain bucket name and key with '/' delimeter.")
+        bucket_name, key = parts
+        copy_to_bucket(drs_url, key, bucket_name, google_billing_project=google_billing_project)
+    else:
+        copy_to_local(drs_url, dst, google_billing_project=google_billing_project)
+    
 def extract_tar_gz(drs_url: str,
                    dst_pfx: str=None,
                    dst_bucket_name: str=None,

@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import unittest
+import warnings
 import glob
 import pytz
 from uuid import uuid4
@@ -86,19 +87,33 @@ class TestTerraNotebookUtilsDRS(unittest.TestCase):
     def setUpClass(cls):
         cls.drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
 
+    def setUp(self):
+        # Suppress the annoying google gcloud _CLOUD_SDK_CREDENTIALS_WARNING warnings
+        warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
+        # Suppress unclosed socket warnings
+        warnings.simplefilter("ignore", ResourceWarning)
+
     def test_resolve_drs_for_google_storage(self):
         _, bucket_name, key = drs.resolve_drs_for_gs_storage(self.drs_url)
         self.assertEqual(bucket_name, "topmed-irc-share")
         self.assertEqual(key, "genomes/NWD522743.b38.irc.v1.cram.crai")
 
     def test_download(self):
-        drs.download(self.drs_url, "foo")
+        drs.copy_to_local(self.drs_url, "foo")
 
     def test_oneshot_copy(self):
-        drs.copy(self.drs_url, "test_oneshot_object")
+        drs.copy_to_bucket(self.drs_url, "test_oneshot_object")
 
     def test_multipart_copy(self):
-        drs.copy(self.drs_url, "test_oneshot_object", multipart_threshold=1024 * 1024)
+        drs.copy_to_bucket(self.drs_url, "test_oneshot_object", multipart_threshold=1024 * 1024)
+
+    def test_copy(self):
+        with self.subTest("Test copy to local location"):
+            filepath = "test_copy_object"
+            drs.copy(self.drs_url, filepath)
+        with self.subTest("Test copy to bucket location"):
+            key = f"gs://{WORKSPACE_BUCKET}/test_oneshot_object"
+            drs.copy(self.drs_url, key)
 
     # Probably don't want to run this test very often. Once a week?
     def _test_extract_tar_gz(self):

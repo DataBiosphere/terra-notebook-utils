@@ -1,13 +1,10 @@
 """
 DRS utilities
 """
-import json
-import typing
 import argparse
 
 from terra_notebook_utils import drs
 from terra_notebook_utils.cli import dispatch, Config
-import google.cloud.storage.blob
 
 
 drs_cli = dispatch.group("drs", help=__doc__)
@@ -27,17 +24,9 @@ drs_cli = dispatch.group("drs", help=__doc__)
 })
 def drs_cp(args: argparse.Namespace):
     """
-    Copy drs:// object to gs bucket or local filesystem
+    Copy drs:// object to local file or Google Storage bucket
     examples:
         tnu drs cp drs://my-drs-id /tmp/doom
         tnu drs cp drs://my-drs-id gs://my-cool-bucket/my-cool-bucket-key
     """
-    assert args.drs_url.startswith("drs://")
-    if args.dst.startswith("gs://"):
-        parts = args.dst[5:].split("/", 1)
-        if 1 >= len(parts):
-            raise Exception("gs:// url should contain bucket name and key, with '/' delimeter.")
-        bucket_name, key = parts
-        drs.copy(args.drs_url, key, bucket_name, google_billing_project=args.google_billing_project)
-    else:
-        drs.download(args.drs_url, args.dst, google_billing_project=args.google_billing_project)
+    drs.copy(args.drs_url, args.dst, args.google_billing_project)
