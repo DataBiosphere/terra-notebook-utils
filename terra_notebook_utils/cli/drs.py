@@ -1,5 +1,5 @@
 """
-DRS utilities
+Utilities for working with DRS objects
 """
 import argparse
 
@@ -10,7 +10,7 @@ from terra_notebook_utils.cli import dispatch, Config
 drs_cli = dispatch.group("drs", help=__doc__)
 
 
-@drs_cli.command("cp", arguments={
+@drs_cli.command("copy", arguments={
     "drs_url": dict(type=str),
     "dst": dict(type=str),
     "--google-billing-project": dict(
@@ -22,7 +22,7 @@ drs_cli = dispatch.group("drs", help=__doc__)
               "Note that DRS URLs also involve a GS request.")
     ),
 })
-def drs_cp(args: argparse.Namespace):
+def drs_copy(args: argparse.Namespace):
     """
     Copy drs:// object to local file or Google Storage bucket
     examples:
