@@ -5,7 +5,6 @@ import sys
 import time
 import warnings
 import unittest
-import warnings
 import glob
 import pytz
 from uuid import uuid4
