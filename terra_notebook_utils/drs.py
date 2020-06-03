@@ -77,7 +77,7 @@ def copy(drs_url: str, dst: str, google_billing_project: str=WORKSPACE_GOOGLE_PR
         copy_to_bucket(drs_url, key, bucket_name, google_billing_project=google_billing_project)
     else:
         copy_to_local(drs_url, dst, google_billing_project=google_billing_project)
-    
+
 def extract_tar_gz(drs_url: str,
                    dst_pfx: str=None,
                    dst_bucket_name: str=None,
