@@ -1,3 +1,6 @@
+"""
+Utilities for working with DRS objects
+"""
 import json
 import requests
 
@@ -15,6 +18,9 @@ def _parse_gs_url(gs_url):
         raise RuntimeError(f'Invalid gs url schema.  {gs_url} does not start with {_GS_SCHEMA}')
 
 def fetch_drs_info(drs_url):
+    """
+    Request DRS infromation from martha.
+    """
     access_token = gs.get_access_token()
     martha_url = "https://us-central1-broad-dsde-prod.cloudfunctions.net/martha_v2"
     headers = {
@@ -30,6 +36,9 @@ def fetch_drs_info(drs_url):
     return resp_data
 
 def resolve_drs_for_gs_storage(drs_url):
+    """
+    Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage client.
+    """
     drs_info = fetch_drs_info(drs_url)
     credentials_data = drs_info['googleServiceAccount']['data']
     for url_info in drs_info['dos']['data_object']['urls']:
@@ -43,6 +52,9 @@ def resolve_drs_for_gs_storage(drs_url):
     return client, bucket_name, key
 
 def copy_to_local(drs_url: str, filepath: str, google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
+    """
+    Copy a DRS object to the local filesystem.
+    """
     assert drs_url.startswith("drs://")
     client, bucket_name, key = resolve_drs_for_gs_storage(drs_url)
     blob = client.bucket(bucket_name, user_project=google_billing_project).blob(key)
@@ -68,6 +80,9 @@ def copy_to_bucket(drs_url: str,
     gs.copy(src_bucket, dst_bucket, src_key, dst_key, multipart_threshold)
 
 def copy(drs_url: str, dst: str, google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
+    """
+    Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with "gs://".
+    """
     assert drs_url.startswith("drs://")
     if dst.startswith("gs://"):
         parts = dst[5:].split("/", 1)

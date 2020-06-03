@@ -1,3 +1,6 @@
+"""
+VCF file utilities
+"""
 import io
 from uuid import uuid4
 from multiprocessing import cpu_count
@@ -95,6 +98,14 @@ def _headers_equal(a, b):
 
 @xprofile.profile()
 def prepare_merge_workflow_input(table_name, prefixes, output_pfx):
+    """
+    Prepare a Terra data table as input for the xvcfmerge workflow:
+    https://dockstore.org/my-workflows/github.com/DataBiosphere/xvcfmerge
+    table_name: output table
+    prefixes: prefixes containing cohort VCFs. Each prefix should contain a set of chromosome VCFs to be merged, each
+              containing the same samples. Input VCFs should have equivalent headers.
+    output_pfx: destination prefix of merged VCFs.
+    """
     from terra_notebook_utils import table, WORKSPACE_BUCKET
 
     bucket = gs.get_client().bucket(WORKSPACE_BUCKET)

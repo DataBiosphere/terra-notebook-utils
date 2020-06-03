@@ -1,6 +1,3 @@
-"""
-Terra data table commands
-"""
 import os
 import json
 import typing
@@ -11,7 +8,7 @@ from terra_notebook_utils.cli import dispatch, Config
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT
 
 
-table_cli = dispatch.group("table", help=__doc__, arguments={
+table_cli = dispatch.group("table", help=table.__doc__, arguments={
     "--workspace": dict(
         type=str,
         default=None,
