@@ -5,8 +5,19 @@ objects, [VCF](https://samtools.github.io/hts-specs/VCFv4.1.pdf) files, and the
 
 ## Installation
 
+From the CLI:
 ```
 pip install terra-notebook-utils
+```
+
+In a Jupyter notebook:
+```
+%pip install terra-notebook-utils
+```
+
+To upgrade to the newest version:
+```
+pip install --upgrade --no-cache-dir terra-notebook-utils
 ```
 
 ## Credentials
