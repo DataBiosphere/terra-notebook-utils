@@ -156,10 +156,10 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
     expected_crc32c = "LE1Syw=="
 
     @testmode.controlled_access
-    def test_cp(self):
+    def test_copy(self):
         with self.subTest("test local"):
             with tempfile.NamedTemporaryFile() as tf:
-                self._test_cmd(terra_notebook_utils.cli.drs.drs_cp,
+                self._test_cmd(terra_notebook_utils.cli.drs.drs_copy,
                                drs_url=self.drs_url,
                                dst=tf.name,
                                google_billing_project=WORKSPACE_GOOGLE_PROJECT)
@@ -169,7 +169,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
 
         with self.subTest("test gs"):
             key = "test-drs-cli-object"
-            self._test_cmd(terra_notebook_utils.cli.drs.drs_cp,
+            self._test_cmd(terra_notebook_utils.cli.drs.drs_copy,
                            drs_url=self.drs_url,
                            dst=f"gs://{WORKSPACE_BUCKET}/{key}",
                            google_billing_project=WORKSPACE_GOOGLE_PROJECT)
