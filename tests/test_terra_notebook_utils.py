@@ -3,7 +3,6 @@ import io
 import os
 import sys
 import time
-import warnings
 import unittest
 import glob
 import pytz

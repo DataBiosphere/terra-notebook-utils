@@ -6,7 +6,6 @@ import json
 import struct
 import typing
 import base64
-import warnings
 import tempfile
 import unittest
 import argparse
