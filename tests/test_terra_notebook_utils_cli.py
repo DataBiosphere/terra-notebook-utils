@@ -6,7 +6,6 @@ import json
 import struct
 import typing
 import base64
-import warnings
 import tempfile
 import unittest
 import argparse
@@ -20,7 +19,7 @@ import crc32c
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
-from tests import config
+from tests import TestCaseSuppressWarnings, config
 from tests.infra import testmode
 from terra_notebook_utils import gs, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 from terra_notebook_utils.cli import Config
@@ -32,7 +31,7 @@ import terra_notebook_utils.cli.drs
 import terra_notebook_utils.cli.table
 
 
-class TestTerraNotebookUtilsCLI_Config(unittest.TestCase):
+class TestTerraNotebookUtilsCLI_Config(TestCaseSuppressWarnings):
     def test_config_print(self):
         workspace = f"{uuid4()}"
         workspace_google_project = f"{uuid4()}"
@@ -63,14 +62,8 @@ class TestTerraNotebookUtilsCLI_Config(unittest.TestCase):
             self.assertEqual(data, dict(workspace=new_workspace, workspace_google_project=new_workspace_google_project))
 
 
-class _CLITestCase(unittest.TestCase):
+class _CLITestCase(TestCaseSuppressWarnings):
     common_kwargs: dict = dict()
-
-    def setUp(self):
-        # Suppress the annoying google gcloud _CLOUD_SDK_CREDENTIALS_WARNING warnings
-        warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
-        # Suppress unclosed socket warnings
-        warnings.simplefilter("ignore", ResourceWarning)
 
     def _test_cmd(self, cmd: typing.Callable, **kwargs):
         with NamedTemporaryFile() as tf:

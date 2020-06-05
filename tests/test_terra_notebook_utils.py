@@ -3,7 +3,6 @@ import io
 import os
 import sys
 import time
-import warnings
 import unittest
 import glob
 import pytz
@@ -18,13 +17,13 @@ import gs_chunked_io as gscio
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
-from tests import config
+from tests import TestCaseSuppressWarnings, config
 from tests.infra import testmode
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
 from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress, vcf, workspace
 
 
-class TestTerraNotebookUtilsTable(unittest.TestCase):
+class TestTerraNotebookUtilsTable(TestCaseSuppressWarnings):
     def test_fetch_attribute(self):
         table_name = "simple_germline_variation"
         filter_column = "name"
@@ -82,16 +81,10 @@ class TestTerraNotebookUtilsTable(unittest.TestCase):
 
 
 @testmode.controlled_access
-class TestTerraNotebookUtilsDRS(unittest.TestCase):
+class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
     @classmethod
     def setUpClass(cls):
         cls.drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
-
-    def setUp(self):
-        # Suppress the annoying google gcloud _CLOUD_SDK_CREDENTIALS_WARNING warnings
-        warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
-        # Suppress unclosed socket warnings
-        warnings.simplefilter("ignore", ResourceWarning)
 
     def test_resolve_drs_for_google_storage(self):
         _, bucket_name, key = drs.resolve_drs_for_gs_storage(self.drs_url)
@@ -121,7 +114,7 @@ class TestTerraNotebookUtilsDRS(unittest.TestCase):
         drs.extract_tar_gz(drs_url, "test_cohort_extract")
 
 
-class TestTerraNotebookUtilsTARGZ(unittest.TestCase):
+class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):
     def test_extract(self):
         with self.subTest("Test tarball extraction to local filesystem"):
             with open("tests/fixtures/test_archive.tar.gz", "rb") as fh:
@@ -144,13 +137,7 @@ class TestTerraNotebookUtilsTARGZ(unittest.TestCase):
                 self.assertGreater(time.time() - start_time, age)
 
 
-class TestTerraNotebookUtilsVCF(unittest.TestCase):
-    def setUp(self):
-        # Suppress the annoying google gcloud _CLOUD_SDK_CREDENTIALS_WARNING warnings
-        warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
-        # Suppress unclosed socket warnings
-        warnings.simplefilter("ignore", ResourceWarning)
-
+class TestTerraNotebookUtilsVCF(TestCaseSuppressWarnings):
     def test_vcf_info(self):
         key = "consent1/HVH_phs000993_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz"
         blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
@@ -187,7 +174,7 @@ class TestTerraNotebookUtilsVCF(unittest.TestCase):
         self.assertEqual(expected_output_keys, sorted(output_keys))
 
 
-class TestTerraNotebookUtilsProgress(unittest.TestCase):
+class TestTerraNotebookUtilsProgress(TestCaseSuppressWarnings):
     def test_progress_reporter(self):
         with progress.ProgressReporter() as pr:
             pr.checkpoint(2)
@@ -230,13 +217,13 @@ class TestTerraNotebookUtilsProgress(unittest.TestCase):
                 raising_rate_limited_func()
 
 
-class TestTerraNotebookUtilsGS(unittest.TestCase):
+class TestTerraNotebookUtilsGS(TestCaseSuppressWarnings):
     def test_list_bucket(self):
         for key in gs.list_bucket("consent1"):
             print(key)
 
 
-class TestTerraNotebookUtilsWorkspace(unittest.TestCase):
+class TestTerraNotebookUtilsWorkspace(TestCaseSuppressWarnings):
     namespace = "firecloud-cgl"
 
     def test_get_workspace(self):
