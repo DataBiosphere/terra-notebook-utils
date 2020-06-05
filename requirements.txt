@@ -1,5 +1,5 @@
 google-cloud-storage
-gs-chunked-io >= 0.2.11
+gs-chunked-io >= 0.2.12
 firecloud
 bgzip >= 0.3.0
 cli-builder
