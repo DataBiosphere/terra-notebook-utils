@@ -5,8 +5,19 @@ objects, [VCF](https://samtools.github.io/hts-specs/VCFv4.1.pdf) files, and the
 
 ## Installation
 
+From the CLI:
 ```
 pip install terra-notebook-utils
+```
+
+In a Jupyter notebook (note the ipython magic "[%pip](https://ipython.readthedocs.io/en/stable/interactive/magics.html#magic-pip)"):
+```
+%pip install terra-notebook-utils
+```
+
+To upgrade to the newest version:
+```
+pip install --upgrade --no-cache-dir terra-notebook-utils
 ```
 
 ## Credentials
@@ -42,6 +53,18 @@ tnu vcf -h
 # Show your available billing projects
 tnu profile list-billing-projects
 ```
+
+### CLI Configuration
+
+Several CLI commands target a workspace or require a Google billing project. Defaults can be configured using the
+commands
+```
+tnu config set-workspace my-workspace
+tnu config set-workspace-google-project my-billing-project
+```
+
+Alternatively, workspace and billing project can be passed in to individual commands instead of, or as overrides to,
+the configured defaults. See command help, e.g. `tnu table get --help`, for usage information.
 
 ### The DRS API and CLI
 
