@@ -9,7 +9,7 @@ with open("README.md") as fh:
 
 setup(
     name="terra-notebook-utils",
-    version="0.1.0",
+    version="0.1.1",
     description="Utilities for the Terra notebook environment.",
     long_description=long_description,
     long_description_content_type='text/markdown',
