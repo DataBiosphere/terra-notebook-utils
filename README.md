@@ -119,10 +119,22 @@ While a Python API for working with VCFs is currently available, usage is more c
 maintainer for more information.
 
 ## Tests
-To run tests,
+Continuous integration testing is performed on each branch pushed to the main GitHub repo using the
+BioData Catalyst [GitLab instance](https://biodata-integration-tests.net/xbrianh/terra-notebook-utils/pipelines).
+
+To run tests locally
+1. Contact the `terra-notebook-utils` maintainers for access to the 
+   [terra-notebook-utils-tests](https://terra.biodatacatalyst.nhlbi.nih.gov/#workspaces/firecloud-cgl/terra-notebook-utils-tests)
+   Terra workspace.
 1. log in with your Google credentials using `gcloud auth application-default login`,
 1. install requirements with `pip install -r requirements-dev.txt`,
 1. run `make test` in the package root.
+
+### Manual Testing the CLI
+The CLI can be executed from the repo root with. It is not necessary to install the package.
+```
+scripts/tnu
+```
 
 ## Links
 Project home page [GitHub](https://github.com/DataBiosphere/terra-notebook-utils)  
