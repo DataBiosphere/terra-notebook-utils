@@ -2,7 +2,7 @@ import os
 
 WORKSPACE_NAME = os.environ.get('WORKSPACE_NAME', None)
 WORKSPACE_GOOGLE_PROJECT = os.environ.get('GOOGLE_PROJECT')  # This env var is set in Terra notebooks
-ENV = os.environ.get('ENV', 'prod')
+TERRA_DEPLOYMENT_ENV = os.environ.get('TERRA_DEPLOYMENT_ENV', 'prod')
 
 if not WORKSPACE_GOOGLE_PROJECT:
     WORKSPACE_GOOGLE_PROJECT = os.environ.get('GCP_PROJECT')  # Useful for running outside of notebook

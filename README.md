@@ -131,7 +131,7 @@ If you don't wish to run this within a docker image, skip to step 5.
 7. set up the following environment variables, depending on what you will be using: 
   - `export GOOGLE_PROJECT=[validProject]`
   - `export WORKSPACE_NAME=[workspaceWithinProject]`
-  - `export ENV=dev` 
+  - `export TERRA_DEPLOYMENT_ENV=dev` 
   - `export WORKSPACE_BUCKET=[bucketWithinWorkspace]`
 8. run the python shell via `python`, and import any modules you wish to use. For example, `from terra_notebook_utils import drs`
 
@@ -142,7 +142,7 @@ A sample non-protected test DRS url that resolves to a small file in dev: `drs:/
 To run tests,
 1. log in with your Google credentials using `gcloud auth application-default login`,
 2. Your account must have access to the workspace `terra-notebook-utils-tests` 
-3. Run `export GOOGLE_PROJECT=firecloud-cgl; export ENV=prod; export WORKSPACE_NAME=terra-notebook-utils-tests`
+3. Run `export GOOGLE_PROJECT=firecloud-cgl; export TERRA_DEPLOYMENT_ENV=prod; export WORKSPACE_NAME=terra-notebook-utils-tests`
 4. install requirements with `pip install -r requirements-dev.txt`,
 5. run `make test` in the package root.
 

@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 import google.auth
 import gs_chunked_io as gscio
 
-from terra_notebook_utils import WORKSPACE_BUCKET, ENV
+from terra_notebook_utils import WORKSPACE_BUCKET, TERRA_DEPLOYMENT_ENV
 from terra_notebook_utils.progress import ProgressBar
 
 
@@ -51,7 +51,7 @@ def reset_bond_cache():
         'authorization': f"Bearer {token}",
         'content-type': "application/json"
     }
-    resp = requests.delete(f"http://broad-bond-{ENV}.appspot.com/api/link/v1/fence/", headers=headers)
+    resp = requests.delete(f"http://broad-bond-{TERRA_DEPLOYMENT_ENV}.appspot.com/api/link/v1/fence/", headers=headers)
     print(resp.content)
 
 def get_client(credentials_data: dict=None, project: str=None):

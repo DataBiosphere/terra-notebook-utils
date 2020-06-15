@@ -4,12 +4,14 @@ Utilities for working with DRS objects
 import json
 import requests
 
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, ENV, WORKSPACE_NAME, _GS_SCHEMA
+from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, TERRA_DEPLOYMENT_ENV, WORKSPACE_NAME, _GS_SCHEMA # noqa
 from terra_notebook_utils import gs, tar_gz
+import functools
+import logging
 
 import gs_chunked_io as gscio
 
-HAS_REQUESTER_PAYS_INIT = False
+logger = logging.getLogger(__name__)
 
 def _parse_gs_url(gs_url):
     if gs_url.startswith(_GS_SCHEMA):
@@ -18,16 +20,13 @@ def _parse_gs_url(gs_url):
     else:
         raise RuntimeError(f'Invalid gs url schema.  {gs_url} does not start with {_GS_SCHEMA}')
 
-def enable_requester_pays(env: str=ENV, project: str=WORKSPACE_GOOGLE_PROJECT, workspace: str=WORKSPACE_NAME):
-    global HAS_REQUESTER_PAYS_INIT
-    if HAS_REQUESTER_PAYS_INIT:
-        return
-    HAS_REQUESTER_PAYS_INIT = True
+@functools.lru_cache(maxsize=1)
+def enable_requester_pays():
 
     import urllib.parse
-    encoded_workspace = urllib.parse.quote(workspace)
-    rawls_url = f"https://rawls.dsde-{env}.broadinstitute.org/api/workspaces/{project}/{encoded_workspace}/enableRequesterPaysForLinkedServiceAccounts" # noqa
-    print("Enabling requester pays for your workspace. This will only take a few seconds...")
+    encoded_workspace = urllib.parse.quote(WORKSPACE_NAME)
+    rawls_url = f"https://rawls.dsde-{TERRA_DEPLOYMENT_ENV}.broadinstitute.org/api/workspaces/{WORKSPACE_GOOGLE_PROJECT}/{encoded_workspace}/enableRequesterPaysForLinkedServiceAccounts" # noqa
+    logger.info("Enabling requester pays for your workspace. This will only take a few seconds...")
     access_token = gs.get_access_token()
 
     headers = {
@@ -37,10 +36,10 @@ def enable_requester_pays(env: str=ENV, project: str=WORKSPACE_GOOGLE_PROJECT, w
     resp = requests.put(rawls_url, headers=headers)
 
     if resp.status_code != 204:
-        print(f"Failed to init requester pays for workspace {project}/{workspace} in env {env}.")
-        print("You will not be able to access drs urls that interact with requester pays buckets.")
+        logger.warning(f"Failed to init requester pays for workspace {WORKSPACE_GOOGLE_PROJECT}/{WORKSPACE_NAME}.")
+        logger.warning("You will not be able to access drs urls that interact with requester pays buckets.")
 
-def fetch_drs_info(drs_url, env: str):
+def fetch_drs_info(drs_url):
     """
     Request DRS infromation from martha.
     """
@@ -48,7 +47,7 @@ def fetch_drs_info(drs_url, env: str):
 
     enable_requester_pays()
 
-    martha_url = f"https://us-central1-broad-dsde-{env}.cloudfunctions.net/martha_v2"
+    martha_url = f"https://us-central1-broad-dsde-{TERRA_DEPLOYMENT_ENV}.cloudfunctions.net/martha_v2"
     headers = {
         'authorization': f"Bearer {access_token}",
         'content-type': "application/json"
@@ -59,15 +58,15 @@ def fetch_drs_info(drs_url, env: str):
     if 200 == resp.status_code:
         resp_data = resp.json()
     else:
-        print(resp.content)
+        logger.warning(resp.content)
         raise Exception(f"expected status 200, got {resp.status_code}")
     return resp_data
 
-def resolve_drs_for_gs_storage(drs_url, env: str=ENV):
+def resolve_drs_for_gs_storage(drs_url):
     """
     Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage client.
     """
-    drs_info = fetch_drs_info(drs_url, env)
+    drs_info = fetch_drs_info(drs_url)
     credentials_data = drs_info['googleServiceAccount']['data']
     for url_info in drs_info['dos']['data_object']['urls']:
         if url_info['url'].startswith(_GS_SCHEMA):
@@ -80,15 +79,15 @@ def resolve_drs_for_gs_storage(drs_url, env: str=ENV):
     client = gs.get_client(credentials_data, project=credentials_data['project_id'])
     return client, bucket_name, key
 
-def copy_to_local(drs_url: str, filepath: str, google_billing_project: str=WORKSPACE_GOOGLE_PROJECT, env: str=ENV):
+def copy_to_local(drs_url: str, filepath: str, google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
     """
     Copy a DRS object to the local filesystem.
     """
     assert drs_url.startswith("drs://")
-    client, bucket_name, key = resolve_drs_for_gs_storage(drs_url, env)
+    client, bucket_name, key = resolve_drs_for_gs_storage(drs_url)
     blob = client.bucket(bucket_name, user_project=google_billing_project).blob(key)
     with open(filepath, "wb") as fh:
-        print(f"Beginning to download url {drs_url}. This can take a while for large files...")
+        logger.info(f"Beginning to download url {drs_url}. This can take a while for large files...")
         blob.download_to_file(fh)
 
 def copy_to_bucket(drs_url: str,
@@ -107,10 +106,10 @@ def copy_to_bucket(drs_url: str,
     dst_client = gs.get_client()
     src_bucket = src_client.bucket(src_bucket_name, user_project=google_billing_project)
     dst_bucket = dst_client.bucket(dst_bucket_name)
-    print(f"Beginning to copy from {src_bucket} to {dst_bucket}. This can take a while for large files...")
+    logger.info(f"Beginning to copy from {src_bucket} to {dst_bucket}. This can take a while for large files...")
     gs.copy(src_bucket, dst_bucket, src_key, dst_key, multipart_threshold)
 
-def copy(drs_url: str, dst: str, google_billing_project: str=WORKSPACE_GOOGLE_PROJECT, env: str=ENV):
+def copy(drs_url: str, dst: str, google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
     """
     Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with "gs://".
     """
@@ -122,7 +121,7 @@ def copy(drs_url: str, dst: str, google_billing_project: str=WORKSPACE_GOOGLE_PR
         bucket_name, key = parts
         copy_to_bucket(drs_url, key, bucket_name, google_billing_project=google_billing_project)
     else:
-        copy_to_local(drs_url, dst, google_billing_project=google_billing_project, env=ENV)
+        copy_to_local(drs_url, dst, google_billing_project=google_billing_project)
 
 def extract_tar_gz(drs_url: str,
                    dst_pfx: str=None,
