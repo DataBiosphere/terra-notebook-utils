@@ -133,4 +133,4 @@ def extract_tar_gz(drs_url: str,
         tar_gz.extract(fh, dst_bucket, root=dst_pfx)
 
 # Lazily enable requester_pays on module load
-enable_requester_pays()
+# enable_requester_pays()
