@@ -1,6 +1,6 @@
 # Contributions are welcome!
 
-If you don't have the necessary access to PR into DataBiosphere repos, please fork the repo.
+If you don't have the necessary access to PR into this repo, please fork the repo.
 
 ## To publish a new version
 1. Create a Pypi account and verify your email
