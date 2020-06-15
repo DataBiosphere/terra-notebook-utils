@@ -19,8 +19,8 @@ release:
 	@if [[ -z $$TAG ]]; then echo "Use release_{major,minor,patch}"; exit 1; fi
 	git pull
 	git clean -x --force $$(python setup.py --name)
-	sed -i -e "s/version=\([\'\"]\)[0-9]*\.[0-9]*\.[0-9]*/version=\1$${TAG:1}/" setup.py
-	git add setup.py
+	sed -i -e "s/__version__ = \([\'\"]\)[0-9]*\.[0-9]*\.[0-9]*/__version__ = \1$${TAG:1}/" terra_notebook_utils/version.py
+	git add terra_notebook_utils/version.py
 	TAG_MSG=$$(mktemp); \
 	    echo "# Changes for ${TAG} ($$(date +%Y-%m-%d))" > $$TAG_MSG; \
 	    git log --pretty=format:%s $$(git describe --abbrev=0)..HEAD >> $$TAG_MSG; \
