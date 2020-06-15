@@ -9,6 +9,7 @@ from terra_notebook_utils import gs, tar_gz
 
 import gs_chunked_io as gscio
 
+HAS_REQUESTER_PAYS_INIT = False
 
 def _parse_gs_url(gs_url):
     if gs_url.startswith(_GS_SCHEMA):
@@ -18,10 +19,15 @@ def _parse_gs_url(gs_url):
         raise RuntimeError(f'Invalid gs url schema.  {gs_url} does not start with {_GS_SCHEMA}')
 
 def enable_requester_pays(env: str=ENV, project: str=WORKSPACE_GOOGLE_PROJECT, workspace: str=WORKSPACE_NAME):
+    global HAS_REQUESTER_PAYS_INIT
+    if HAS_REQUESTER_PAYS_INIT:
+        return
+    HAS_REQUESTER_PAYS_INIT = True
+
     import urllib.parse
     encoded_workspace = urllib.parse.quote(workspace)
     rawls_url = f"https://rawls.dsde-{env}.broadinstitute.org/api/workspaces/{project}/{encoded_workspace}/enableRequesterPaysForLinkedServiceAccounts" # noqa
-    print("Enabling requester pays for your workspace. This will only take a second...")
+    print("Enabling requester pays for your workspace. This will only take a few seconds...")
     access_token = gs.get_access_token()
 
     headers = {
@@ -33,13 +39,15 @@ def enable_requester_pays(env: str=ENV, project: str=WORKSPACE_GOOGLE_PROJECT, w
     if resp.status_code != 204:
         print(f"Failed to init requester pays for workspace {project}/{workspace} in env {env}.")
         print("You will not be able to access drs urls that interact with requester pays buckets.")
-    return resp.status_code
 
 def fetch_drs_info(drs_url, env: str):
     """
     Request DRS infromation from martha.
     """
     access_token = gs.get_access_token()
+
+    enable_requester_pays()
+
     martha_url = f"https://us-central1-broad-dsde-{env}.cloudfunctions.net/martha_v2"
     headers = {
         'authorization': f"Bearer {access_token}",
@@ -131,6 +139,3 @@ def extract_tar_gz(drs_url: str,
     dst_bucket = gs.get_client().bucket(dst_bucket_name)
     with gscio.AsyncReader(src_bucket.get_blob(src_key), chunks_to_buffer=2) as fh:
         tar_gz.extract(fh, dst_bucket, root=dst_pfx)
-
-# Lazily enable requester_pays on module load
-# enable_requester_pays()
