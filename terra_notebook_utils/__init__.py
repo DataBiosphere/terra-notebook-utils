@@ -15,4 +15,7 @@ _GS_SCHEMA = 'gs://'
 if WORKSPACE_BUCKET is not None and WORKSPACE_BUCKET.startswith(_GS_SCHEMA):
     WORKSPACE_BUCKET = WORKSPACE_BUCKET[len(_GS_SCHEMA):]  # Chop off the bucket schema
 
-from terra_notebook_utils import drs, profile, table, vcf, workspace
+from terra_notebook_utils import drs, profile, table, vcf, workspace, gs
+drs.enable_requester_pays()
+
+
