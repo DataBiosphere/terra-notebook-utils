@@ -7,9 +7,17 @@ install_requires = [line.rstrip() for line in open(os.path.join(os.path.dirname(
 with open("README.md") as fh:
     long_description = fh.read()
 
+def get_version():
+    pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__)))  # noqa
+    filepath = os.path.join(pkg_root, "terra_notebook_utils", "version.py")
+    version = dict()
+    with open(filepath) as fh:
+        exec(fh.read().strip(), version)
+    return version['__version__']
+
 setup(
     name="terra-notebook-utils",
-    version="0.1.1",
+    version=get_version(),
     description="Utilities for the Terra notebook environment.",
     long_description=long_description,
     long_description_content_type='text/markdown',
