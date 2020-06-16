@@ -118,11 +118,33 @@ tnu vcf stats my.vcf.gz
 While a Python API for working with VCFs is currently available, usage is more complex. Please contact the
 maintainer for more information.
 
+## Local Development
+For local development:
+1. Make the decision whether you want to run this using your local environment, or develop from within a docker image. 
+Developing within a docker image is recommended, since that most closely models how users will use this. Additionally, there are some issues with installing the requirements.txt on mac.
+If you don't wish to run this within a docker image, skip to step 5.
+2. run `docker pull us.gcr.io/broad-dsp-gcr-public/terra-jupyter-python:0.0.12`
+3. run the image from *one directory above* the root directory of this repo via `docker run -itd --entrypoint='/bin/bash' -v $PWD/terra-notebook-utils:/work -u root -e PIP_USER=false --name test-image terra-jupyter-python:0.0.12`
+4. Attach your terminal to the image via `docker exec -it test-image bash`, then navigate to the directory the code is mounted to via `cd /work`. Note that the above command ensures any changes you make to files in the repo will be updated in the image as well.
+5. log in with your Google credentials using `gcloud auth application-default login`,
+6. install requirements with `pip install -r requirements.txt`
+7. set up the following environment variables, depending on what you will be using: 
+  - `export GOOGLE_PROJECT=[validProject]`
+  - `export WORKSPACE_NAME=[workspaceWithinProject]`
+  - `export TERRA_DEPLOYMENT_ENV=dev` 
+  - `export WORKSPACE_BUCKET=[bucketWithinWorkspace]`
+8. run the python shell via `python`, and import any modules you wish to use. For example, `from terra_notebook_utils import drs`
+
+A sample non-protected test DRS url that resolves to a small file in dev: `drs://dg.712C/fa640b0e-9779-452f-99a6-16d833d15bd0`
+
+
 ## Tests
 To run tests,
 1. log in with your Google credentials using `gcloud auth application-default login`,
-1. install requirements with `pip install -r requirements-dev.txt`,
-1. run `make test` in the package root.
+2. Your account must have access to the workspace `terra-notebook-utils-tests` 
+3. Run `export GOOGLE_PROJECT=firecloud-cgl; export TERRA_DEPLOYMENT_ENV=prod; export WORKSPACE_NAME=terra-notebook-utils-tests`
+4. install requirements with `pip install -r requirements-dev.txt`,
+5. run `make test` in the package root.
 
 ## Links
 Project home page [GitHub](https://github.com/DataBiosphere/terra-notebook-utils)  
