@@ -4,8 +4,8 @@ Utilities for working with DRS objects
 import json
 import requests
 
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, TERRA_DEPLOYMENT_ENV, WORKSPACE_NAME, _GS_SCHEMA # noqa
-from terra_notebook_utils import gs, tar_gz
+from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
+from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 import functools
 import logging
 
@@ -20,9 +20,8 @@ def _parse_gs_url(gs_url):
     else:
         raise RuntimeError(f'Invalid gs url schema.  {gs_url} does not start with {_GS_SCHEMA}')
 
-@functools.lru_cache(maxsize=1)
+@functools.lru_cache()
 def enable_requester_pays():
-
     import urllib.parse
     encoded_workspace = urllib.parse.quote(WORKSPACE_NAME)
     rawls_url = f"https://rawls.dsde-{TERRA_DEPLOYMENT_ENV}.broadinstitute.org/api/workspaces/{WORKSPACE_GOOGLE_PROJECT}/{encoded_workspace}/enableRequesterPaysForLinkedServiceAccounts" # noqa
