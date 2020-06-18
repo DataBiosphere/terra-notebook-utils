@@ -3,15 +3,13 @@ import io
 import os
 import sys
 import json
-import struct
 import typing
 import base64
-import tempfile
 import unittest
 import argparse
 from random import randint
 from uuid import uuid4
-from contextlib import redirect_stdout, redirect_stderr
+from contextlib import redirect_stdout
 from tempfile import NamedTemporaryFile
 
 import crc32c
@@ -36,30 +34,29 @@ class TestTerraNotebookUtilsCLI_Config(TestCaseSuppressWarnings):
         workspace = f"{uuid4()}"
         workspace_google_project = f"{uuid4()}"
         with NamedTemporaryFile() as tf:
-            Config.path = tf.name
-            Config.info['workspace'] = workspace
-            Config.info['workspace_google_project'] = workspace_google_project
-            Config.write()
-            args = argparse.Namespace()
-            out = io.StringIO()
-            with redirect_stdout(out):
-                terra_notebook_utils.cli.config.config_print(args)
-            data = json.loads(out.getvalue())
-            self.assertEqual(data, dict(workspace=workspace, workspace_google_project=workspace_google_project))
+            with _ConfigOverride(workspace, workspace_google_project, tf.name):
+                Config.write()
+                args = argparse.Namespace()
+                out = io.StringIO()
+                with redirect_stdout(out):
+                    terra_notebook_utils.cli.config.config_print(args)
+                data = json.loads(out.getvalue())
+                self.assertEqual(data, dict(workspace=workspace, workspace_google_project=workspace_google_project))
 
     def test_config_set(self):
         new_workspace = f"{uuid4()}"
         new_workspace_google_project = f"{uuid4()}"
         with NamedTemporaryFile() as tf:
-            Config.path = tf.name
-            Config.write()
-            args = argparse.Namespace(workspace=new_workspace)
-            terra_notebook_utils.cli.config.set_config_workspace(args)
-            args = argparse.Namespace(billing_project=new_workspace_google_project)
-            terra_notebook_utils.cli.config.set_config_billing_project(args)
-            with open(tf.name) as fh:
-                data = json.loads(fh.read())
-            self.assertEqual(data, dict(workspace=new_workspace, workspace_google_project=new_workspace_google_project))
+            with _ConfigOverride(None, None, tf.name):
+                Config.write()
+                args = argparse.Namespace(workspace=new_workspace)
+                terra_notebook_utils.cli.config.set_config_workspace(args)
+                args = argparse.Namespace(billing_project=new_workspace_google_project)
+                terra_notebook_utils.cli.config.set_config_billing_project(args)
+                with open(tf.name) as fh:
+                    data = json.loads(fh.read())
+                self.assertEqual(data, dict(workspace=new_workspace,
+                                            workspace_google_project=new_workspace_google_project))
 
 
 class _CLITestCase(TestCaseSuppressWarnings):
@@ -67,15 +64,13 @@ class _CLITestCase(TestCaseSuppressWarnings):
 
     def _test_cmd(self, cmd: typing.Callable, **kwargs):
         with NamedTemporaryFile() as tf:
-            Config.path = tf.name
-            Config.workspace = WORKSPACE_NAME  # type: ignore
-            Config.workspace_google_project = WORKSPACE_GOOGLE_PROJECT  # type: ignore
-            Config.write()
-            args = argparse.Namespace(**dict(**self.common_kwargs, **kwargs))
-            out = io.StringIO()
-            with redirect_stdout(out):
-                cmd(args)
-            return out.getvalue().strip()
+            with _ConfigOverride(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, tf.name):
+                Config.write()
+                args = argparse.Namespace(**dict(**self.common_kwargs, **kwargs))
+                out = io.StringIO()
+                with redirect_stdout(out):
+                    cmd(args)
+                return out.getvalue().strip()
 
 
 class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
@@ -151,7 +146,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
     @testmode.controlled_access
     def test_copy(self):
         with self.subTest("test local"):
-            with tempfile.NamedTemporaryFile() as tf:
+            with NamedTemporaryFile() as tf:
                 self._test_cmd(terra_notebook_utils.cli.drs.drs_copy,
                                drs_url=self.drs_url,
                                dst=tf.name,
@@ -213,6 +208,24 @@ class TestTerraNotebookUtilsCLI_Table(_CLITestCase):
                              column=column)
         self.assertEqual(self.table_data[self.row_index][column], out)
 
+class _ConfigOverride:
+    def __init__(self, workspace, namespace, path=None):
+        self.old_workspace = Config.info['workspace']
+        self.old_namespace = Config.info['workspace_google_project']
+        self.old_path = Config.path
+        self.workspace = workspace
+        self.namespace = namespace
+        self.path = path
+
+    def __enter__(self):
+        Config.info['workspace'] = self.workspace
+        Config.info['workspace_google_project'] = self.namespace
+        Config.path = self.path
+
+    def __exit__(self, *args, **kwargs):
+        Config.info['workspace'] = self.old_workspace
+        Config.info['workspace_google_project'] = self.old_namespace
+        Config.path = self.old_path
 
 def _crc32c(data: bytes) -> str:
     # Compute Google's wonky base64 encoded crc32c checksum
