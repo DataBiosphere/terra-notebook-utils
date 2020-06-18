@@ -27,6 +27,7 @@ def head(args: argparse.Namespace):
     """
     Output VCF header.
     """
+    _, args.google_billing_project = Config.resolve(None, args.google_billing_project)
     blob = _get_blob(args.path, args.google_billing_project)
     if blob:
         info = vcf.VCFInfo.with_blob(blob)
@@ -39,6 +40,7 @@ def samples(args: argparse.Namespace):
     """
     Output VCF samples.
     """
+    _, args.google_billing_project = Config.resolve(None, args.google_billing_project)
     blob = _get_blob(args.path, args.google_billing_project)
     if blob:
         info = vcf.VCFInfo.with_blob(blob)
@@ -51,6 +53,7 @@ def stats(args: argparse.Namespace):
     """
     Output VCF stats.
     """
+    _, args.google_billing_project = Config.resolve(None, args.google_billing_project)
     blob = _get_blob(args.path, args.google_billing_project)
     if blob:
         info = vcf.VCFInfo.with_blob(blob)
