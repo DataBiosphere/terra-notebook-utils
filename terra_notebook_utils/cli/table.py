@@ -5,7 +5,6 @@ import argparse
 
 from terra_notebook_utils import table
 from terra_notebook_utils.cli import dispatch, Config
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT
 
 
 table_cli = dispatch.group("table", help=table.__doc__, arguments={
@@ -28,7 +27,7 @@ def list_tables(args: argparse.Namespace):
     """
     List all tables, with column headers, in the workspace
     """
-    _resolve_workspace_and_namespace(args)
+    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
     out = dict()
     for t, attributes in table.list_tables(args.namespace, args.workspace):
         out[t] = attributes
@@ -41,7 +40,7 @@ def get_table(args: argparse.Namespace):
     """
     Get all rows
     """
-    _resolve_workspace_and_namespace(args)
+    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
     for e in table.list_entities(args.table, args.namespace, args.workspace):
         data = e['attributes']
         data[f'{args.table}_id'] = e['name']
@@ -55,7 +54,7 @@ def get_row(args: argparse.Namespace):
     """
     Get one row
     """
-    _resolve_workspace_and_namespace(args)
+    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
     e = table.get_row(args.table, args.id, args.namespace, args.workspace)
     data = e['attributes']
     data[f'{args.table}_id'] = e['name']
@@ -70,7 +69,7 @@ def get_cell(args: argparse.Namespace):
     """
     Get cell value
     """
-    _resolve_workspace_and_namespace(args)
+    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
     for e in table.list_entities(args.table, args.namespace, args.workspace):
         if args.id == e['name']:
             print(e['attributes'][args.column])
@@ -91,7 +90,7 @@ def put_row(args: argparse.Namespace):
     input_keys=test_vcfs/a.vcf.gz,test_vcfs/b.vcf.gz \\
     output_key=foo.vcf.gz
     """
-    _resolve_workspace_and_namespace(args)
+    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
     headers = [f"{args.table}_id"]
     values = [args.id]
     for pair in args.data:
@@ -100,11 +99,3 @@ def put_row(args: argparse.Namespace):
         values.append(val)
     tsv = "\t".join(headers) + os.linesep + "\t".join(values)
     table.upload_entities(tsv, args.namespace, args.workspace)
-
-def _resolve_workspace_and_namespace(args: argparse.Namespace):
-    args.workspace = args.workspace or Config.info['workspace']
-    if args.workspace == Config.info['workspace']:
-        args.namespace = Config.info['workspace_google_project']
-    else:
-        from terra_notebook_utils.workspace import get_workspace_namespace
-        args.namespace = get_workspace_namespace(args.workspace)

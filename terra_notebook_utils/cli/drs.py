@@ -27,6 +27,7 @@ def drs_copy(args: argparse.Namespace):
         tnu drs copy drs://my-drs-id /tmp/doom
         tnu drs copy drs://my-drs-id gs://my-cool-bucket/my-cool-bucket-key
     """
+    _, args.google_billing_project = Config.resolve(None, args.google_billing_project)
     drs.copy(args.drs_url, args.dst, args.google_billing_project)
 
 @drs_cli.command("extract-tar-gz", arguments={
@@ -43,4 +44,5 @@ def drs_extract_tar_gz(args: argparse.Namespace):
     assert args.dst_gs_url.startswith("gs://")
     bucket, pfx = args.dst_gs_url[5:].split("/", 1)
     pfx = pfx or None
+    _, args.google_billing_project = Config.resolve(None, args.google_billing_project)
     drs.extract_tar_gz(args.drs_url, pfx, bucket, args.google_billing_project)
