@@ -7,6 +7,8 @@ import typing
 
 import cli_builder
 
+from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
+
 
 class Config:
     info = dict(workspace=None, workspace_google_project=None)
@@ -23,6 +25,15 @@ class Config:
     def write(cls):
         with open(cls.path, "w") as fh:
             fh.write(json.dumps(cls.info, indent=2))
+
+    @classmethod
+    def resolve(cls, default_workspace: str, default_namespace: str):
+        workspace = default_workspace or (cls.info['workspace'] or WORKSPACE_NAME)
+        namespace = default_namespace or (cls.info['workspace_google_project'] or WORKSPACE_GOOGLE_PROJECT)
+        if workspace and namespace is None:
+            from terra_notebook_utils.workspace import get_workspace_namespace
+            namespace = get_workspace_namespace(workspace)
+        return workspace, namespace
 Config.load()
 
 

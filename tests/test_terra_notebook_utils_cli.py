@@ -7,6 +7,7 @@ import typing
 import base64
 import unittest
 import argparse
+from unittest import mock
 from random import randint
 from uuid import uuid4
 from contextlib import redirect_stdout
@@ -21,6 +22,7 @@ from tests import TestCaseSuppressWarnings, config
 from tests.infra import testmode
 from terra_notebook_utils import gs, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 from terra_notebook_utils.cli import Config
+import terra_notebook_utils.cli
 import terra_notebook_utils.cli.config
 import terra_notebook_utils.cli.vcf
 import terra_notebook_utils.cli.workspace
@@ -43,6 +45,35 @@ class TestTerraNotebookUtilsCLI_Config(TestCaseSuppressWarnings):
                 data = json.loads(out.getvalue())
                 self.assertEqual(data, dict(workspace=workspace, workspace_google_project=workspace_google_project))
 
+    def test_resolve(self):
+        with self.subTest("Should fall back to env vars if arguments are None and config file missing"):
+            with _ConfigOverride(None, None):
+                workspace, namespace = Config.resolve(None, None)
+                self.assertEqual(WORKSPACE_NAME, workspace)
+                self.assertEqual(WORKSPACE_GOOGLE_PROJECT, namespace)
+        with self.subTest("Should fall back to config if arguments are None/False"):
+            with _ConfigOverride(str(uuid4()), str(uuid4())):
+                workspace, namespace = Config.resolve(None, None)
+                self.assertEqual(Config.info['workspace'], workspace)
+                self.assertEqual(Config.info['workspace_google_project'], namespace)
+        with self.subTest("Should attempt namespace resolve via fiss when workspace present, namespace empty"):
+            expected_namespace = str(uuid4())
+            with mock.patch("terra_notebook_utils.workspace.get_workspace_namespace", return_value=expected_namespace):
+                with _ConfigOverride(WORKSPACE_NAME, None):
+                    terra_notebook_utils.cli.WORKSPACE_GOOGLE_PROJECT = None
+                    workspace, namespace = Config.resolve(None, None)
+                    self.assertEqual(Config.info['workspace'], workspace)
+                    self.assertEqual(expected_namespace, namespace)
+        with self.subTest("Should attempt namespace resolve via fiss when workspace present, namespace empty"):
+            expected_workspace = str(uuid4())
+            expected_namespace = str(uuid4())
+            with mock.patch("terra_notebook_utils.workspace.get_workspace_namespace", return_value=expected_namespace):
+                with _ConfigOverride(str(uuid4()), str(uuid4())):
+                    terra_notebook_utils.cli.WORKSPACE_GOOGLE_PROJECT = None
+                    workspace, namespace = Config.resolve(expected_workspace, expected_namespace)
+                    self.assertEqual(expected_workspace, workspace)
+                    self.assertEqual(expected_namespace, namespace)
+
     def test_config_set(self):
         new_workspace = f"{uuid4()}"
         new_workspace_google_project = f"{uuid4()}"
@@ -57,7 +88,6 @@ class TestTerraNotebookUtilsCLI_Config(TestCaseSuppressWarnings):
                     data = json.loads(fh.read())
                 self.assertEqual(data, dict(workspace=new_workspace,
                                             workspace_google_project=new_workspace_google_project))
-
 
 class _CLITestCase(TestCaseSuppressWarnings):
     common_kwargs: dict = dict()
