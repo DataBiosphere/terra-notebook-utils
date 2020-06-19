@@ -48,7 +48,7 @@ class TestTerraNotebookUtilsTable(TestCaseSuppressWarnings):
         table.print_column(table_name, column)
 
     def test_table(self):
-        table_name = "test_tnu_table"
+        table_name = f"test_{uuid4()}"
         number_of_entities = 5
         table.delete_table(table_name)  # remove cruft from previous failed tests
 
@@ -102,16 +102,16 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     def test_copy(self):
         with self.subTest("Test copy to local location"):
-            filepath = "test_copy_object"
+            filepath = "test_copy_object_{uuid4()}"
             drs.copy(self.drs_url, filepath)
         with self.subTest("Test copy to bucket location"):
-            key = f"gs://{WORKSPACE_BUCKET}/test_oneshot_object"
+            key = f"gs://{WORKSPACE_BUCKET}/test_oneshot_object_{uuid4()}"
             drs.copy(self.drs_url, key)
 
     # Probably don't want to run this test very often. Once a week?
     def _test_extract_tar_gz(self):
         drs_url = "drs://dg.4503/273f3453-4d16-4ddd-8877-dbac958a4f4d"  # Amish cohort v4 VCF
-        drs.extract_tar_gz(drs_url, "test_cohort_extract")
+        drs.extract_tar_gz(drs_url, "test_cohort_extract_{uuid4()}")
 
 
 class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):
@@ -163,8 +163,9 @@ class TestTerraNotebookUtilsVCF(TestCaseSuppressWarnings):
         expected_output_keys = sorted([f"gs://{WORKSPACE_BUCKET}/merged/{c}.vcf.bgz"
                                        for c in vcf.VCFInfo.chromosomes if c != "chrY"])
 
-        vcf.prepare_merge_workflow_input("test_merge_input", prefixes, "merged")
-        ents = table.list_entities("test_merge_input")
+        table_name = f"test_merge_input_{uuid4()}"
+        vcf.prepare_merge_workflow_input(table_name, prefixes, "merged")
+        ents = table.list_entities(table_name)
         input_keys = list()
         output_keys = list()
         for e in ents:
