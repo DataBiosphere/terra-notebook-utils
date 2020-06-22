@@ -1,3 +1,9 @@
+# Changes for v0.2.1 (2020-06-22)
+CLI usage and expressive errors (#75)
+Improve test concurrency (#74)
+CLI config correctly falls back to defaults (#73)
+Config override for tests (#72)
+
 # Changes for v0.2.0 (2020-06-16)
 [IA-1919] Adding requester pays and ENV support. Documentation added as well (#69)
 
