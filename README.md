@@ -1,5 +1,5 @@
 # terra-notebook-utils
-Python API and CLI providing utilties for working with [DRS](https://support.terra.bio/hc/en-us/articles/360039330211)
+Python API and CLI providing utilities for working with [DRS](https://support.terra.bio/hc/en-us/articles/360039330211)
 objects, [VCF](https://samtools.github.io/hts-specs/VCFv4.1.pdf) files, and the
 [Terra notebook environment](https://support.terra.bio/hc/en-us/articles/360027237871-Terra-s-Jupyter-Notebooks-environment-Part-I-Key-components).
 
@@ -66,6 +66,9 @@ tnu config set-workspace-google-project my-billing-project
 Alternatively, workspace and billing project can be passed in to individual commands instead of, or as overrides to,
 the configured defaults. See command help, e.g. `tnu table get --help`, for usage information.
 
+Finally, workspace and billing project can be specified with the environment variables
+`WORKSPACE_NAME` and `GOOGLE_PROJECT`. These values are used with lowest precedence.
+
 ### The DRS API and CLI
 
 terra-notebook-utils provides several methods and CLI commands useful for working with
@@ -73,7 +76,7 @@ terra-notebook-utils provides several methods and CLI commands useful for workin
 
 #### Python API
 
-Copy drs object to local filesystem or bucket:
+Copy drs object to local file system or bucket:
 ```
 from terra_notebook_utils import drs
 drs.copy("drs://my-drs-url", "gs://my-dst-bucket/my-dst-key")
