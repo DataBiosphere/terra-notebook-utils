@@ -2,7 +2,9 @@ import io
 import os
 import logging
 import warnings
+from math import ceil
 from contextlib import closing
+from concurrent.futures import as_completed
 
 from google.cloud.storage import Client
 from google.oauth2 import service_account
@@ -77,23 +79,22 @@ def oneshot_copy(src_bucket, dst_bucket, src_key, dst_key):
 
 def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
     """
-    Download an upjoct in chunks from `src_bucket` and upload each chunk to `dst_bucket` as separate objets.
-    The objects are then composed into a single object, and the parts are deleted from `dst_bucket`.
+    Download/upload an object in parts from `src_bucket` to `dst_bucket`
     """
     src_blob = src_bucket.get_blob(src_key)
     print(f"Copying from {src_bucket.name}/{src_key}")
     print(f"Copying to {dst_bucket.name}/{dst_key}")
-    with gscio.AsyncReader(src_blob) as reader:
-        progress_bar = ProgressBar(1 + reader.number_of_chunks,
-                                   prefix="Copying:",
-                                   size=src_blob.size // 1024 ** 2,
-                                   units="MB")
-        with closing(progress_bar):
-            with gscio.AsyncWriter(dst_key, dst_bucket) as writer:
-                for chunk in reader.for_each_chunk():
-                    writer.write(chunk)
-                    progress_bar.update()
-            progress_bar.update()
+    number_of_chunks = ceil(src_blob.size / gscio.reader.default_chunk_size)
+    progress_bar = ProgressBar(1 + number_of_chunks,
+                               prefix="Copying:",
+                               size=src_blob.size // 1024 ** 2,
+                               units="MB")
+    with closing(progress_bar):
+        with gscio.AsyncWriter(dst_key, dst_bucket) as writer:
+            for chunk_number, chunk in gscio.AsyncReader.for_each_chunk_async(src_blob):
+                writer.put_part_async(chunk_number, chunk)
+                progress_bar.update()
+        progress_bar.update()
 
 def copy(src_bucket, dst_bucket, src_key, dst_key, multipart_threshold=1024 * 1024 * 32):
     src_blob = src_bucket.get_blob(src_key)
