@@ -2,6 +2,8 @@ import os
 import unittest
 
 
-def controlled_access(f):
-    mode = os.environ.get("TNU_TESTMODE", "workspace_access")
-    return unittest.skipUnless("controlled_access" in mode, "Skipping controlled access test")(f)
+def testmode(mode_for_test):
+    def wrapper(func):
+        mode = os.environ.get("TNU_TESTMODE", "workspace_access")
+        return unittest.skipUnless(mode_for_test in mode, f"Skipping {mode_for_test} test")(func)
+    return wrapper
