@@ -19,7 +19,7 @@ pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noq
 sys.path.insert(0, pkg_root)  # noqa
 
 from tests import TestCaseSuppressWarnings, config
-from tests.infra import testmode
+from tests.infra.testmode import testmode
 from terra_notebook_utils import gs, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 from terra_notebook_utils.cli import Config
 import terra_notebook_utils.cli
@@ -31,6 +31,7 @@ import terra_notebook_utils.cli.drs
 import terra_notebook_utils.cli.table
 
 
+@testmode("workspace_access")
 class TestTerraNotebookUtilsCLI_Config(TestCaseSuppressWarnings):
     def test_config_print(self):
         workspace = f"{uuid4()}"
@@ -106,6 +107,7 @@ class _CLITestCase(TestCaseSuppressWarnings):
 class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
     common_kwargs = dict(google_billing_project=WORKSPACE_GOOGLE_PROJECT)
 
+    @testmode("workspace_access")
     def test_head(self):
         with self.subTest("Test gs:// object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.head,
@@ -116,11 +118,12 @@ class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
         with self.subTest("Test local object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.head, path="tests/fixtures/non_block_gzipped.vcf.gz")
 
-    @testmode.controlled_access
+    @testmode("controlled_access")
     def test_head_drs(self):
         with self.subTest("Test drs:// object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.head, path="drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7")
 
+    @testmode("workspace_access")
     def test_samples(self):
         with self.subTest("Test gs:// object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.samples,
@@ -131,7 +134,7 @@ class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
         with self.subTest("Test local object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.samples, path="tests/fixtures/non_block_gzipped.vcf.gz")
 
-    @testmode.controlled_access
+    @testmode("controlled_access")
     def test_samples_drs(self):
         with self.subTest("Test drs:// object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.samples,
@@ -147,13 +150,14 @@ class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
         with self.subTest("Test local object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.stats, path="tests/fixtures/non_block_gzipped.vcf.gz")
 
-    @testmode.controlled_access
+    @testmode("controlled_access")
     def test_stats_drs(self):
         with self.subTest("Test drs:// object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.stats,
                            path="drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7")
 
 
+@testmode("workspace_access")
 class TestTerraNotebookUtilsCLI_Workspace(_CLITestCase):
     def test_list(self):
         self._test_cmd(terra_notebook_utils.cli.workspace.list_workspaces)
@@ -164,16 +168,17 @@ class TestTerraNotebookUtilsCLI_Workspace(_CLITestCase):
                        namespace="firecloud-cgl")
 
 
+@testmode("workspace_access")
 class TestTerraNotebookUtilsCLI_Profile(_CLITestCase):
     def test_list_billing_projects(self):
         self._test_cmd(terra_notebook_utils.cli.profile.list_billing_projects)
 
 
+@testmode("controlled_access")
 class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
     drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
     expected_crc32c = "LE1Syw=="
 
-    @testmode.controlled_access
     def test_copy(self):
         with self.subTest("test local"):
             with NamedTemporaryFile() as tf:
@@ -198,6 +203,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             self.assertEqual(_crc32c(out.getvalue()), blob.crc32c)
 
 
+@testmode("workspace_access")
 class TestTerraNotebookUtilsCLI_Table(_CLITestCase):
     common_kwargs = dict(workspace=WORKSPACE_NAME, namespace=WORKSPACE_GOOGLE_PROJECT)
 

@@ -18,12 +18,13 @@ pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noq
 sys.path.insert(0, pkg_root)  # noqa
 
 from tests import TestCaseSuppressWarnings, config
-from tests.infra import testmode
+from tests.infra.testmode import testmode
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
 from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress, vcf, workspace
 
 
 class TestTerraNotebookUtilsTable(TestCaseSuppressWarnings):
+    @testmode("workspace_access")
     def test_fetch_attribute(self):
         table_name = "simple_germline_variation"
         filter_column = "name"
@@ -32,21 +33,24 @@ class TestTerraNotebookUtilsTable(TestCaseSuppressWarnings):
         val = table.fetch_attribute(table_name, filter_column, filter_val, key)
         self.assertEqual(val, "drs://dg.4503/6e73a376-f7fd-47ed-ac99-0567bb5a5993")
 
+    @testmode("workspace_access")
     def test_fetch_object_id(self):
         table_name = "simple_germline_variation"
         file_name = "NWD531899.freeze5.v1.vcf.gz"
         val = table.fetch_object_id(table_name, file_name)
         self.assertEqual(val, "drs://dg.4503/651a4ad1-06b5-4534-bb2c-1f8ed51134f6")
 
-    @testmode.controlled_access
+    @testmode("controlled_access")
     def test_get_access_token(self):
         gs.get_access_token()
 
+    @testmode("workspace_access")
     def test_print_column(self):
         table_name = "simple_germline_variation"
         column = "file_name"
         table.print_column(table_name, column)
 
+    @testmode("workspace_access")
     def test_table(self):
         table_name = f"test_{uuid4()}"
         number_of_entities = 5
@@ -80,7 +84,7 @@ class TestTerraNotebookUtilsTable(TestCaseSuppressWarnings):
             table.delete_table(table_name)
 
 
-@testmode.controlled_access
+@testmode("controlled_access")
 class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
     @classmethod
     def setUpClass(cls):
@@ -114,6 +118,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
         drs.extract_tar_gz(drs_url, "test_cohort_extract_{uuid4()}")
 
 
+@testmode("workspace_access")
 class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):
     def test_extract(self):
         with self.subTest("Test tarball extraction to local filesystem"):
@@ -137,6 +142,7 @@ class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):
                 self.assertGreater(time.time() - start_time, age)
 
 
+@testmode("workspace_access")
 class TestTerraNotebookUtilsVCF(TestCaseSuppressWarnings):
     def test_vcf_info(self):
         key = "consent1/HVH_phs000993_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz"
@@ -175,6 +181,7 @@ class TestTerraNotebookUtilsVCF(TestCaseSuppressWarnings):
         self.assertEqual(expected_output_keys, sorted(output_keys))
 
 
+@testmode("workspace_access")
 class TestTerraNotebookUtilsProgress(TestCaseSuppressWarnings):
     def test_progress_reporter(self):
         with progress.ProgressReporter() as pr:
@@ -218,12 +225,14 @@ class TestTerraNotebookUtilsProgress(TestCaseSuppressWarnings):
                 raising_rate_limited_func()
 
 
+@testmode("workspace_access")
 class TestTerraNotebookUtilsGS(TestCaseSuppressWarnings):
     def test_list_bucket(self):
         for key in gs.list_bucket("consent1"):
             print(key)
 
 
+@testmode("workspace_access")
 class TestTerraNotebookUtilsWorkspace(TestCaseSuppressWarnings):
     namespace = "firecloud-cgl"
 
