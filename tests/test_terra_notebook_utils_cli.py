@@ -105,6 +105,7 @@ class _CLITestCase(TestCaseSuppressWarnings):
 
 class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
     common_kwargs = dict(google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+    vcf_drs_url = "drs://dg.4503/57f58130-2d66-4d46-9b2b-539f7e6c2080"
 
     def test_head(self):
         with self.subTest("Test gs:// object"):
@@ -119,7 +120,7 @@ class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
     @testmode.controlled_access
     def test_head_drs(self):
         with self.subTest("Test drs:// object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.head, path="drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7")
+            self._test_cmd(terra_notebook_utils.cli.vcf.head, path=self.vcf_drs_url)
 
     def test_samples(self):
         with self.subTest("Test gs:// object"):
@@ -135,7 +136,7 @@ class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
     def test_samples_drs(self):
         with self.subTest("Test drs:// object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.samples,
-                           path="drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7")
+                           path=self.vcf_drs_url)
 
     def test_stats(self):
         with self.subTest("Test gs:// object"):
@@ -151,7 +152,7 @@ class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
     def test_stats_drs(self):
         with self.subTest("Test drs:// object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.stats,
-                           path="drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7")
+                           path=self.vcf_drs_url)
 
 
 class TestTerraNotebookUtilsCLI_Workspace(_CLITestCase):
