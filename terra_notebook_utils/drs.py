@@ -2,6 +2,7 @@
 Utilities for working with DRS objects
 """
 import json
+import typing
 import requests
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
@@ -11,9 +12,11 @@ import logging
 
 import gs_chunked_io as gscio
 
+
 logger = logging.getLogger(__name__)
 
-def _parse_gs_url(gs_url):
+
+def _parse_gs_url(gs_url: str) -> typing.Tuple[str, str]:
     if gs_url.startswith(_GS_SCHEMA):
         bucket_name, object_key = gs_url[len(_GS_SCHEMA):].split("/", 1)
         return bucket_name, object_key
@@ -38,7 +41,7 @@ def enable_requester_pays():
         logger.warning(f"Failed to init requester pays for workspace {WORKSPACE_GOOGLE_PROJECT}/{WORKSPACE_NAME}.")
         logger.warning("You will not be able to access drs urls that interact with requester pays buckets.")
 
-def fetch_drs_info(drs_url):
+def fetch_drs_info(drs_url: str) -> dict:
     """
     Request DRS infromation from martha.
     """
@@ -61,9 +64,9 @@ def fetch_drs_info(drs_url):
         raise Exception(f"expected status 200, got {resp.status_code}")
     return resp_data
 
-def resolve_drs_for_gs_storage(drs_url):
+def resolve_drs_info_for_gs_storage(drs_url: str) -> typing.Tuple[dict, str, str]:
     """
-    Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage client.
+    Attempt to resolve gs:// url and credentials for a DRS object.
     """
     drs_info = fetch_drs_info(drs_url)
     credentials_data = drs_info['googleServiceAccount']['data']
@@ -75,6 +78,13 @@ def resolve_drs_for_gs_storage(drs_url):
         raise Exception(f"Unable to resolve GS url for {drs_url}")
 
     bucket_name, key = _parse_gs_url(data_url)
+    return credentials_data, bucket_name, key
+
+def resolve_drs_for_gs_storage(drs_url: str) -> typing.Tuple[gs.Client, str, str]:
+    """
+    Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage client.
+    """
+    credentials_data, bucket_name, key = resolve_drs_info_for_gs_storage(drs_url)
     client = gs.get_client(credentials_data, project=credentials_data['project_id'])
     return client, bucket_name, key
 
