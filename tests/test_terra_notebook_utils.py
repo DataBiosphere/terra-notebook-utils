@@ -106,7 +106,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     def test_copy(self):
         with self.subTest("Test copy to local location"):
-            filepath = "test_copy_object_{uuid4()}"
+            filepath = f"test_copy_object_{uuid4()}"
             drs.copy(self.drs_url, filepath)
         with self.subTest("Test copy to bucket location"):
             key = f"gs://{WORKSPACE_BUCKET}/test_oneshot_object_{uuid4()}"
