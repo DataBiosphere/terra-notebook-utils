@@ -3,3 +3,4 @@ gs-chunked-io >= 0.3.3
 firecloud
 bgzip >= 0.3.0
 cli-builder
+oauth2client
