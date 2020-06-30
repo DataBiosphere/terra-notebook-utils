@@ -24,10 +24,14 @@ def _parse_gs_url(gs_url: str) -> typing.Tuple[str, str]:
         raise RuntimeError(f'Invalid gs url schema.  {gs_url} does not start with {_GS_SCHEMA}')
 
 @functools.lru_cache()
-def enable_requester_pays():
+def enable_requester_pays(
+    workspace_name: str=WORKSPACE_NAME,
+    google_billing_project: str=WORKSPACE_GOOGLE_PROJECT
+):
     import urllib.parse
-    encoded_workspace = urllib.parse.quote(WORKSPACE_NAME)
-    rawls_url = f"https://rawls.dsde-{TERRA_DEPLOYMENT_ENV}.broadinstitute.org/api/workspaces/{WORKSPACE_GOOGLE_PROJECT}/{encoded_workspace}/enableRequesterPaysForLinkedServiceAccounts" # noqa
+    encoded_workspace = urllib.parse.quote(workspace_name)
+    rawls_url = (f"https://rawls.dsde-{TERRA_DEPLOYMENT_ENV}.broadinstitute.org/api/workspaces/"
+                 f"{google_billing_project}/{encoded_workspace}/enableRequesterPaysForLinkedServiceAccounts")
     logger.info("Enabling requester pays for your workspace. This will only take a few seconds...")
     access_token = gs.get_access_token()
 
@@ -41,13 +45,17 @@ def enable_requester_pays():
         logger.warning(f"Failed to init requester pays for workspace {WORKSPACE_GOOGLE_PROJECT}/{WORKSPACE_NAME}.")
         logger.warning("You will not be able to access drs urls that interact with requester pays buckets.")
 
-def fetch_drs_info(drs_url: str) -> dict:
+def fetch_drs_info(
+    drs_url: str,
+    workspace_name: str=WORKSPACE_NAME,
+    google_billing_project: str=WORKSPACE_GOOGLE_PROJECT
+) -> dict:
     """
     Request DRS infromation from martha.
     """
     access_token = gs.get_access_token()
 
-    enable_requester_pays()
+    enable_requester_pays(workspace_name, google_billing_project)
 
     martha_url = f"https://us-central1-broad-dsde-{TERRA_DEPLOYMENT_ENV}.cloudfunctions.net/martha_v2"
     headers = {
@@ -64,11 +72,15 @@ def fetch_drs_info(drs_url: str) -> dict:
         raise Exception(f"expected status 200, got {resp.status_code}")
     return resp_data
 
-def resolve_drs_info_for_gs_storage(drs_url: str) -> typing.Tuple[dict, str, str]:
+def resolve_drs_info_for_gs_storage(
+    drs_url: str,
+    workspace_name: str=WORKSPACE_NAME,
+    google_billing_project: str=WORKSPACE_GOOGLE_PROJECT
+) -> typing.Tuple[dict, str, str]:
     """
     Attempt to resolve gs:// url and credentials for a DRS object.
     """
-    drs_info = fetch_drs_info(drs_url)
+    drs_info = fetch_drs_info(drs_url, workspace_name, google_billing_project)
     credentials_data = drs_info['googleServiceAccount']['data']
     for url_info in drs_info['dos']['data_object']['urls']:
         if url_info['url'].startswith(_GS_SCHEMA):
@@ -80,20 +92,29 @@ def resolve_drs_info_for_gs_storage(drs_url: str) -> typing.Tuple[dict, str, str
     bucket_name, key = _parse_gs_url(data_url)
     return credentials_data, bucket_name, key
 
-def resolve_drs_for_gs_storage(drs_url: str) -> typing.Tuple[gs.Client, str, str]:
+def resolve_drs_for_gs_storage(
+    drs_url: str,
+    workspace_name: str=WORKSPACE_NAME,
+    google_billing_project: str=WORKSPACE_GOOGLE_PROJECT
+) -> typing.Tuple[gs.Client, str, str]:
     """
     Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage client.
     """
-    credentials_data, bucket_name, key = resolve_drs_info_for_gs_storage(drs_url)
+    credentials_data, bucket_name, key = resolve_drs_info_for_gs_storage(drs_url,
+                                                                         workspace_name,
+                                                                         google_billing_project)
     client = gs.get_client(credentials_data, project=credentials_data['project_id'])
     return client, bucket_name, key
 
-def copy_to_local(drs_url: str, filepath: str, google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
+def copy_to_local(drs_url: str,
+                  filepath: str,
+                  workspace_name: str=WORKSPACE_NAME,
+                  google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
     """
     Copy a DRS object to the local filesystem.
     """
     assert drs_url.startswith("drs://")
-    client, bucket_name, key = resolve_drs_for_gs_storage(drs_url)
+    client, bucket_name, key = resolve_drs_for_gs_storage(drs_url, workspace_name, google_billing_project)
     blob = client.bucket(bucket_name, user_project=google_billing_project).blob(key)
     with open(filepath, "wb") as fh:
         logger.info(f"Beginning to download url {drs_url}. This can take a while for large files...")
@@ -103,6 +124,7 @@ def copy_to_bucket(drs_url: str,
                    dst_key: str,
                    dst_bucket_name: str=None,
                    multipart_threshold: int=1024 * 1024 * 32,
+                   workspace_name: str=WORKSPACE_NAME,
                    google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
     """
     Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.
@@ -111,14 +133,17 @@ def copy_to_bucket(drs_url: str,
     assert drs_url.startswith("drs://")
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
-    src_client, src_bucket_name, src_key = resolve_drs_for_gs_storage(drs_url)
+    src_client, src_bucket_name, src_key = resolve_drs_for_gs_storage(drs_url, workspace_name, google_billing_project)
     dst_client = gs.get_client()
     src_bucket = src_client.bucket(src_bucket_name, user_project=google_billing_project)
     dst_bucket = dst_client.bucket(dst_bucket_name)
     logger.info(f"Beginning to copy from {src_bucket} to {dst_bucket}. This can take a while for large files...")
     gs.copy(src_bucket, dst_bucket, src_key, dst_key, multipart_threshold)
 
-def copy(drs_url: str, dst: str, google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
+def copy(drs_url: str,
+         dst: str,
+         workspace_name: str=WORKSPACE_NAME,
+         google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
     """
     Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with "gs://".
     """
@@ -128,13 +153,18 @@ def copy(drs_url: str, dst: str, google_billing_project: str=WORKSPACE_GOOGLE_PR
         if 1 >= len(parts):
             raise ValueError("gs:// url should contain bucket name and key with '/' delimeter.")
         bucket_name, key = parts
-        copy_to_bucket(drs_url, key, bucket_name, google_billing_project=google_billing_project)
+        copy_to_bucket(drs_url,
+                       key,
+                       bucket_name,
+                       workspace_name=workspace_name,
+                       google_billing_project=google_billing_project)
     else:
-        copy_to_local(drs_url, dst, google_billing_project=google_billing_project)
+        copy_to_local(drs_url, dst, workspace_name, google_billing_project)
 
 def extract_tar_gz(drs_url: str,
                    dst_pfx: str=None,
                    dst_bucket_name: str=None,
+                   workspace_name: str=WORKSPACE_NAME,
                    google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
     """
     Extract a `.tar.gz` archive resolved by a DRS url into a Google Storage bucket.
@@ -142,7 +172,7 @@ def extract_tar_gz(drs_url: str,
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
     assert dst_bucket_name
-    src_client, src_bucket_name, src_key = resolve_drs_for_gs_storage(drs_url)
+    src_client, src_bucket_name, src_key = resolve_drs_for_gs_storage(drs_url, workspace_name, google_billing_project)
     src_bucket = src_client.bucket(src_bucket_name, user_project=google_billing_project)
     dst_bucket = gs.get_client().bucket(dst_bucket_name)
     with gscio.AsyncReader(src_bucket.get_blob(src_key), chunks_to_buffer=2) as fh:

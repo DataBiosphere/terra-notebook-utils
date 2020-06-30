@@ -10,6 +10,7 @@ from uuid import uuid4
 from random import randint
 from datetime import datetime
 from functools import lru_cache
+from unittest import mock
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import gs_chunked_io as gscio
@@ -84,26 +85,28 @@ class TestTerraNotebookUtilsTable(TestCaseSuppressWarnings):
             table.delete_table(table_name)
 
 
-@testmode("controlled_access")
 class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
-    @classmethod
-    def setUpClass(cls):
-        cls.drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
+    drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
 
+    @testmode("controlled_access")
     def test_resolve_drs_for_google_storage(self):
         _, bucket_name, key = drs.resolve_drs_for_gs_storage(self.drs_url)
         self.assertEqual(bucket_name, "topmed-irc-share")
         self.assertEqual(key, "genomes/NWD522743.b38.irc.v1.cram.crai")
 
+    @testmode("controlled_access")
     def test_download(self):
         drs.copy_to_local(self.drs_url, "foo")
 
+    @testmode("controlled_access")
     def test_oneshot_copy(self):
         drs.copy_to_bucket(self.drs_url, "test_oneshot_object")
 
+    @testmode("controlled_access")
     def test_multipart_copy(self):
         drs.copy_to_bucket(self.drs_url, "test_oneshot_object", multipart_threshold=1024 * 1024)
 
+    @testmode("controlled_access")
     def test_copy(self):
         with self.subTest("Test copy to local location"):
             filepath = f"test_copy_object_{uuid4()}"
@@ -117,6 +120,32 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
         drs_url = "drs://dg.4503/273f3453-4d16-4ddd-8877-dbac958a4f4d"  # Amish cohort v4 VCF
         drs.extract_tar_gz(drs_url, "test_cohort_extract_{uuid4()}")
 
+    @testmode("workspace_access")
+    def test_arg_propagation(self):
+        resp_json = mock.MagicMock(return_value={
+            'googleServiceAccount': {'data': {'project_id': "foo"}},
+            'dos': {'data_object': {'urls': [{'url': 'gs://asdf/asdf'}]}}
+        })
+        requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
+        from contextlib import ExitStack
+        with ExitStack() as es:
+            es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.gs.copy"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.gscio"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.tar_gz"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.requests", post=requests_post))
+            with mock.patch("terra_notebook_utils.drs.enable_requester_pays") as enable_requester_pays:
+                with self.subTest("Copy to local"):
+                    drs.copy(self.drs_url, "some_bucketsome_key")
+                    enable_requester_pays.assert_called_once_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
+                with self.subTest("Copy to bucket"):
+                    enable_requester_pays.reset_mock()
+                    drs.copy(self.drs_url, "gs://some_bucket/some_key")
+                    enable_requester_pays.assert_called_once_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
+                with self.subTest("Extract tarball"):
+                    enable_requester_pays.reset_mock()
+                    drs.extract_tar_gz(self.drs_url, "some_pfx", "some_bucket")
+                    enable_requester_pays.assert_called_once_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
 
 @testmode("workspace_access")
 class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):
