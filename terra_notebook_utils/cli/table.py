@@ -29,7 +29,7 @@ def list_tables(args: argparse.Namespace):
     """
     args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
     out = dict()
-    for t, attributes in table.list_tables(args.namespace, args.workspace):
+    for t, attributes in table.list_tables(args.workspace, args.namespace):
         out[t] = attributes
     print(json.dumps(out, indent=2))
 
@@ -41,7 +41,7 @@ def get_table(args: argparse.Namespace):
     Get all rows
     """
     args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
-    for e in table.list_entities(args.table, args.namespace, args.workspace):
+    for e in table.list_entities(args.table, args.workspace, args.namespace):
         data = e['attributes']
         data[f'{args.table}_id'] = e['name']
         print(json.dumps(data, indent=2))
@@ -55,7 +55,7 @@ def get_row(args: argparse.Namespace):
     Get one row
     """
     args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
-    e = table.get_row(args.table, args.id, args.namespace, args.workspace)
+    e = table.get_row(args.table, args.id, args.workspace, args.namespace)
     data = e['attributes']
     data[f'{args.table}_id'] = e['name']
     print(json.dumps(data, indent=2))
@@ -70,7 +70,7 @@ def get_cell(args: argparse.Namespace):
     Get cell value
     """
     args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
-    for e in table.list_entities(args.table, args.namespace, args.workspace):
+    for e in table.list_entities(args.table, args.workspace, args.namespace):
         if args.id == e['name']:
             print(e['attributes'][args.column])
 
@@ -98,4 +98,4 @@ def put_row(args: argparse.Namespace):
         headers.append(key)
         values.append(val)
     tsv = "\t".join(headers) + os.linesep + "\t".join(values)
-    table.upload_entities(tsv, args.namespace, args.workspace)
+    table.upload_entities(tsv, args.workspace, args.namespace)
