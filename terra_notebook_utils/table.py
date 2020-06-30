@@ -5,7 +5,7 @@ from firecloud import fiss
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME
 
-def _iter_table(table: str, workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT, workspace_name: str=WORKSPACE_NAME):
+def _iter_table(table: str, workspace_name: str=WORKSPACE_NAME, workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT):
     resp = fiss.fapi.get_entities(workspace_google_project, workspace_name, table)
     if 200 != resp.status_code:
         print(resp.content)
@@ -42,15 +42,15 @@ def fetch_drs_url(table: str, file_name: str):
         raise ValueError(f"Expected DRS url in {table} for {file_name}, got {val} instead.")
     return val
 
-def list_tables(workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT, workspace_name: str=WORKSPACE_NAME):
+def list_tables(workspace_name: str=WORKSPACE_NAME, workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT):
     resp = fiss.fapi.list_entity_types(workspace_google_project, workspace_name)
     resp.raise_for_status()
     for ent_type, data in resp.json().items():
         yield ent_type, data['attributeNames']
 
 def list_entities(ent_type: str,
-                  workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT,
-                  workspace_name: str=WORKSPACE_NAME):
+                  workspace_name: str=WORKSPACE_NAME,
+                  workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT):
     resp = fiss.fapi.get_entities(workspace_google_project, workspace_name, ent_type)
     resp.raise_for_status()
     for ent in resp.json():
@@ -58,8 +58,8 @@ def list_entities(ent_type: str,
 
 def get_row(table: str,
             entity_id: str,
-            workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT,
-            workspace_name: str=WORKSPACE_NAME):
+            workspace_name: str=WORKSPACE_NAME,
+            workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT):
     resp = fiss.fapi.get_entity(workspace_google_project, workspace_name, table, entity_id)
     resp.raise_for_status()
     return resp.json()
@@ -74,8 +74,8 @@ def delete_table(ent_type: str):
     delete_entities([e for e in list_entities(ent_type)])
 
 def upload_entities(tsv_data,
-                    workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT,
-                    workspace_name: str=WORKSPACE_NAME):
+                    workspace_name: str=WORKSPACE_NAME,
+                    workspace_google_project: str=WORKSPACE_GOOGLE_PROJECT):
     resp = fiss.fapi.upload_entities(workspace_google_project, workspace_name, tsv_data, model="flexible")
     resp.raise_for_status()
 
