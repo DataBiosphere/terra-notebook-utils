@@ -186,6 +186,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
                 self._test_cmd(terra_notebook_utils.cli.drs.drs_copy,
                                drs_url=self.drs_url,
                                dst=tf.name,
+                               workspace=WORKSPACE_NAME,
                                google_billing_project=WORKSPACE_GOOGLE_PROJECT)
                 with open(tf.name, "rb") as fh:
                     data = fh.read()
@@ -196,6 +197,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             self._test_cmd(terra_notebook_utils.cli.drs.drs_copy,
                            drs_url=self.drs_url,
                            dst=f"gs://{WORKSPACE_BUCKET}/{key}",
+                           workspace=WORKSPACE_NAME,
                            google_billing_project=WORKSPACE_GOOGLE_PROJECT)
             blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
             out = io.BytesIO()
