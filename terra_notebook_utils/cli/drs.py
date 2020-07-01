@@ -1,3 +1,4 @@
+import json
 import argparse
 
 from terra_notebook_utils import drs
@@ -19,7 +20,6 @@ drs_cli = dispatch.group("drs", help=drs.__doc__, arguments={
               "Note that DRS URLs also involve a GS request.")
     )
 })
-
 
 @drs_cli.command("copy", arguments={
     "drs_url": dict(type=str),
@@ -51,3 +51,30 @@ def drs_extract_tar_gz(args: argparse.Namespace):
     pfx = pfx or None
     args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
     drs.extract_tar_gz(args.drs_url, pfx, bucket, args.workspace, args.google_billing_project)
+
+@drs_cli.command("info", arguments={
+    "drs_url": dict(type=str),
+})
+def drs_copy(args: argparse.Namespace):
+    """
+    Get information about drs:// objects
+    """
+    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
+    info = drs.resolve_drs_info_for_gs_storage(args.drs_url, args.workspace, args.google_billing_project)
+    data = info._asdict()
+    data['url'] = f"gs://{info.bucket_name}/{info.key}"
+    del data['credentials']
+    del data['bucket_name']
+    del data['key']
+    print(json.dumps(data, indent=2))
+
+@drs_cli.command("credentials", arguments={
+    "drs_url": dict(type=str),
+})
+def drs_copy(args: argparse.Namespace):
+    """
+    Return the credentials needed to access a DRS url.
+    """
+    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
+    info = drs.resolve_drs_info_for_gs_storage(args.drs_url, args.workspace, args.google_billing_project)
+    print(json.dumps(info.credentials, indent=2))
