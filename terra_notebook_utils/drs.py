@@ -27,10 +27,8 @@ def _parse_gs_url(gs_url: str) -> typing.Tuple[str, str]:
         raise RuntimeError(f'Invalid gs url schema.  {gs_url} does not start with {_GS_SCHEMA}')
 
 @functools.lru_cache()
-def enable_requester_pays(
-    workspace_name: str=WORKSPACE_NAME,
-    google_billing_project: str=WORKSPACE_GOOGLE_PROJECT
-):
+def enable_requester_pays(workspace_name: str=WORKSPACE_NAME,
+                          google_billing_project: str=WORKSPACE_GOOGLE_PROJECT):
     import urllib.parse
     encoded_workspace = urllib.parse.quote(workspace_name)
     rawls_url = (f"https://rawls.dsde-{TERRA_DEPLOYMENT_ENV}.broadinstitute.org/api/workspaces/"
@@ -57,8 +55,6 @@ def fetch_drs_info(
     Request DRS infromation from martha.
     """
     access_token = gs.get_access_token()
-
-    enable_requester_pays(workspace_name, google_billing_project)
 
     martha_url = f"https://us-central1-broad-dsde-{TERRA_DEPLOYMENT_ENV}.cloudfunctions.net/martha_v2"
     headers = {
@@ -144,6 +140,7 @@ def copy_to_bucket(drs_url: str,
     If `dst_bucket` is None, copy into workspace bucket.
     """
     assert drs_url.startswith("drs://")
+    enable_requester_pays(workspace_name, google_billing_project)
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
     src_client, src_info = resolve_drs_for_gs_storage(drs_url, workspace_name, google_billing_project)
@@ -161,6 +158,7 @@ def copy(drs_url: str,
     Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with "gs://".
     """
     assert drs_url.startswith("drs://")
+    enable_requester_pays(workspace_name, google_billing_project)
     if dst.startswith("gs://"):
         parts = dst[5:].split("/", 1)
         if 1 >= len(parts):
@@ -182,6 +180,7 @@ def extract_tar_gz(drs_url: str,
     """
     Extract a `.tar.gz` archive resolved by a DRS url into a Google Storage bucket.
     """
+    enable_requester_pays(workspace_name, google_billing_project)
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
     assert dst_bucket_name
