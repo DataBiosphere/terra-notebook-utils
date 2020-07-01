@@ -1,6 +1,7 @@
 """
 Utilities for working with DRS objects
 """
+import os
 import json
 import typing
 import requests
@@ -16,7 +17,7 @@ import gs_chunked_io as gscio
 
 logger = logging.getLogger(__name__)
 
-DRSInfo = namedtuple("DRSInfo", "credentials bucket_name key")
+DRSInfo = namedtuple("DRSInfo", "credentials bucket_name key name")
 
 def _parse_gs_url(gs_url: str) -> typing.Tuple[str, str]:
     if gs_url.startswith(_GS_SCHEMA):
@@ -92,7 +93,8 @@ def resolve_drs_info_for_gs_storage(
         raise Exception(f"Unable to resolve GS url for {drs_url}")
 
     bucket_name, key = _parse_gs_url(data_url)
-    return DRSInfo(credentials=credentials_data, bucket_name=bucket_name, key=key)
+    name = drs_info['dos']['data_object'].get("name")
+    return DRSInfo(credentials=credentials_data, bucket_name=bucket_name, key=key, name=name)
 
 def resolve_drs_for_gs_storage(
     drs_url: str,
@@ -118,8 +120,13 @@ def copy_to_local(drs_url: str,
     assert drs_url.startswith("drs://")
     client, info = resolve_drs_for_gs_storage(drs_url, workspace_name, google_billing_project)
     blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
+    if os.path.isdir(filepath):
+        if info.name:
+            filepath = os.path.join(os.path.abspath(filepath), info.name)
+        else:
+            raise ValueError("No DRS information for file name, file name must be provded.")
     with open(filepath, "wb") as fh:
-        logger.info(f"Beginning to download url {drs_url}. This can take a while for large files...")
+        logger.info(f"Downloading {drs_url} to {filepath}")
         blob.download_to_file(fh)
 
 def copy_to_bucket(drs_url: str,
