@@ -17,7 +17,7 @@ import gs_chunked_io as gscio
 
 logger = logging.getLogger(__name__)
 
-DRSInfo = namedtuple("DRSInfo", "credentials bucket_name key name")
+DRSInfo = namedtuple("DRSInfo", "credentials bucket_name key name size updated")
 
 def _parse_gs_url(gs_url: str) -> typing.Tuple[str, str]:
     if gs_url.startswith(_GS_SCHEMA):
@@ -93,8 +93,12 @@ def resolve_drs_info_for_gs_storage(
         raise Exception(f"Unable to resolve GS url for {drs_url}")
 
     bucket_name, key = _parse_gs_url(data_url)
-    name = drs_info['dos']['data_object'].get("name")
-    return DRSInfo(credentials=credentials_data, bucket_name=bucket_name, key=key, name=name)
+    return DRSInfo(credentials=credentials_data,
+                   bucket_name=bucket_name,
+                   key=key,
+                   name=drs_info['dos']['data_object'].get("name"),
+                   size=drs_info['dos']['data_object'].get("size"),
+                   updated=drs_info['dos']['data_object'].get("updated"))
 
 def resolve_drs_for_gs_storage(
     drs_url: str,
