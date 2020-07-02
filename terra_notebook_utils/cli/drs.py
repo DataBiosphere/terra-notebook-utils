@@ -55,7 +55,7 @@ def drs_extract_tar_gz(args: argparse.Namespace):
 @drs_cli.command("info", arguments={
     "drs_url": dict(type=str),
 })
-def drs_copy(args: argparse.Namespace):
+def drs_info(args: argparse.Namespace):
     """
     Get information about drs:// objects
     """
@@ -71,7 +71,7 @@ def drs_copy(args: argparse.Namespace):
 @drs_cli.command("credentials", arguments={
     "drs_url": dict(type=str),
 })
-def drs_copy(args: argparse.Namespace):
+def drs_credentials(args: argparse.Namespace):
     """
     Return the credentials needed to access a DRS url.
     """
