@@ -137,15 +137,15 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
             with mock.patch("terra_notebook_utils.drs.enable_requester_pays") as enable_requester_pays:
                 with self.subTest("Copy to local"):
                     drs.copy(self.drs_url, "some_bucketsome_key")
-                    enable_requester_pays.assert_called_once_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
+                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
                 with self.subTest("Copy to bucket"):
                     enable_requester_pays.reset_mock()
                     drs.copy(self.drs_url, "gs://some_bucket/some_key")
-                    enable_requester_pays.assert_called_once_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
+                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
                 with self.subTest("Extract tarball"):
                     enable_requester_pays.reset_mock()
                     drs.extract_tar_gz(self.drs_url, "some_pfx", "some_bucket")
-                    enable_requester_pays.assert_called_once_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
+                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
 
 @testmode("workspace_access")
 class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):
