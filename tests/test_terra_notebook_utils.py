@@ -90,9 +90,9 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     @testmode("controlled_access")
     def test_resolve_drs_for_google_storage(self):
-        _, bucket_name, key = drs.resolve_drs_for_gs_storage(self.drs_url)
-        self.assertEqual(bucket_name, "topmed-irc-share")
-        self.assertEqual(key, "genomes/NWD522743.b38.irc.v1.cram.crai")
+        _, info = drs.resolve_drs_for_gs_storage(self.drs_url)
+        self.assertEqual(info.bucket_name, "topmed-irc-share")
+        self.assertEqual(info.key, "genomes/NWD522743.b38.irc.v1.cram.crai")
 
     @testmode("controlled_access")
     def test_download(self):

@@ -78,8 +78,8 @@ def _get_blob(path: str, google_project: str) -> google.cloud.storage.blob:
         blob = gs.get_client(project=google_project).bucket(bucket_name).get_blob(key)
     elif path.startswith("drs://"):
         from terra_notebook_utils import drs
-        client, bucket_name, key = drs.resolve_drs_for_gs_storage(path)
-        blob = client.bucket(bucket_name, user_project=google_project).get_blob(key)
+        client, info = drs.resolve_drs_for_gs_storage(path)
+        blob = client.bucket(info.bucket_name, user_project=google_project).get_blob(info.key)
     else:
         blob = None
     return blob
