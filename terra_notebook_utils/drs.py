@@ -2,6 +2,7 @@
 Utilities for working with DRS objects
 """
 import os
+import re
 import json
 import requests
 from collections import namedtuple
@@ -122,10 +123,8 @@ def copy_to_local(drs_url: str,
     client, info = resolve_drs_for_gs_storage(drs_url, workspace_name, google_billing_project)
     blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
     if os.path.isdir(filepath):
-        if info.name:
-            filepath = os.path.join(os.path.abspath(filepath), info.name)
-        else:
-            raise ValueError("No DRS information for file name, file name must be provded.")
+        filename = info.name or _url_basename(drs_url)
+        filepath = os.path.join(os.path.abspath(filepath), filename)
     with open(filepath, "wb") as fh:
         logger.info(f"Downloading {drs_url} to {filepath}")
         blob.download_to_file(fh)
@@ -190,3 +189,16 @@ def extract_tar_gz(drs_url: str,
     dst_bucket = gs.get_client().bucket(dst_bucket_name)
     with gscio.AsyncReader(src_bucket.get_blob(src_info.key), chunks_to_buffer=2) as fh:
         tar_gz.extract(fh, dst_bucket, root=dst_pfx)
+
+def _url_basename(url: str) -> str:
+    schema_re = "[a-z]+://"
+    path_re = ".*"
+    m = re.match(f"(?P<schema>{schema_re})(?P<path>{path_re})", url)
+    if m:
+        parts = m['path'].rsplit("/", 1)
+        if 2 == len(parts):
+            return parts[-1]
+        else:
+            raise ValueError(f"'{url}' missing basename")
+    else:
+        raise ValueError(f"'{url}' does not match '{schema_re}{path_re}'")

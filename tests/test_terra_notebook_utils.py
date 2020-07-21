@@ -147,6 +147,19 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
                     drs.extract_tar_gz(self.drs_url, "some_pfx", "some_bucket")
                     enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
 
+    def test_url_basename(self):
+        with self.subTest("Should raise for invalid or missing schemas"):
+            for broken_url in ["alsdf", "s:/asdf", "s//saldf"]:
+                with self.assertRaises(ValueError):
+                    drs._url_basename(broken_url)
+        with self.subTest("Should raise when basename is absent"):
+            with self.assertRaises(ValueError):
+                drs._url_basename("drs://alskdjflasjdf")
+        with self.subTest("Should return drs url basename"):
+            expected_basename = "my_cool_basename"
+            basename = drs._url_basename(f"drs://asldkfj/argle/{expected_basename}")
+            self.assertEqual(expected_basename, basename)
+
 @testmode("workspace_access")
 class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):
     def test_extract(self):
