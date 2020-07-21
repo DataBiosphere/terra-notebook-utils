@@ -23,9 +23,9 @@ def extract(src_fh, dst_bucket: typing.Optional[Bucket]=None, root: typing.Optio
     for tarinfo in tf:
         if tarinfo.isfile():
             if dst_bucket:
-                dst_fh = _prepare_gs(tarinfo, dst_bucket, root)
+                dst_fh = _prepare_gs(tarinfo, dst_bucket, root or "")
             else:
-                dst_fh = _prepare_local(tarinfo, root)
+                dst_fh = _prepare_local(tarinfo, root or "")
             print(f"Inflating {tarinfo.name}")
             progress_bar = ProgressBar(ceil(tarinfo.size / _chunk_size) + 1,
                                        size=ceil(tarinfo.size / 1024 ** 2),
@@ -45,7 +45,7 @@ def _transfer_data(from_fh, to_fh, progress_bar: ProgressBar=None):
         if progress_bar:
             progress_bar.update()
 
-def _prepare_local(tarinfo: tarfile.TarInfo, root: typing.Optional[str]):
+def _prepare_local(tarinfo: tarfile.TarInfo, root: str):
     filepath = os.path.abspath(os.path.join(root, tarinfo.name))
     Path(os.path.dirname(filepath)).mkdir(parents=True, exist_ok=True)
     return open(filepath, "wb")
