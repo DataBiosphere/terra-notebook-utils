@@ -4,6 +4,7 @@ VCF file utilities
 import io
 from uuid import uuid4
 from multiprocessing import cpu_count
+from typing import Optional
 
 import bgzip
 import gs_chunked_io as gscio
@@ -49,7 +50,7 @@ class VCFInfo:
             print(line)
 
     @classmethod
-    def with_bgzip_fileobj(cls, fileobj, read_buf: memoryview, chunk_size=1024 * 1024):
+    def with_bgzip_fileobj(cls, fileobj, read_buf: Optional[memoryview], chunk_size=1024 * 1024):
         if read_buf is None:
             read_buf = memoryview(bytearray(1024 * 1024 * 50))
         with bgzip.BGZipAsyncReaderPreAllocated(fileobj,
@@ -60,20 +61,20 @@ class VCFInfo:
                 return cls(reader)
 
     @classmethod
-    def with_gzip_fileobj(cls, fileobj, read_buf: memoryview, chunk_size=1024 * 1024):
+    def with_gzip_fileobj(cls, fileobj):
         import gzip
         gzip_reader = gzip.GzipFile(fileobj=fileobj)
         return cls(gzip_reader)
 
     @classmethod
-    def with_blob(cls, blob, read_buf: memoryview=None):
+    def with_blob(cls, blob, read_buf: Optional[memoryview]=None):
         chunk_size = 1024 * 1024
         try:
             with gscio.AsyncReader(blob, chunks_to_buffer=1, chunk_size=chunk_size) as raw:
                 return cls.with_bgzip_fileobj(raw, read_buf, chunk_size)
         except bgzip.BGZIPException:
             with gscio.AsyncReader(blob, chunks_to_buffer=1, chunk_size=chunk_size) as raw:
-                return cls.with_gzip_fileobj(raw, read_buf, chunk_size)
+                return cls.with_gzip_fileobj(raw)
 
     @classmethod
     def with_file(cls, filepath, read_buf: memoryview=None):
@@ -82,7 +83,7 @@ class VCFInfo:
                 return cls.with_bgzip_fileobj(raw, read_buf)
             except bgzip.BGZIPException:
                 raw.seek(0)
-                return cls.with_gzip_fileobj(raw, read_buf)
+                return cls.with_gzip_fileobj(raw)
 
 
 def _headers_equal(a, b):

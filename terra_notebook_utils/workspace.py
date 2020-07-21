@@ -1,21 +1,21 @@
 """
 Workspace information and operations
 """
-import typing
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Optional
 
 from firecloud import fiss
 
 from terra_notebook_utils import gs, WORKSPACE_BUCKET, WORKSPACE_NAME
 
 
-def get_workspace(workspace: str=WORKSPACE_NAME, namespace: str=None) -> dict:
+def get_workspace(workspace: Optional[str]=WORKSPACE_NAME, namespace: Optional[str]=None) -> dict:
     namespace = namespace or get_workspace_namespace(workspace)
     resp = fiss.fapi.get_workspace(namespace, workspace)
     resp.raise_for_status()
     return resp.json()
 
-def list_workspaces() -> typing.List[dict]:
+def list_workspaces() -> List[dict]:
     """
     List workspaces available to current user.
     """
@@ -23,26 +23,32 @@ def list_workspaces() -> typing.List[dict]:
     resp.raise_for_status()
     return resp.json()
 
-def get_workspace_bucket(workspace: str=WORKSPACE_NAME) -> str:
+def get_workspace_bucket(workspace: Optional[str]=WORKSPACE_NAME) -> Optional[str]:
     """
     Get Google Storage bucket associated with a workspace.
     """
-    for ws in list_workspaces():
-        if ws['workspace']['name'] == workspace:
-            return ws['workspace']['bucketName']
-    return None
+    if not workspace:
+        raise ValueError("Expected workspace")
+    else:
+        for ws in list_workspaces():
+            if ws['workspace']['name'] == workspace:
+                return ws['workspace']['bucketName']
+        return None
 
-def get_workspace_namespace(workspace: str=WORKSPACE_NAME) -> str:
+def get_workspace_namespace(workspace: Optional[str]=WORKSPACE_NAME) -> Optional[str]:
     """
     Best effort discovery of workspace namespace.
     If two namespaces share a workspace of the same name, the first namespace encountered will be returned.
     """
-    for ws in list_workspaces():
-        if ws['workspace']['name'] == workspace:
-            return ws['workspace']['namespace']
-    return None
+    if not workspace:
+        raise ValueError("Expected workspace")
+    else:
+        for ws in list_workspaces():
+            if ws['workspace']['name'] == workspace:
+                return ws['workspace']['namespace']
+        return None
 
-def remove_workflow_logs(bucket_name=WORKSPACE_BUCKET, submission_id: str=None) -> typing.List[str]:
+def remove_workflow_logs(bucket_name=WORKSPACE_BUCKET, submission_id: str=None) -> List[str]:
     """
     Experimental: do not use
     """

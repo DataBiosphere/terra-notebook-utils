@@ -3,7 +3,7 @@ Configure the CLI
 """
 import os
 import json
-import typing
+from typing import Optional
 
 import cli_builder
 
@@ -27,7 +27,7 @@ class Config:
             fh.write(json.dumps(cls.info, indent=2))
 
     @classmethod
-    def resolve(cls, override_workspace: str, override_namespace: str):
+    def resolve(cls, override_workspace: Optional[str], override_namespace: Optional[str]):
         workspace = override_workspace or (cls.info['workspace'] or WORKSPACE_NAME)
         namespace = override_namespace or (cls.info['workspace_google_project'] or WORKSPACE_GOOGLE_PROJECT)
         if workspace and namespace is None:
