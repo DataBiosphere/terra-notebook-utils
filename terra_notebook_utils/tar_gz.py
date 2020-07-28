@@ -55,4 +55,4 @@ def _prepare_gs(tarinfo: tarfile.TarInfo, bucket: Bucket, root: typing.Optional[
         key = f"{root}/{tarinfo.name}"
     else:
         key = tarinfo.name
-    return gscio.AsyncWriter(key, bucket, chunk_size=_chunk_size)
+    return gscio.Writer(key, bucket, chunk_size=_chunk_size)

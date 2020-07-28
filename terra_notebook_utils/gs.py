@@ -4,7 +4,6 @@ import logging
 import warnings
 from math import ceil
 from contextlib import closing
-from concurrent.futures import as_completed
 
 from google.cloud.storage import Client
 from google.oauth2 import service_account
@@ -90,9 +89,9 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
                                size=src_blob.size // 1024 ** 2,
                                units="MB")
     with closing(progress_bar):
-        with gscio.AsyncWriter(dst_key, dst_bucket) as writer:
-            for chunk_number, chunk in gscio.AsyncReader.for_each_chunk_async(src_blob):
-                writer.put_part_async(chunk_number, chunk)
+        with gscio.AsyncPartUploader(dst_key, dst_bucket) as writer:
+            for chunk_number, chunk in gscio.for_each_chunk_async(src_blob):
+                writer.put_part(chunk_number, chunk)
                 progress_bar.update()
         progress_bar.update()
 

@@ -70,10 +70,10 @@ class VCFInfo:
     def with_blob(cls, blob, read_buf: Optional[memoryview]=None):
         chunk_size = 1024 * 1024
         try:
-            with gscio.AsyncReader(blob, chunks_to_buffer=1, chunk_size=chunk_size) as raw:
+            with gscio.Reader(blob, chunk_size=chunk_size, threads=None) as raw:
                 return cls.with_bgzip_fileobj(raw, read_buf, chunk_size)
         except bgzip.BGZIPException:
-            with gscio.AsyncReader(blob, chunks_to_buffer=1, chunk_size=chunk_size) as raw:
+            with gscio.Reader(blob, chunk_size=chunk_size, threads=2) as raw:
                 return cls.with_gzip_fileobj(raw)
 
     @classmethod
