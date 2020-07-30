@@ -9,6 +9,7 @@ from google.cloud.storage import Client
 from google.oauth2 import service_account
 import google.auth
 import gs_chunked_io as gscio
+import google.cloud.storage.bucket as GSBucket
 
 from terra_notebook_utils import WORKSPACE_BUCKET, TERRA_DEPLOYMENT_ENV, MULTIPART_THRESHOLD
 from terra_notebook_utils.progress import ProgressBar
@@ -67,7 +68,7 @@ def get_client(credentials_data: dict=None, project: str=None):
         client._credentials.refresh(google.auth.transport.requests.Request())
     return client
 
-def oneshot_copy(src_bucket, dst_bucket, src_key, dst_key):
+def oneshot_copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst_key: str):
     """
     Download an object into memory from `src_bucket` and upload it to `dst_bucket`
     """
@@ -76,7 +77,7 @@ def oneshot_copy(src_bucket, dst_bucket, src_key, dst_key):
     fh.seek(0)
     dst_bucket.blob(dst_key).upload_from_file(fh)
 
-def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
+def multipart_copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst_key: str):
     """
     Download/upload an object in parts from `src_bucket` to `dst_bucket`
     """
@@ -95,7 +96,7 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
                 progress_bar.update()
         progress_bar.update()
 
-def copy(src_bucket, dst_bucket, src_key, dst_key):
+def copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst_key: str):
     src_blob = src_bucket.get_blob(src_key)
     if MULTIPART_THRESHOLD >= src_blob.size:
         oneshot_copy(src_bucket, dst_bucket, src_key, dst_key)
