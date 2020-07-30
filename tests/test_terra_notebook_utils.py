@@ -116,6 +116,19 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
             key = f"gs://{WORKSPACE_BUCKET}/test_oneshot_object_{uuid4()}"
             drs.copy(self.drs_url, key)
 
+    @testmode("controlled_access")
+    def test_copy_batch(self):
+        # TODO: improve this test
+        with mock.patch("terra_notebook_utils.drs.MULTIPART_THRESHOLD", 400000):
+            drs_urls = [
+                "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35",  # 1631686 bytes
+                # "drs://dg.4503/6e73a376-f7fd-47ed-ac99-0567bb5a5993",  # 2679331445 bytes
+                # "drs://dg.4503/651a4ad1-06b5-4534-bb2c-1f8ed51134f6",  # 2679411265 bytes
+                "drs://dg.4503/26e11149-5deb-4cd7-a475-16997a825655",  # 1115092 bytes
+                "drs://dg.4503/e9c2caf2-b2a1-446d-92eb-8d5389e99ee3",  # 332237 bytes
+            ]
+            drs.copy_batch(drs_urls, "gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10/test-batch-copy")
+
     # Probably don't want to run this test very often. Once a week?
     def _test_extract_tar_gz(self):
         drs_url = "drs://dg.4503/273f3453-4d16-4ddd-8877-dbac958a4f4d"  # Amish cohort v4 VCF
