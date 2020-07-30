@@ -104,7 +104,8 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     @testmode("controlled_access")
     def test_multipart_copy(self):
-        drs.copy_to_bucket(self.drs_url, "test_oneshot_object", multipart_threshold=1024 * 1024)
+        with mock.patch("terra_notebook_utils.MULTIPART_THRESHOLD", 1024 * 1024):
+            drs.copy_to_bucket(self.drs_url, "test_oneshot_object")
 
     @testmode("controlled_access")
     def test_copy(self):
