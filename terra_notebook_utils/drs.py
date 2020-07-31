@@ -119,7 +119,6 @@ def copy_to_local(drs_url: str,
 def copy_to_bucket(drs_url: str,
                    dst_key: str,
                    dst_bucket_name: str=None,
-                   multipart_threshold: int=1024 * 1024 * 32,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
                    google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """
@@ -135,7 +134,7 @@ def copy_to_bucket(drs_url: str,
     src_bucket = src_client.bucket(src_info.bucket_name, user_project=google_billing_project)
     dst_bucket = dst_client.bucket(dst_bucket_name)
     logger.info(f"Beginning to copy from {src_bucket} to {dst_bucket}. This can take a while for large files...")
-    gs.copy(src_bucket, dst_bucket, src_info.key, dst_key, multipart_threshold)
+    gs.copy(src_bucket, dst_bucket, src_info.key, dst_key)
 
 def copy(drs_url: str,
          dst: str,

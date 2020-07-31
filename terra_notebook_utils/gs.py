@@ -10,7 +10,7 @@ from google.oauth2 import service_account
 import google.auth
 import gs_chunked_io as gscio
 
-from terra_notebook_utils import WORKSPACE_BUCKET, TERRA_DEPLOYMENT_ENV
+from terra_notebook_utils import WORKSPACE_BUCKET, TERRA_DEPLOYMENT_ENV, MULTIPART_THRESHOLD
 from terra_notebook_utils.progress import ProgressBar
 
 
@@ -95,9 +95,9 @@ def multipart_copy(src_bucket, dst_bucket, src_key, dst_key):
                 progress_bar.update()
         progress_bar.update()
 
-def copy(src_bucket, dst_bucket, src_key, dst_key, multipart_threshold=1024 * 1024 * 32):
+def copy(src_bucket, dst_bucket, src_key, dst_key):
     src_blob = src_bucket.get_blob(src_key)
-    if multipart_threshold >= src_blob.size:
+    if MULTIPART_THRESHOLD >= src_blob.size:
         oneshot_copy(src_bucket, dst_bucket, src_key, dst_key)
     else:
         multipart_copy(src_bucket, dst_bucket, src_key, dst_key)
