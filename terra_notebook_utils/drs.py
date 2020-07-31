@@ -11,7 +11,8 @@ from functools import lru_cache
 from collections import namedtuple
 from typing import Tuple, Iterable, Optional
 
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD
+from terra_notebook_utils import (WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD,
+                                  IO_CONCURRENCY)
 from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 
 import gs_chunked_io as gscio
@@ -163,8 +164,8 @@ def copy_batch(drs_urls: Iterable[str],
                workspace_name: Optional[str]=WORKSPACE_NAME,
                google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     enable_requester_pays(workspace_name, google_billing_project)
-    with ThreadPoolExecutor(max_workers=3) as oneshot_executor:
-        oneshot_pool = async_collections.AsyncSet(oneshot_executor, concurrency=3)
+    with ThreadPoolExecutor(max_workers=IO_CONCURRENCY) as oneshot_executor:
+        oneshot_pool = async_collections.AsyncSet(oneshot_executor, concurrency=IO_CONCURRENCY)
         for drs_url in drs_urls:
             assert drs_url.startswith("drs://")
             src_client, src_info = resolve_drs_for_gs_storage(drs_url)

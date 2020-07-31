@@ -16,5 +16,6 @@ if WORKSPACE_BUCKET is not None and WORKSPACE_BUCKET.startswith(_GS_SCHEMA):
     WORKSPACE_BUCKET = WORKSPACE_BUCKET[len(_GS_SCHEMA):]  # Chop off the bucket schema
 
 MULTIPART_THRESHOLD = 1024 * 1024 * 32
+IO_CONCURRENCY = 3
 
 from terra_notebook_utils import drs, profile, table, vcf, workspace

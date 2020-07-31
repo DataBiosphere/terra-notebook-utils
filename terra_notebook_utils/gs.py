@@ -11,7 +11,7 @@ import google.auth
 import gs_chunked_io as gscio
 import google.cloud.storage.bucket as GSBucket
 
-from terra_notebook_utils import WORKSPACE_BUCKET, TERRA_DEPLOYMENT_ENV, MULTIPART_THRESHOLD
+from terra_notebook_utils import WORKSPACE_BUCKET, TERRA_DEPLOYMENT_ENV, MULTIPART_THRESHOLD, IO_CONCURRENCY
 from terra_notebook_utils.progress import ProgressBar
 
 
@@ -90,8 +90,8 @@ def multipart_copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst
                                size=src_blob.size // 1024 ** 2,
                                units="MB")
     with closing(progress_bar):
-        with gscio.AsyncPartUploader(dst_key, dst_bucket) as writer:
-            for chunk_number, chunk in gscio.for_each_chunk_async(src_blob):
+        with gscio.AsyncPartUploader(dst_key, dst_bucket, threads=IO_CONCURRENCY) as writer:
+            for chunk_number, chunk in gscio.for_each_chunk_async(src_blob, threads=IO_CONCURRENCY):
                 writer.put_part(chunk_number, chunk)
                 progress_bar.update()
         progress_bar.update()
