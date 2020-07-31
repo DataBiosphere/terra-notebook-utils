@@ -19,7 +19,6 @@ logging.getLogger("google.resumable_media.requests.download").setLevel(logging.W
 logging.getLogger("gs_chunked_io.writer").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 # Suppress the annoying google gcloud _CLOUD_SDK_CREDENTIALS_WARNING warnings
@@ -72,18 +71,19 @@ def oneshot_copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst_k
     """
     Download an object into memory from `src_bucket` and upload it to `dst_bucket`
     """
+    logger.info(f"Copying gs://{src_bucket.name}/{src_key} to gs://{dst_bucket.name}/{dst_key}")
     fh = io.BytesIO()
     src_bucket.blob(src_key).download_to_file(fh)
     fh.seek(0)
     dst_bucket.blob(dst_key).upload_from_file(fh)
+    assert src_bucket.get_blob(src_key).crc32c == dst_bucket.get_blob(dst_key).crc32c
 
 def multipart_copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst_key: str):
     """
     Download/upload an object in parts from `src_bucket` to `dst_bucket`
     """
     src_blob = src_bucket.get_blob(src_key)
-    print(f"Copying from {src_bucket.name}/{src_key}")
-    print(f"Copying to {dst_bucket.name}/{dst_key}")
+    print(f"Copying gs://{src_bucket.name}/{src_key} to gs://{dst_bucket.name}/{dst_key}")
     number_of_chunks = ceil(src_blob.size / gscio.reader.default_chunk_size)
     progress_bar = ProgressBar(1 + number_of_chunks,
                                prefix="Copying:",
@@ -95,6 +95,7 @@ def multipart_copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst
                 writer.put_part(chunk_number, chunk)
                 progress_bar.update()
         progress_bar.update()
+    assert src_bucket.get_blob(src_key).crc32c == dst_bucket.get_blob(dst_key).crc32c
 
 def copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst_key: str):
     src_blob = src_bucket.get_blob(src_key)
@@ -102,9 +103,6 @@ def copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst_key: str)
         oneshot_copy(src_bucket, dst_bucket, src_key, dst_key)
     else:
         multipart_copy(src_bucket, dst_bucket, src_key, dst_key)
-    src_blob.reload()
-    dst_blob = dst_bucket.get_blob(dst_key)
-    assert src_blob.crc32c == dst_blob.crc32c
 
 def list_bucket(prefix="", bucket=WORKSPACE_BUCKET):
     for blob in get_client().bucket(bucket).list_blobs(prefix=prefix):
