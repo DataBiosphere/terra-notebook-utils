@@ -6,14 +6,17 @@ import re
 import json
 import logging
 import requests
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from collections import namedtuple
-from typing import Tuple, Optional
+from typing import Tuple, Iterable, Optional
 
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
+from terra_notebook_utils import (WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD,
+                                  IO_CONCURRENCY)
 from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 
 import gs_chunked_io as gscio
+from gs_chunked_io import async_collections
 
 
 logger = logging.getLogger(__name__)
@@ -155,6 +158,32 @@ def copy(drs_url: str,
                        google_billing_project=google_billing_project)
     else:
         copy_to_local(drs_url, dst, workspace_name, google_billing_project)
+
+def copy_batch(drs_urls: Iterable[str],
+               dst: str,
+               workspace_name: Optional[str]=WORKSPACE_NAME,
+               google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    enable_requester_pays(workspace_name, google_billing_project)
+    with ThreadPoolExecutor(max_workers=IO_CONCURRENCY) as oneshot_executor:
+        oneshot_pool = async_collections.AsyncSet(oneshot_executor, concurrency=IO_CONCURRENCY)
+        for drs_url in drs_urls:
+            assert drs_url.startswith("drs://")
+            src_client, src_info = resolve_drs_for_gs_storage(drs_url)
+            src_bucket = src_client.bucket(src_info.bucket_name, user_project=google_billing_project)
+            src_blob = src_bucket.get_blob(src_info.key)
+            basename = src_info.name or _url_basename(drs_url)
+            if dst.startswith("gs://"):
+                dst_bucket_name, dst_pfx = _bucket_name_and_key(dst)
+                dst_bucket = gs.get_client().bucket(dst_bucket_name)
+                dst_key = f"{dst_pfx}/{basename}"
+                if MULTIPART_THRESHOLD >= src_blob.size:
+                    oneshot_pool.put(gs.oneshot_copy, src_bucket, dst_bucket, src_info.key, dst_key)
+                else:
+                    gs.multipart_copy(src_bucket, dst_bucket, src_info.key, dst_key)
+            else:
+                oneshot_pool.put(copy_to_local, drs_url, dst, workspace_name, google_billing_project)
+        for _ in oneshot_pool.consume():
+            pass
 
 def extract_tar_gz(drs_url: str,
                    dst_pfx: str=None,

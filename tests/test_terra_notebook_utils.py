@@ -6,12 +6,14 @@ import time
 import unittest
 import glob
 import pytz
+import tempfile
 from uuid import uuid4
 from random import randint
 from datetime import datetime
 from functools import lru_cache
 from unittest import mock
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Generator
 
 import gs_chunked_io as gscio
 
@@ -115,6 +117,30 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
         with self.subTest("Test copy to bucket location"):
             key = f"gs://{WORKSPACE_BUCKET}/test_oneshot_object_{uuid4()}"
             drs.copy(self.drs_url, key)
+
+    @testmode("controlled_access")
+    def test_copy_batch(self):
+        drs_urls = {
+            "NWD522743.b38.irc.v1.cram.crai": "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35",  # 1631686 bytes
+            # "NWD961306.freeze5.v1.vcf.gz": "drs://dg.4503/6e73a376-f7fd-47ed-ac99-0567bb5a5993",  # 2679331445 bytes
+            # "NWD531899.freeze5.v1.vcf.gz": "drs://dg.4503/651a4ad1-06b5-4534-bb2c-1f8ed51134f6",  # 2679411265 bytes
+            "data_phs001237.v2.p1.c1.avro.gz": "drs://dg.4503/26e11149-5deb-4cd7-a475-16997a825655",  # 1115092 bytes
+            "RootStudyConsentSet_phs001237.TOPMed_WGS_WHI.v2.p1.c1.HMB-IRB.tar.gz":
+                "drs://dg.4503/e9c2caf2-b2a1-446d-92eb-8d5389e99ee3",  # 332237 bytes
+        }
+        pfx = f"test-batch-copy/{uuid4()}"
+        bucket = gs.get_client().bucket(WORKSPACE_BUCKET)
+        with self.subTest("gs bucket"):
+            with mock.patch("terra_notebook_utils.drs.MULTIPART_THRESHOLD", 400000):
+                drs.copy_batch(list(drs_urls.values()), f"gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10/{pfx}")
+                for name in list(drs_urls.keys()):
+                    blob = bucket.get_blob(f"{pfx}/{name}")
+                    self.assertGreater(blob.size, 0)
+        with self.subTest("local filesystem"):
+            with tempfile.TemporaryDirectory() as dirname:
+                drs.copy_batch(list(drs_urls.values()), dirname)
+                names = [os.path.basename(path) for path in _list_tree(dirname)]
+                self.assertEqual(sorted(names), sorted(list(drs_urls.keys())))
 
     # Probably don't want to run this test very often. Once a week?
     def _test_extract_tar_gz(self):
@@ -339,6 +365,12 @@ class TestTerraNotebookUtilsWorkspace(TestCaseSuppressWarnings):
             for f in as_completed(futures):
                 f.result()
         return manifest
+
+def _list_tree(root) -> Generator[str, None, None]:
+    for (dirpath, dirnames, filenames) in os.walk(root):
+        for filename in filenames:
+            relpath = os.path.join(dirpath, filename)
+            yield os.path.abspath(relpath)
 
 
 if __name__ == '__main__':
