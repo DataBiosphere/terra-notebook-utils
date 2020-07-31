@@ -202,6 +202,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
             out = io.BytesIO()
             blob.download_to_file(out)
+            blob.reload()  # download_to_file causes the crc32c to change, for some reason. Reload blob to recover.
             self.assertEqual(self.expected_crc32c, blob.crc32c)
             self.assertEqual(_crc32c(out.getvalue()), blob.crc32c)
 
