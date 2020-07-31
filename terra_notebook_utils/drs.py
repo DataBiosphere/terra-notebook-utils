@@ -73,6 +73,7 @@ def resolve_drs_info_for_gs_storage(drs_url: str) -> DRSInfo:
     """
     Attempt to resolve gs:// url and credentials for a DRS object.
     """
+    assert drs_url.startswith("drs://")
     drs_info = fetch_drs_info(drs_url)
     credentials_data = drs_info['googleServiceAccount']['data']
     for url_info in drs_info['dos']['data_object']['urls']:
@@ -94,6 +95,7 @@ def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     """
     Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage client.
     """
+    assert drs_url.startswith("drs://")
     info = resolve_drs_info_for_gs_storage(drs_url)
     client = gs.get_client(info.credentials, project=info.credentials['project_id'])
     return client, info
