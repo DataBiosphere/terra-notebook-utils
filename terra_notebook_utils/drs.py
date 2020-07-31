@@ -145,10 +145,7 @@ def copy(drs_url: str,
     """
     assert drs_url.startswith("drs://")
     if dst.startswith("gs://"):
-        parts = dst[5:].split("/", 1)
-        if 1 >= len(parts):
-            raise ValueError("gs:// url should contain bucket name and key with '/' delimeter.")
-        bucket_name, key = parts
+        bucket_name, key = _bucket_name_and_key(dst)
         copy_to_bucket(drs_url,
                        key,
                        bucket_name,
@@ -187,3 +184,10 @@ def _url_basename(url: str) -> str:
             raise ValueError(f"'{url}' missing basename")
     else:
         raise ValueError(f"'{url}' does not match '{schema_re}{path_re}'")
+
+def _bucket_name_and_key(gs_url: str) -> Tuple[str, str]:
+    assert gs_url.startswith("gs://")
+    parts = gs_url[5:].split("/", 1)
+    if 1 >= len(parts):
+        raise ValueError("gs:// url should contain bucket name and key with '/' delimiter.")
+    return parts[0], parts[1]
