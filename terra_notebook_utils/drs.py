@@ -4,14 +4,14 @@ Utilities for working with DRS objects
 import os
 import re
 import json
+import logging
 import requests
+from functools import lru_cache
 from collections import namedtuple
 from typing import Tuple, Optional
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
 from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
-import functools
-import logging
 
 import gs_chunked_io as gscio
 
@@ -27,7 +27,7 @@ def _parse_gs_url(gs_url: str) -> Tuple[str, str]:
     else:
         raise RuntimeError(f'Invalid gs url schema.  {gs_url} does not start with {_GS_SCHEMA}')
 
-@functools.lru_cache()
+@lru_cache()
 def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
                           google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     assert workspace_name
