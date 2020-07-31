@@ -1,5 +1,6 @@
 import json
 import argparse
+from typing import Any, Dict
 
 from terra_notebook_utils import drs
 from terra_notebook_utils.cli import dispatch, Config
@@ -7,7 +8,7 @@ from terra_notebook_utils.cli import dispatch, Config
 
 drs_cli = dispatch.group("drs", help=drs.__doc__)
 
-workspace_args = {
+workspace_args: Dict[str, Dict[str, Any]] = {
     "--workspace": dict(
         type=str,
         default=None,
@@ -37,6 +38,22 @@ def drs_copy(args: argparse.Namespace):
     """
     args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
     drs.copy(args.drs_url, args.dst, args.workspace, args.google_billing_project)
+
+@drs_cli.command("copy-batch", arguments={
+    "drs_urls": dict(type=str, nargs="*", help="space separated list of drs:// URIs"),
+    "--dst": dict(type=str, required=True, help="local directory, or Google Storage location if prefixed with 'gs://'"),
+    ** workspace_args,
+})
+def drs_copy_batch(args: argparse.Namespace):
+    """
+    Copy several drs:// objects to local directory or Google Storage bucket
+    examples:
+        tnu drs copy drs://my-drs-1 drs://my-drs-2 drs://my-drs-3 --dst /tmp/doom
+        tnu drs copy drs://my-drs-1 drs://my-drs-2 drs://my-drs-3 --dst gs://my-cool-bucket/my-cool-folder
+    """
+    assert 1 <= len(args.drs_urls)
+    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
+    drs.copy_batch(args.drs_urls, args.dst, args.workspace, args.google_billing_project)
 
 @drs_cli.command("extract-tar-gz", arguments={
     "drs_url": dict(type=str),
