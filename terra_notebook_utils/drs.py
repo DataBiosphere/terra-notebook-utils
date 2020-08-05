@@ -200,7 +200,7 @@ def extract_tar_gz(drs_url: str,
     src_client, src_info = resolve_drs_for_gs_storage(drs_url)
     src_bucket = src_client.bucket(src_info.bucket_name, user_project=google_billing_project)
     dst_bucket = gs.get_client().bucket(dst_bucket_name)
-    with gscio.AsyncReader(src_bucket.get_blob(src_info.key), threads=2) as fh:
+    with gscio.Reader(src_bucket.get_blob(src_info.key), threads=2) as fh:
         tar_gz.extract(fh, dst_bucket, root=dst_pfx)
 
 def _url_basename(url: str) -> str:
