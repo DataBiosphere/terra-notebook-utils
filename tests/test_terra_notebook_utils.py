@@ -144,13 +144,13 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     # Probably don't want to run this test very often. Once a week?
     def _test_extract_tar_gz(self):
-        drs_url = "drs://dg.4503/273f3453-4d16-4ddd-8877-dbac958a4f4d"  # Amish cohort v4 VCF  # no access
-        drs_url = "drs://dg.4503/88f9acc7-11f1-4478-b407-725d2dfab43d"  # cohort VCF tarball # no access
-        drs_url = "drs://dg.4503/51a10328-c6b9-49f7-8fd7-94eaf193210f"  # cohort VCF tarball # no access
-        drs_url = "drs://dg.4503/954acb05-fdc7-4fef-ad4e-9eb1a85117c4"  # .tar (not .tar.gz) # no access
-        drs_url = "drs://dg.4503/da8cb525-4532-4d0f-90a3-4d327817ec73"  # cohort VCF tarball
-        drs_url = "drs://dg.4503/954acb05-fdc7-4fef-ad4e-9eb1a85117c4"  # .tar (not .tar.gz) # no access
-        drs_url = "drs://dg.4503/ada7d89d-a739-4572-83ec-7cf268baa1bf"  # .tar (not .tar.gz) # no access
+        # drs_url = "drs://dg.4503/273f3453-4d16-4ddd-8877-dbac958a4f4d"  # Amish cohort v4 VCF  # no access
+        # drs_url = "drs://dg.4503/88f9acc7-11f1-4478-b407-725d2dfab43d"  # cohort VCF tarball # no access
+        # drs_url = "drs://dg.4503/51a10328-c6b9-49f7-8fd7-94eaf193210f"  # cohort VCF tarball # no access
+        # drs_url = "drs://dg.4503/954acb05-fdc7-4fef-ad4e-9eb1a85117c4"  # .tar (not .tar.gz) # no access
+        # drs_url = "drs://dg.4503/da8cb525-4532-4d0f-90a3-4d327817ec73"  # cohort VCF tarball
+        # drs_url = "drs://dg.4503/954acb05-fdc7-4fef-ad4e-9eb1a85117c4"  # .tar (not .tar.gz) # no access
+        # drs_url = "drs://dg.4503/ada7d89d-a739-4572-83ec-7cf268baa1bf"  # .tar (not .tar.gz) # no access
         drs_url = "drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71"  # .tar (not .tar.gz)
         drs.extract_tar_gz(drs_url, "test_cohort_extract_{uuid4()}")
 
