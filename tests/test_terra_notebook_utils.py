@@ -98,7 +98,8 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     @testmode("controlled_access")
     def test_download(self):
-        drs.copy_to_local(self.drs_url, "foo")
+        with tempfile.NamedTemporaryFile() as tf:
+            drs.copy_to_local(self.drs_url, tf.name)
 
     @testmode("controlled_access")
     def test_oneshot_copy(self):
@@ -112,8 +113,8 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
     @testmode("controlled_access")
     def test_copy(self):
         with self.subTest("Test copy to local location"):
-            filepath = f"test_copy_object_{uuid4()}"
-            drs.copy(self.drs_url, filepath)
+            with tempfile.NamedTemporaryFile() as tf:
+                drs.copy(self.drs_url, tf.name)
         with self.subTest("Test copy to bucket location"):
             key = f"gs://{WORKSPACE_BUCKET}/test_oneshot_object_{uuid4()}"
             drs.copy(self.drs_url, key)
@@ -170,7 +171,8 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
             es.enter_context(mock.patch("terra_notebook_utils.drs.requests", post=requests_post))
             with mock.patch("terra_notebook_utils.drs.enable_requester_pays") as enable_requester_pays:
                 with self.subTest("Copy to local"):
-                    drs.copy(self.drs_url, "some_bucketsome_key")
+                    with tempfile.NamedTemporaryFile() as tf:
+                        drs.copy(self.drs_url, tf.name)
                     enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
                 with self.subTest("Copy to bucket"):
                     enable_requester_pays.reset_mock()
@@ -214,12 +216,13 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):
     def test_extract(self):
         with self.subTest("Test tarball extraction to local filesystem"):
-            with open("tests/fixtures/test_archive.tar.gz", "rb") as fh:
-                tar_gz.extract(fh, root="untar_test")
-            for filename in glob.glob("tests/fixtures/test_archive/*"):
-                with open(filename) as a:
-                    with open(os.path.join("untar_test/test_archive", os.path.basename(filename))) as b:
-                        self.assertEqual(a.read(), b.read())
+            with tempfile.TemporaryDirectory() as tempdir:
+                with open("tests/fixtures/test_archive.tar.gz", "rb") as fh:
+                    tar_gz.extract(fh, root=tempdir)
+                for filename in glob.glob("tests/fixtures/test_archive/*"):
+                    with open(filename) as a:
+                        with open(os.path.join(f"{tempdir}/test_archive", os.path.basename(filename))) as b:
+                            self.assertEqual(a.read(), b.read())
         with self.subTest("Test tarball extraction to GS bucket"):
             start_time = time.time()
             client = gs.get_client()
