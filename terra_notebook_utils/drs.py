@@ -219,6 +219,8 @@ def _url_basename(url: str) -> str:
 def _bucket_name_and_key(gs_url: str) -> Tuple[str, str]:
     assert gs_url.startswith("gs://")
     parts = gs_url[5:].split("/", 1)
-    if 1 >= len(parts):
-        raise ValueError("gs:// url should contain bucket name and key with '/' delimiter.")
-    return parts[0], parts[1]
+    if 1 >= len(parts) or not parts[1]:
+        raise ValueError(f"Invalid bucket location: {gs_url}"
+                         "gs:// url should contain bucket name and key with '/' delimiter.")
+    bucket_name, key = parts
+    return bucket_name, key

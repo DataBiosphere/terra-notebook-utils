@@ -194,6 +194,22 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
             basename = drs._url_basename(f"drs://asldkfj/argle/{expected_basename}")
             self.assertEqual(expected_basename, basename)
 
+    def test_bucket_name_and_key(self):
+        expected_bucket_name = f"{uuid4()}"
+        expected_key = f"{uuid4()}/{uuid4()}"
+        bucket_name, key = drs._bucket_name_and_key(f"gs://{expected_bucket_name}/{expected_key}")
+        self.assertEqual(expected_bucket_name, bucket_name)
+        self.assertEqual(expected_key, key)
+
+        with self.assertRaises(AssertionError):
+            drs._bucket_name_and_key(f"{expected_bucket_name}")
+
+        with self.assertRaises(ValueError):
+            drs._bucket_name_and_key(f"gs://{expected_bucket_name}")
+
+        with self.assertRaises(ValueError):
+            drs._bucket_name_and_key(f"gs://{expected_bucket_name}/")
+
 @testmode("workspace_access")
 class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):
     def test_extract(self):
