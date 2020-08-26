@@ -2,5 +2,5 @@ flake8
 coverage
 mypy
 twine
-google-crc32c
+google-crc32c >= 1.0.0
 -r requirements.txt

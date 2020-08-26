@@ -13,7 +13,7 @@ from uuid import uuid4
 from contextlib import redirect_stdout
 from tempfile import NamedTemporaryFile
 
-import crc32c
+import google_crc32c
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
@@ -269,7 +269,7 @@ class _ConfigOverride:
 
 def _crc32c(data: bytes) -> str:
     # Compute Google's wonky base64 encoded crc32c checksum
-    return base64.b64encode(crc32c.Checksum(data).digest()).decode("utf-8")
+    return base64.b64encode(google_crc32c.Checksum(data).digest()).decode("utf-8")
 
 
 if __name__ == '__main__':
