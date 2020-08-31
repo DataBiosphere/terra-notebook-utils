@@ -102,17 +102,13 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
             drs.copy_to_local(self.drs_url, tf.name)
 
     @testmode("controlled_access")
-    def test_head_first_byte(self):
-        drs.head_first_byte(self.drs_url)
+    def test_check_accessible(self):
+        # should pass without Exception, if the DRS URL exists
+        drs.check_accessible(self.drs_url)
 
         with self.assertRaises(drs.InaccessibleDrsUrlException):
             fake_drs_url = 'drs://nothing'
-            drs.head_first_byte(fake_drs_url)
-
-    @testmode("controlled_access")
-    def test_head_first_byte_batch(self):
-        result = drs.check_accessible(iter([self.drs_url]))
-        self.assertEqual(result, 'All DRS URLs are okay!')
+            drs.check_accessible(fake_drs_url)
 
     @testmode("controlled_access")
     def test_oneshot_copy(self):
