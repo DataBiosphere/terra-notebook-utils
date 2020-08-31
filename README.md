@@ -83,12 +83,24 @@ drs.copy("drs://my-drs-url", "gs://my-dst-bucket/my-dst-key")
 drs.copy("drs://my-drs-url", "local_filepath")
 ```
 
+Head drs object:
+```
+from terra_notebook_utils import drs
+first_ten_bytes_of_drs_file = drs.head("drs://my-drs-url", n=10)
+print(first_ten_bytes_of_drs_file)
+```
+
 #### CLI
 
 Copy drs object to local or bucket:
 ```
 tnu drs copy drs://my-drs-url gs://my-dst-bucket/my-dstkey
 tnu drs copy drs://my-drs-url local_filepath
+```
+
+Head drs object:
+```
+tnu drs head drs://my-drs-url
 ```
 
 ### The VCF API and CLI
