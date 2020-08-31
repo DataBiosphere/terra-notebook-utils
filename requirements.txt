@@ -1,4 +1,4 @@
-google-cloud-storage
+google-cloud-storage==1.31.0
 gs-chunked-io >= 0.4, < 0.5
 firecloud
 bgzip >= 0.3.0

@@ -2,14 +2,17 @@
 Utilities for working with DRS objects
 """
 import os
+import sys
 import re
 import json
 import logging
 import requests
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from collections import namedtuple
-from typing import Tuple, Iterable, Optional
+from typing import Tuple, Iterable, Optional, Callable, IO
+from google.cloud.exceptions import NotFound, Forbidden
 
 from terra_notebook_utils import (WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD,
                                   IO_CONCURRENCY)
@@ -22,6 +25,9 @@ from gs_chunked_io import async_collections
 logger = logging.getLogger(__name__)
 
 DRSInfo = namedtuple("DRSInfo", "credentials bucket_name key name size updated")
+
+class GSBlobInaccessible(Exception):
+    pass
 
 def _parse_gs_url(gs_url: str) -> Tuple[str, str]:
     if gs_url.startswith(_GS_SCHEMA):
@@ -69,7 +75,8 @@ def fetch_drs_info(drs_url: str) -> dict:
         resp_data = resp.json()
     else:
         logger.warning(resp.content)
-        raise Exception(f"expected status 200, got {resp.status_code}")
+        # TODO: Terra returns every error as a 502; return the real error code here: (resp.json()['status'])
+        raise RuntimeError(f"expected status 200, got {resp.status_code}")
     return resp_data
 
 def resolve_drs_info_for_gs_storage(drs_url: str) -> DRSInfo:
@@ -120,6 +127,38 @@ def copy_to_local(drs_url: str,
     with open(filepath, "wb") as fh:
         logger.info(f"Downloading {drs_url} to {filepath}")
         blob.download_to_file(fh)
+
+def head(drs_url: str,
+         num_bytes: int = 1,
+         buffer: int = MULTIPART_THRESHOLD,
+         workspace_name: Optional[str] = WORKSPACE_NAME,
+         google_billing_project: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
+    """
+    Head a DRS object by byte.
+
+    :param drs_url: A drs:// schema URL.
+    :param num_bytes: Number of bytes to print from the DRS object.
+    :param workspace_name: The name of the terra workspace.
+    :param google_billing_project: The name of the terra google billing project.
+    """
+    assert drs_url.startswith("drs://"), f'Not a DRS schema: {drs_url}'
+    enable_requester_pays(workspace_name, google_billing_project)
+    try:
+        client, info = resolve_drs_for_gs_storage(drs_url)
+    except Exception as e:
+        # terra always returns a 502 for everything
+        if 'got 502' in e.__repr__():
+            raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
+                                     f'Could not be accessed because of:\n'
+                                     f'{traceback.format_exc()}')
+    blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
+    try:
+        with gscio.Reader(blob, chunk_size=buffer) as handle:
+            sys.stdout.buffer.write(handle.read(num_bytes))
+    except (NotFound, Forbidden):
+        raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
+                                 f'Could not be accessed because of:\n'
+                                 f'{traceback.format_exc()}')
 
 def copy_to_bucket(drs_url: str,
                    dst_key: str,

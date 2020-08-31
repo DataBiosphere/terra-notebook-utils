@@ -7,6 +7,7 @@ import typing
 import base64
 import unittest
 import argparse
+import subprocess
 from unittest import mock
 from random import randint
 from uuid import uuid4
@@ -18,7 +19,7 @@ import google_crc32c
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
-from tests import TestCaseSuppressWarnings, config
+from tests import TestCaseSuppressWarnings, config, encoded_bytes_stream
 from tests.infra.testmode import testmode
 from terra_notebook_utils import gs, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 from terra_notebook_utils.cli import Config
@@ -102,6 +103,13 @@ class _CLITestCase(TestCaseSuppressWarnings):
                 with redirect_stdout(out):
                     cmd(args)
                 return out.getvalue().strip()
+
+    def _run_cmd(self, cmd):
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        stdout, stderr = p.communicate()
+        if p.returncode:
+            raise subprocess.CalledProcessError(p.returncode, p.args, output=stdout, stderr=stderr)
+        return stdout
 
 
 class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
@@ -205,6 +213,43 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             blob.reload()  # download_to_file causes the crc32c to change, for some reason. Reload blob to recover.
             self.assertEqual(self.expected_crc32c, blob.crc32c)
             self.assertEqual(_crc32c(out.getvalue()), blob.crc32c)
+
+    def test_head(self):
+        with self.subTest("Test heading a drs url."):
+            cmd = f'tnu drs head {self.drs_url} ' \
+                  f'--workspace={WORKSPACE_NAME} ' \
+                  f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+            stdout = self._run_cmd(cmd)
+            self.assertEqual(stdout, b'\x1f')
+            self.assertEqual(len(stdout), 1)
+
+            cmd = f'tnu drs head {self.drs_url} ' \
+                  f'--bytes=3 ' \
+                  f'--workspace={WORKSPACE_NAME} ' \
+                  f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+            stdout = self._run_cmd(cmd)
+            self.assertEqual(stdout, b'\x1f\x8b\x08')
+            self.assertEqual(len(stdout), 3)
+
+            for buffer in [1, 2, 10, 11]:
+                cmd = f'tnu drs head {self.drs_url} ' \
+                      f'--bytes=10 ' \
+                      f'--buffer={buffer} ' \
+                      f'--workspace={WORKSPACE_NAME} ' \
+                      f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+                stdout = self._run_cmd(cmd)
+                self.assertEqual(stdout, b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03')
+                self.assertEqual(len(stdout), 10)
+
+        with self.subTest("Test heading a non-existent drs url."):
+            # TODO: cli_builder swallows exit codes, so CLI failures always exit with "0"
+            # TODO: change cli_builder to not do this, then use "except subprocess.CalledProcessError as e:" here
+            fake_drs_url = 'drs://nothing'
+            cmd = f'tnu drs head {fake_drs_url} ' \
+                  f'--workspace={WORKSPACE_NAME} ' \
+                  f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+            output = self._run_cmd(cmd)
+            self.assertIn(b'GSBlobInaccessible', output)
 
 
 @testmode("workspace_access")

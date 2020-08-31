@@ -2,7 +2,7 @@ import json
 import argparse
 from typing import Any, Dict
 
-from terra_notebook_utils import drs
+from terra_notebook_utils import drs, MULTIPART_THRESHOLD
 from terra_notebook_utils.cli import dispatch, Config
 
 
@@ -54,6 +54,32 @@ def drs_copy_batch(args: argparse.Namespace):
     assert 1 <= len(args.drs_urls)
     args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
     drs.copy_batch(args.drs_urls, args.dst, args.workspace, args.google_billing_project)
+
+@drs_cli.command("head", arguments={
+    "drs_url": dict(type=str),
+    "--bytes": dict(type=int, required=False, default=1, help="Number of bytes to fetch."),
+    "--buffer": dict(type=int, required=False, default=MULTIPART_THRESHOLD,
+                     help="Control the buffer size when fetching data."),
+    ** workspace_args,
+})
+def drs_head(args: argparse.Namespace):
+    """
+    Print the first bytes of a drs:// object.
+
+    Example:
+        tnu drs head drs://crouching-drs-hidden-access
+    """
+    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
+    # TODO: cli_build doesn't seem to honor "required=False"
+    if not getattr(args, 'buffer', None):
+        setattr(args, 'buffer', MULTIPART_THRESHOLD)
+    if not getattr(args, 'bytes', None):
+        setattr(args, 'bytes', 1)
+    drs.head(args.drs_url,
+             num_bytes=args.bytes,
+             buffer=args.buffer,
+             workspace_name=args.workspace,
+             google_billing_project=args.google_billing_project)
 
 @drs_cli.command("extract-tar-gz", arguments={
     "drs_url": dict(type=str),

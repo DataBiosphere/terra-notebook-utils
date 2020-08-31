@@ -7,6 +7,8 @@ import unittest
 import glob
 import pytz
 import tempfile
+import contextlib
+from io import TextIOWrapper, BytesIO
 from uuid import uuid4
 from random import randint
 from datetime import datetime
@@ -20,7 +22,7 @@ import gs_chunked_io as gscio
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
-from tests import TestCaseSuppressWarnings, config
+from tests import TestCaseSuppressWarnings, config, encoded_bytes_stream
 from tests.infra.testmode import testmode
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
 from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress, vcf, workspace
@@ -100,6 +102,27 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
     def test_download(self):
         with tempfile.NamedTemporaryFile() as tf:
             drs.copy_to_local(self.drs_url, tf.name)
+
+    @testmode("controlled_access")
+    def test_head(self):
+        drs_url = 'drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71'
+        # Can't use io.BytesIO() with contextlib.redirect_stdout(out) here as it doesn't support
+        # sys.stdout.buffer so this workaround gets the bytes stream as stdout, just for testing
+        with encoded_bytes_stream():
+            drs.head(drs_url)
+            sys.stdout.seek(0)
+            out = sys.stdout.read()
+            self.assertEqual(1, len(out))
+
+        with encoded_bytes_stream():
+            drs.head(drs_url, num_bytes=10)
+            sys.stdout.seek(0)
+            out = sys.stdout.read()
+            self.assertEqual(10, len(out))
+
+        with self.assertRaises(drs.GSBlobInaccessible):
+            fake_drs_url = 'drs://nothing'
+            drs.head(fake_drs_url)
 
     @testmode("controlled_access")
     def test_oneshot_copy(self):

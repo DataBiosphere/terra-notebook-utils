@@ -1,5 +1,9 @@
+import contextlib
+import sys
 import warnings
 import unittest
+
+from io import TextIOWrapper, BytesIO
 
 
 class TestCaseSuppressWarnings(unittest.TestCase):
@@ -8,3 +12,11 @@ class TestCaseSuppressWarnings(unittest.TestCase):
         warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
         # Suppress unclosed socket warnings
         warnings.simplefilter("ignore", ResourceWarning)
+
+@contextlib.contextmanager
+def encoded_bytes_stream():
+    old_stdout = sys.stdout
+    sys.stdout = TextIOWrapper(BytesIO(), sys.stdout.encoding)
+    yield
+    sys.stdout.close()
+    sys.stdout = old_stdout
