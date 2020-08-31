@@ -55,19 +55,19 @@ def drs_copy_batch(args: argparse.Namespace):
     args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
     drs.copy_batch(args.drs_urls, args.dst, args.workspace, args.google_billing_project)
 
-@drs_cli.command("head-first-byte", arguments={
-    "drs_urls": dict(type=str, nargs="*", help="space separated list of drs:// URIs"),
+@drs_cli.command("check-accessible", arguments={
+    "drs_url": dict(type=str),
     ** workspace_args,
 })
-def drs_head_first_byte_batch(args: argparse.Namespace):
+def drs_check_accessible(args: argparse.Namespace):
     """
-    Fetch the first byte of several drs:// objects to verify access
+    Fetch the first byte of a drs:// object to verify access
     example:
-        tnu drs head-first-byte drs://my-drs-1 drs://my-drs-2 drs://my-drs-3
+        tnu drs check-accessible drs://crouching-drs-hidden-access
     """
-    assert 1 <= len(args.drs_urls)
     args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
-    print(drs.head_first_byte_batch(args.drs_urls))
+    drs.check_accessible(args.drs_urls)
+    print('ok')
 
 @drs_cli.command("extract-tar-gz", arguments={
     "drs_url": dict(type=str),

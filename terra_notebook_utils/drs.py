@@ -6,6 +6,7 @@ import re
 import json
 import logging
 import requests
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from collections import namedtuple
@@ -124,7 +125,7 @@ def copy_to_local(drs_url: str,
         logger.info(f"Downloading {drs_url} to {filepath}")
         blob.download_to_file(fh)
 
-def head_first_byte(drs_url: str,
+def check_accessible(drs_url: str,
                     workspace_name: Optional[str]=WORKSPACE_NAME,
                     google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """
@@ -138,21 +139,9 @@ def head_first_byte(drs_url: str,
         # don't expand compressed files, to save time
         blob.download_as_string(start=0, end=1, raw_download=True)
     except Exception as e:
-        return e
-
-def head_first_byte_batch(drs_urls: Iterable[str],
-                          workspace_name: Optional[str]=WORKSPACE_NAME,
-                          google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    # TODO: Is it worth it to parallelize this?
-    enable_requester_pays(workspace_name, google_billing_project)
-    for drs_url in drs_urls:
-        assert drs_url.startswith("drs://")
-        not_accessible = head_first_byte(drs_url)
-        if not_accessible:
-            raise InaccessibleDrsUrlException(f'The DRS URL: {drs_url}\n'
-                                              f'Could not be accessed because of:\n'
-                                              f'{not_accessible}')
-    return 'All DRS URLs are okay!'
+        raise InaccessibleDrsUrlException(f'The DRS URL: {drs_url}\n'
+                                          f'Could not be accessed because of:\n'
+                                          f'{traceback.format_exc()}')
 
 def copy_to_bucket(drs_url: str,
                    dst_key: str,
