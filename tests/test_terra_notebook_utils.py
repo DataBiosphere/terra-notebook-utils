@@ -107,6 +107,11 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
         self.assertEqual(len(data), 1)
 
     @testmode("controlled_access")
+    def test_head_first_byte_batch(self):
+        result = drs.head_first_byte_batch(iter([self.drs_url]))
+        self.assertEqual(result, 'All DRS URLs are okay!')
+
+    @testmode("controlled_access")
     def test_oneshot_copy(self):
         drs.copy_to_bucket(self.drs_url, "test_oneshot_object")
 
