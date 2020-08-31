@@ -66,7 +66,7 @@ def drs_check_accessible(args: argparse.Namespace):
         tnu drs check-accessible drs://crouching-drs-hidden-access
     """
     args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
-    drs.check_accessible(args.drs_urls)
+    drs.check_accessible(args.drs_url)
     print('ok')
 
 @drs_cli.command("extract-tar-gz", arguments={
