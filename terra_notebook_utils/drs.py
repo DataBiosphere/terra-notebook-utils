@@ -126,8 +126,8 @@ def copy_to_local(drs_url: str,
         blob.download_to_file(fh)
 
 def check_accessible(drs_url: str,
-                    workspace_name: Optional[str]=WORKSPACE_NAME,
-                    google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+                     workspace_name: Optional[str]=WORKSPACE_NAME,
+                     google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """
     Check access to a DRS object by attempting to access its first byte of data.
     """
