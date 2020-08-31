@@ -6,7 +6,6 @@ import re
 import json
 import logging
 import requests
-from google.cloud.exceptions import NotFound
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from collections import namedtuple
