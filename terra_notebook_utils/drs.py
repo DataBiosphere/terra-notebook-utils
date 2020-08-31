@@ -138,6 +138,7 @@ def check_accessible(drs_url: str,
     try:
         # don't expand compressed files, to save time
         blob.download_as_string(start=0, end=1, raw_download=True)
+        return 'ok'
     except Exception as e:
         raise InaccessibleDrsUrlException(f'The DRS URL: {drs_url}\n'
                                           f'Could not be accessed because of:\n'

@@ -103,8 +103,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     @testmode("controlled_access")
     def test_check_accessible(self):
-        # should pass without Exception, if the DRS URL exists
-        drs.check_accessible(self.drs_url)
+        self.assertEqual(drs.check_accessible(self.drs_url), 'ok')
 
         with self.assertRaises(drs.InaccessibleDrsUrlException):
             fake_drs_url = 'drs://nothing'
