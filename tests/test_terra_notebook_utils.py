@@ -102,6 +102,11 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
             drs.copy_to_local(self.drs_url, tf.name)
 
     @testmode("controlled_access")
+    def test_head_first_byte(self):
+        data = drs.head_first_byte(self.drs_url)
+        self.assertEqual(len(data), 1)
+
+    @testmode("controlled_access")
     def test_oneshot_copy(self):
         drs.copy_to_bucket(self.drs_url, "test_oneshot_object")
 

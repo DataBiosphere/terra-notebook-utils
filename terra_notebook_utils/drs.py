@@ -6,6 +6,7 @@ import re
 import json
 import logging
 import requests
+from google.cloud.exceptions import NotFound
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from collections import namedtuple
@@ -22,6 +23,9 @@ from gs_chunked_io import async_collections
 logger = logging.getLogger(__name__)
 
 DRSInfo = namedtuple("DRSInfo", "credentials bucket_name key name size updated")
+
+class InaccessibleDrsUrlException(Exception):
+    pass
 
 def _parse_gs_url(gs_url: str) -> Tuple[str, str]:
     if gs_url.startswith(_GS_SCHEMA):
@@ -120,6 +124,36 @@ def copy_to_local(drs_url: str,
     with open(filepath, "wb") as fh:
         logger.info(f"Downloading {drs_url} to {filepath}")
         blob.download_to_file(fh)
+
+def head_first_byte(drs_url: str,
+                    workspace_name: Optional[str]=WORKSPACE_NAME,
+                    google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    """
+    Check access to a DRS object by attempting to access its first byte of data.
+    """
+    assert drs_url.startswith("drs://")
+    enable_requester_pays(workspace_name, google_billing_project)
+    client, info = resolve_drs_for_gs_storage(drs_url)
+    blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
+    try:
+        # don't expand compressed files, to save time
+        blob.download_as_string(start=0, end=1, raw_download=True)
+    except Exception as e:
+        return e
+
+def head_first_byte_batch(drs_urls: Iterable[str],
+                          workspace_name: Optional[str]=WORKSPACE_NAME,
+                          google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    # TODO: Is it worth it to parallelize this?
+    enable_requester_pays(workspace_name, google_billing_project)
+    for drs_url in drs_urls:
+        assert drs_url.startswith("drs://")
+        not_accessible = head_first_byte(drs_url)
+        if not_accessible:
+            raise InaccessibleDrsUrlException(f'The DRS URL: {drs_url}\n'
+                                              f'Could not be accessed because of:\n'
+                                              f'{not_accessible}')
+    return 'All DRS URLs are okay!'
 
 def copy_to_bucket(drs_url: str,
                    dst_key: str,
