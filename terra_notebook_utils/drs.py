@@ -125,9 +125,10 @@ def copy_to_local(drs_url: str,
         logger.info(f"Downloading {drs_url} to {filepath}")
         blob.download_to_file(fh)
 
-def check_accessible(drs_url: str,
-                     workspace_name: Optional[str]=WORKSPACE_NAME,
-                     google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+def head(drs_url: str,
+         n: int = 1,
+         workspace_name: Optional[str]=WORKSPACE_NAME,
+         google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """
     Check access to a DRS object by attempting to access its first byte of data.
     """
@@ -137,8 +138,7 @@ def check_accessible(drs_url: str,
     blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
     try:
         # don't expand compressed files, to save time
-        blob.download_as_string(start=0, end=1, raw_download=True)
-        return 'ok'
+        return blob.download_as_bytes(start=0, end=n, raw_download=True)
     except Exception:
         raise InaccessibleDrsUrlException(f'The DRS URL: {drs_url}\n'
                                           f'Could not be accessed because of:\n'

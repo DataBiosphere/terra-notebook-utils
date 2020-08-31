@@ -208,16 +208,23 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
 
     def test_accessible(self):
         with self.subTest("test access on first byte of drs"):
-            result = self._test_cmd(terra_notebook_utils.cli.drs.drs_check_accessible,
+            result = self._test_cmd(terra_notebook_utils.cli.drs.drs_head,
                                     drs_urls=self.drs_url,
                                     workspace=WORKSPACE_NAME,
                                     google_billing_project=WORKSPACE_GOOGLE_PROJECT)
-            self.assertEqual(result, 'ok')
+            self.assertEqual(len(result), 1)
+
+            result = self._test_cmd(terra_notebook_utils.cli.drs.drs_head,
+                                    drs_urls=self.drs_url,
+                                    n=10,
+                                    workspace=WORKSPACE_NAME,
+                                    google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+            self.assertEqual(len(result), 10)
 
         with self.subTest("test access on first byte of drs raises on non-existent drs url"):
             with self.assertRaises(terra_notebook_utils.drs.InaccessibleDrsUrlException):
                 fake_drs_url = 'drs://nothing'
-                self._test_cmd(terra_notebook_utils.cli.drs.drs_check_accessible,
+                self._test_cmd(terra_notebook_utils.cli.drs.drs_head,
                                drs_urls=fake_drs_url,
                                workspace=WORKSPACE_NAME,
                                google_billing_project=WORKSPACE_GOOGLE_PROJECT)
