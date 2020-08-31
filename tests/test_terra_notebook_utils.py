@@ -103,8 +103,11 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     @testmode("controlled_access")
     def test_head_first_byte(self):
-        data = drs.head_first_byte(self.drs_url)
-        self.assertEqual(len(data), 1)
+        drs.head_first_byte(self.drs_url)
+
+        fake_drs_url = 'drs://nothing'
+        e = drs.head_first_byte(fake_drs_url)
+        self.assertIsInstance(e, drs.InaccessibleDrsUrlException)
 
     @testmode("controlled_access")
     def test_head_first_byte_batch(self):
