@@ -153,24 +153,64 @@ def print_bytes(blob, num_bytes: int, buffer: int = MULTIPART_THRESHOLD):
             start += buffer + 1
             end += buffer + 1
 
+def print_lines(blob, num_lines: int, buffer: int = MULTIPART_THRESHOLD):
+    """
+    Print data from a file until a certain number of lines is hit.
+
+    This is done by pulling chunks of the file, splitting by newline, and printing until num_lines is reached.
+
+    :param blob: The Google blob object.
+    :param num_lines: Number of lines to print before stopping.
+    :param buffer: Size of the data chunks to grab each time.  The default buffer is 32Mib.
+    """
+    data = b''
+    lines_printed = 0
+    while True:
+        data += blob.download_as_bytes(start=0, end=buffer)
+        if not data:
+            return
+
+        if b'\n' in data:
+            lines = [i for i in data.split(b'\n') if i]
+            if not data.endswith(b'\n'):
+                data = lines.pop(-1)
+            for line in lines:
+                print(str(line, sys.stdout.encoding))
+                lines_printed += 1
+                if lines_printed >= num_lines:
+                    return
+
+        # only hold 128Mib in memory at once before printing a partial line
+        if len(data) > 1024 * 1024 * 128:
+            # only a partial line so don't iterate lines_printed
+            print(str(data, sys.stdout.encoding), end='')  # don't print with default newline
+            data = b''
+
 def head(drs_url: str,
-         num_bytes: Optional[int],
+         num_bytes: Optional[int] = None,
+         num_lines: Optional[int] = None,
          workspace_name: Optional[str] = WORKSPACE_NAME,
          google_billing_project: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
     """
-    Head a DRS object by byte.
+    Head a DRS object by line or byte.
 
     :param drs_url: A drs:// schema URL.
-    :param num_bytes: Number of bytes to print from the DRS object.
+    :param num_bytes: Number of bytes to print from the DRS object.  Cannot be used with num_lines.
+    :param num_lines: Number of lines to print from the DRS object.  Cannot be used with num_bytes.
     :param workspace_name: The name of the terra workspace.
     :param google_billing_project: The name of the terra google billing project.
     """
+    assert num_bytes or num_lines, 'Either num_bytes or num_lines is required.'
+    assert not (num_bytes and num_lines), 'Cannot specify both num_bytes and num_lines.'
     assert drs_url.startswith("drs://"), f'Not a DRS schema: {drs_url}'
     enable_requester_pays(workspace_name, google_billing_project)
     client, info = resolve_drs_for_gs_storage(drs_url)
     blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
     try:
-        print_bytes(blob, num_bytes)
+        if num_bytes:
+            print_bytes(blob, num_bytes)
+        else:
+            print_lines(blob, num_lines)
     except (NotFound, Forbidden):
         raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
                                  f'Could not be accessed because of:\n'

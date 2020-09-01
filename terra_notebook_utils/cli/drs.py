@@ -56,6 +56,8 @@ def drs_copy_batch(args: argparse.Namespace):
     drs.copy_batch(args.drs_urls, args.dst, args.workspace, args.google_billing_project)
 
 @drs_cli.command("head", arguments={
+    "-n": dict(type=int, required=False, default=None,
+               help="Return the first integer n lines of a file (uncompressed)."),
     "-c": dict(type=int, required=False, default=None,
                help="Return the first integer n bytes of a file (uncompressed)."),
     "drs_url": dict(type=str),
@@ -63,17 +65,24 @@ def drs_copy_batch(args: argparse.Namespace):
 })
 def drs_head(args: argparse.Namespace):
     """
-    Print the first bytes of a drs:// object.
+    Print the first bytes or lines of a drs:// object.
 
-    Example:
+    Examples:
         tnu drs head drs://crouching-drs-hidden-access
+        tnu drs head -c 10 drs://crouching-drs-hidden-access
+        tnu drs head -n 10 drs://crouching-drs-hidden-access
     """
     # if the user specified nothing, only fetch the first byte
-    args.c = 1 if args.c is None else args.c
-    assert args.c > 0
+    if not args.n and not args.c:
+        args.c = 1
+
+    if args.n and args.c:
+        # GNU head's default is to prefer lines and ignore the bytes argument; I prefer the error.
+        raise ValueError('Cannot head both lines and bytes.  Please only specify one argument.')
 
     args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
     drs.head(args.drs_url,
+             num_lines=args.n,
              num_bytes=args.c,
              workspace_name=args.workspace,
              google_billing_project=args.google_billing_project)
