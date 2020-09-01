@@ -154,7 +154,7 @@ def print_bytes(blob, num_bytes: int, buffer: int = MULTIPART_THRESHOLD):
             end += buffer + 1
 
 def head(drs_url: str,
-         num_bytes: Optional[int],
+         num_bytes: int,
          workspace_name: Optional[str] = WORKSPACE_NAME,
          google_billing_project: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
     """
