@@ -158,11 +158,10 @@ def head(drs_url: str,
          workspace_name: Optional[str] = WORKSPACE_NAME,
          google_billing_project: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
     """
-    Head a DRS object by line or byte.
+    Head a DRS object by byte.
 
     :param drs_url: A drs:// schema URL.
-    :param num_bytes: Number of bytes to print from the DRS object.  Cannot be used with num_lines.
-    :param num_lines: Number of lines to print from the DRS object.  Cannot be used with num_bytes.
+    :param num_bytes: Number of bytes to print from the DRS object.
     :param workspace_name: The name of the terra workspace.
     :param google_billing_project: The name of the terra google billing project.
     """
