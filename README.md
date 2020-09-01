@@ -86,8 +86,7 @@ drs.copy("drs://my-drs-url", "local_filepath")
 Head drs object:
 ```
 from terra_notebook_utils import drs
-first_ten_bytes_of_drs_file = drs.head("drs://my-drs-url", n=10)
-print(first_ten_bytes_of_drs_file)
+drs.head("drs://my-drs-url", num_bytes=10)
 ```
 
 #### CLI
@@ -100,7 +99,7 @@ tnu drs copy drs://my-drs-url local_filepath
 
 Head drs object:
 ```
-tnu drs head drs://my-drs-url
+tnu drs head drs://my-drs-url -c 10
 ```
 
 ### The VCF API and CLI
