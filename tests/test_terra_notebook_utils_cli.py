@@ -99,7 +99,7 @@ class _CLITestCase(TestCaseSuppressWarnings):
                 Config.write()
                 args = argparse.Namespace(**dict(**self.common_kwargs, **kwargs))
                 out = io.StringIO()
-                with contextlib.redirect_stdout(out):
+                with redirect_stdout(out):
                     cmd(args)
                 return out.getvalue().strip()
 
