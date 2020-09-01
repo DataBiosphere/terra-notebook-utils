@@ -99,7 +99,7 @@ class _CLITestCase(TestCaseSuppressWarnings):
                 Config.write()
                 args = argparse.Namespace(**dict(**self.common_kwargs, **kwargs))
                 out = io.StringIO()
-                with redirect_stdout(out):
+                with contextlib.redirect_stdout(out):
                     cmd(args)
                 return out.getvalue().strip()
 
@@ -206,17 +206,17 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             self.assertEqual(self.expected_crc32c, blob.crc32c)
             self.assertEqual(_crc32c(out.getvalue()), blob.crc32c)
 
-    def test_accessible(self):
-        with self.subTest("test access on first byte of drs"):
+    def test_head(self):
+        with self.subTest("Test access on first byte of drs"):
             result = self._test_cmd(terra_notebook_utils.cli.drs.drs_head,
-                                    drs_urls=self.drs_url,
+                                    drs_url=self.drs_url,
                                     workspace=WORKSPACE_NAME,
                                     google_billing_project=WORKSPACE_GOOGLE_PROJECT)
             self.assertEqual(len(result), 1)
 
             result = self._test_cmd(terra_notebook_utils.cli.drs.drs_head,
-                                    drs_urls=self.drs_url,
-                                    n=10,
+                                    drs_url=self.drs_url,
+                                    c=10,
                                     workspace=WORKSPACE_NAME,
                                     google_billing_project=WORKSPACE_GOOGLE_PROJECT)
             self.assertEqual(len(result), 10)
@@ -225,7 +225,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             with self.assertRaises(terra_notebook_utils.drs.InaccessibleDrsUrlException):
                 fake_drs_url = 'drs://nothing'
                 self._test_cmd(terra_notebook_utils.cli.drs.drs_head,
-                               drs_urls=fake_drs_url,
+                               drs_url=fake_drs_url,
                                workspace=WORKSPACE_NAME,
                                google_billing_project=WORKSPACE_GOOGLE_PROJECT)
 

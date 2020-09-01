@@ -7,6 +7,7 @@ import unittest
 import glob
 import pytz
 import tempfile
+import contextlib
 from uuid import uuid4
 from random import randint
 from datetime import datetime
@@ -103,8 +104,14 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     @testmode("controlled_access")
     def test_head(self):
-        self.assertEqual(len(drs.head(self.drs_url)), 1)
-        self.assertEqual(len(drs.head(self.drs_url, n=10)), 10)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            drs.head(self.drs_url)
+            self.assertEqual(1, len(out.getvalue().strip()))
+
+        with contextlib.redirect_stdout(out):
+            drs.head(self.drs_url, num_bytes=10)
+            self.assertEqual(10, len(out.getvalue().strip()))
 
         with self.assertRaises(drs.InaccessibleDrsUrlException):
             fake_drs_url = 'drs://nothing'

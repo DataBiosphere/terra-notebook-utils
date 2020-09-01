@@ -2,6 +2,7 @@
 Utilities for working with DRS objects
 """
 import os
+import sys
 import re
 import json
 import logging
@@ -11,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from collections import namedtuple
 from typing import Tuple, Iterable, Optional
+from google.cloud.exceptions import NotFound, Forbidden
 
 from terra_notebook_utils import (WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD,
                                   IO_CONCURRENCY)
@@ -24,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 DRSInfo = namedtuple("DRSInfo", "credentials bucket_name key name size updated")
 
-class InaccessibleDrsUrlException(Exception):
+class GSBlobInaccessible(Exception):
     pass
 
 def _parse_gs_url(gs_url: str) -> Tuple[str, str]:
@@ -125,24 +127,55 @@ def copy_to_local(drs_url: str,
         logger.info(f"Downloading {drs_url} to {filepath}")
         blob.download_to_file(fh)
 
+def print_bytes(blob, num_bytes: int, buffer: int = MULTIPART_THRESHOLD):
+    """
+    Print data from a file until a certain number of bytes is hit.
+
+    This is done by pulling chunks of the file and printing until bytes is reached.
+
+    :param blob: The Google blob object.
+    :param num_bytes: Number of bytes to print before stopping.
+    :param buffer: Size of the data chunks to grab each time.  The default buffer is 32Mib.
+    """
+    num_bytes_left = num_bytes
+    start = 0
+    end = buffer
+    while True:
+        if num_bytes_left <= buffer:
+            print(str(blob.download_as_bytes(start=start, end=num_bytes), sys.stdout.encoding), end='')
+            return
+        else:
+            data = blob.download_as_bytes(start=start, end=end)
+            if not data:
+                return
+            print(str(data, sys.stdout.encoding), end='')
+            num_bytes_left -= buffer
+            start += buffer + 1
+            end += buffer + 1
+
 def head(drs_url: str,
-         n: int = 1,
-         workspace_name: Optional[str]=WORKSPACE_NAME,
-         google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+         num_bytes: Optional[int],
+         workspace_name: Optional[str] = WORKSPACE_NAME,
+         google_billing_project: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
     """
-    Check access to a DRS object by attempting to access its first byte of data.
+    Head a DRS object by line or byte.
+
+    :param drs_url: A drs:// schema URL.
+    :param num_bytes: Number of bytes to print from the DRS object.  Cannot be used with num_lines.
+    :param num_lines: Number of lines to print from the DRS object.  Cannot be used with num_bytes.
+    :param workspace_name: The name of the terra workspace.
+    :param google_billing_project: The name of the terra google billing project.
     """
-    assert drs_url.startswith("drs://")
+    assert drs_url.startswith("drs://"), f'Not a DRS schema: {drs_url}'
     enable_requester_pays(workspace_name, google_billing_project)
     client, info = resolve_drs_for_gs_storage(drs_url)
     blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
     try:
-        # don't expand compressed files, to save time
-        return blob.download_as_bytes(start=0, end=n, raw_download=True)
-    except Exception:
-        raise InaccessibleDrsUrlException(f'The DRS URL: {drs_url}\n'
-                                          f'Could not be accessed because of:\n'
-                                          f'{traceback.format_exc()}')
+        print_bytes(blob, num_bytes)
+    except (NotFound, Forbidden):
+        raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
+                                 f'Could not be accessed because of:\n'
+                                 f'{traceback.format_exc()}')
 
 def copy_to_bucket(drs_url: str,
                    dst_key: str,

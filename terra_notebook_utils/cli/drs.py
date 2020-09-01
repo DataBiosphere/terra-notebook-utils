@@ -56,20 +56,27 @@ def drs_copy_batch(args: argparse.Namespace):
     drs.copy_batch(args.drs_urls, args.dst, args.workspace, args.google_billing_project)
 
 @drs_cli.command("head", arguments={
-    "-n": dict(type=int, required=False, default=1, help="Return the first integer n bytes of a file (uncompressed)."),
+    "-c": dict(type=int, required=False, default=None,
+               help="Return the first integer n bytes of a file (uncompressed)."),
     "drs_url": dict(type=str),
     ** workspace_args,
 })
 def drs_head(args: argparse.Namespace):
     """
-    Fetch the first byte of a drs:// object to verify access.
+    Print the first bytes of a drs:// object.
 
     Example:
-        tnu drs check-accessible drs://crouching-drs-hidden-access
+        tnu drs head drs://crouching-drs-hidden-access
     """
+    # if the user specified nothing, only fetch the first byte
+    args.c = 1 if args.c is None else args.c
+    assert args.c > 0
+
     args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
-    result = drs.head(args.drs_url, args.n, args.workspace, args.google_billing_project)
-    print(result)
+    drs.head(args.drs_url,
+             num_bytes=args.c,
+             workspace_name=args.workspace,
+             google_billing_project=args.google_billing_project)
 
 @drs_cli.command("extract-tar-gz", arguments={
     "drs_url": dict(type=str),
