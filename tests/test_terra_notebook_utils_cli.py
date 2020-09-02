@@ -207,7 +207,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             self.assertEqual(_crc32c(out.getvalue()), blob.crc32c)
 
     def test_head(self):
-        with self.subTest("Test access on first byte of drs"):
+        with self.subTest("Test heading a drs url."):
             result = self._test_cmd(terra_notebook_utils.cli.drs.drs_head,
                                     drs_url=self.drs_url,
                                     workspace=WORKSPACE_NAME,
@@ -221,7 +221,16 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
                                     google_billing_project=WORKSPACE_GOOGLE_PROJECT)
             self.assertEqual(len(result), 10)
 
-        with self.subTest("test access on first byte of drs raises on non-existent drs url"):
+            for buffer in [1, 2, 10, 11]:
+                result = self._test_cmd(terra_notebook_utils.cli.drs.drs_head,
+                                        drs_url=self.drs_url,
+                                        c=10,
+                                        buffer=buffer,
+                                        workspace=WORKSPACE_NAME,
+                                        google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+                self.assertEqual(len(result), 10)
+
+        with self.subTest("Test heading a non-existent drs url."):
             with self.assertRaises(terra_notebook_utils.drs.InaccessibleDrsUrlException):
                 fake_drs_url = 'drs://nothing'
                 self._test_cmd(terra_notebook_utils.cli.drs.drs_head,

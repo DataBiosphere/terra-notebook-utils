@@ -2,7 +2,7 @@ import json
 import argparse
 from typing import Any, Dict
 
-from terra_notebook_utils import drs
+from terra_notebook_utils import drs, MULTIPART_THRESHOLD
 from terra_notebook_utils.cli import dispatch, Config
 
 
@@ -58,6 +58,8 @@ def drs_copy_batch(args: argparse.Namespace):
 @drs_cli.command("head", arguments={
     "-c": dict(type=int, required=False, default=None,
                help="Return the first integer n bytes of a file (uncompressed)."),
+    "--buffer": dict(type=int, required=False, default=MULTIPART_THRESHOLD,
+                     help="Control the buffer size when fetching data."),
     "drs_url": dict(type=str),
     ** workspace_args,
 })
@@ -75,6 +77,7 @@ def drs_head(args: argparse.Namespace):
     args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
     drs.head(args.drs_url,
              num_bytes=args.c,
+             buffer=args.buffer,
              workspace_name=args.workspace,
              google_billing_project=args.google_billing_project)
 

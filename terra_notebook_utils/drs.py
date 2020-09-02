@@ -142,19 +142,20 @@ def print_bytes(blob, num_bytes: int, buffer: int = MULTIPART_THRESHOLD):
     end = buffer
     while True:
         if num_bytes_left <= buffer:
-            print(str(blob.download_as_bytes(start=start, end=num_bytes), sys.stdout.encoding), end='')
+            sys.stdout.buffer.write(blob.download_as_bytes(start=start, end=num_bytes))
             return
         else:
             data = blob.download_as_bytes(start=start, end=end)
             if not data:
                 return
-            print(str(data, sys.stdout.encoding), end='')
+            sys.stdout.buffer.write(data)
             num_bytes_left -= buffer
             start += buffer + 1
             end += buffer + 1
 
 def head(drs_url: str,
          num_bytes: int,
+         buffer: int = MULTIPART_THRESHOLD,
          workspace_name: Optional[str] = WORKSPACE_NAME,
          google_billing_project: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
     """
@@ -170,7 +171,7 @@ def head(drs_url: str,
     client, info = resolve_drs_for_gs_storage(drs_url)
     blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
     try:
-        print_bytes(blob, num_bytes)
+        print_bytes(blob=blob, num_bytes=num_bytes, buffer=buffer)
     except (NotFound, Forbidden):
         raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
                                  f'Could not be accessed because of:\n'
