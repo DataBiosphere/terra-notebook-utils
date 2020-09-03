@@ -156,14 +156,19 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     @testmode("controlled_access")
     def test_head(self):
-        out = io.StringIO()
-        with contextlib.redirect_stdout(out):
+        # Can't use io.BytesIO() with contextlib.redirect_stdout(out) here as it doesn't support
+        # sys.stdout.buffer so this workaround gets the bytes stream as stdout, just for testing
+        with encoded_bytes_stream():
             drs.head(self.drs_url)
-            self.assertEqual(1, len(out.getvalue().strip()))
+            sys.stdout.seek(0)
+            out = sys.stdout.read()
+            self.assertEqual(1, len(out.strip()))
 
-        with contextlib.redirect_stdout(out):
+        with encoded_bytes_stream():
             drs.head(self.drs_url, num_bytes=10)
-            self.assertEqual(10, len(out.getvalue().strip()))
+            sys.stdout.seek(0)
+            out = sys.stdout.read()
+            self.assertEqual(10, len(out.strip()))
 
         with self.assertRaises(drs.InaccessibleDrsUrlException):
             fake_drs_url = 'drs://nothing'
