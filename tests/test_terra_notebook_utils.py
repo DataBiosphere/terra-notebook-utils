@@ -8,6 +8,7 @@ import glob
 import pytz
 import tempfile
 import contextlib
+from io import TextIOWrapper, BytesIO
 from uuid import uuid4
 from random import randint
 from datetime import datetime
@@ -86,6 +87,57 @@ class TestTerraNotebookUtilsTable(TestCaseSuppressWarnings):
 
         with self.subTest("delete table"):
             table.delete_table(table_name)
+
+
+@contextlib.contextmanager
+def encoded_bytes_stream():
+    old_stdout = sys.stdout
+    sys.stdout = TextIOWrapper(BytesIO(), sys.stdout.encoding)
+    yield
+    sys.stdout.close()
+    sys.stdout = old_stdout
+
+
+class TestTerraNotebookUtilsBytesLogic(TestCaseSuppressWarnings):
+    def test_fetch_bytes(self):
+        tmp_file = 'delete_me.txt'
+        with open(tmp_file, 'wb') as f:
+            f.write(b'123456789\n123456789\n123456789')
+
+        def get_bytes(start, end):
+            with open(tmp_file, 'rb') as f:
+                bytes_to_return = f.read()
+            return bytes_to_return[start:end]
+
+        for buffer in [1, 2, 9, 10, 1000, 1000000]:
+
+            # Can't use io.BytesIO() with contextlib.redirect_stdout(out) here as it doesn't support
+            # sys.stdout.buffer so this workaround gets the bytes stream as stdout, just for testing
+            with encoded_bytes_stream():
+                drs.print_bytes(source=get_bytes, num_bytes=9, buffer=buffer)
+                sys.stdout.seek(0)
+                out = sys.stdout.read()
+                self.assertEqual('123456789', out.strip())
+
+            with encoded_bytes_stream():
+                drs.print_bytes(source=get_bytes, num_bytes=19, buffer=buffer)
+                sys.stdout.seek(0)
+                out = sys.stdout.read()
+                self.assertEqual('123456789\n123456789', out.strip())
+
+            with encoded_bytes_stream():
+                drs.print_bytes(source=get_bytes, num_bytes=21, buffer=buffer)
+                sys.stdout.seek(0)
+                out = sys.stdout.read()
+                self.assertEqual('123456789\n123456789\n1', out.strip())
+
+            with encoded_bytes_stream():
+                drs.print_bytes(source=get_bytes, num_bytes=100, buffer=buffer)
+                sys.stdout.seek(0)
+                out = sys.stdout.read()
+                self.assertEqual('123456789\n123456789\n123456789', out.strip())
+
+            os.remove(tmp_file)
 
 
 class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
