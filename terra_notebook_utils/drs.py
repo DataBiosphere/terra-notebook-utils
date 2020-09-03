@@ -150,8 +150,8 @@ def print_bytes(blob, num_bytes: int, buffer: int = MULTIPART_THRESHOLD):
                 return
             sys.stdout.buffer.write(data)
             num_bytes_left -= buffer
-            start += buffer + 1
-            end += buffer + 1
+            start += buffer
+            end += buffer
 
 def head(drs_url: str,
          num_bytes: int,
