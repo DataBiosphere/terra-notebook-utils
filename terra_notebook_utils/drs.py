@@ -127,7 +127,7 @@ def copy_to_local(drs_url: str,
         logger.info(f"Downloading {drs_url} to {filepath}")
         blob.download_to_file(fh)
 
-def print_bytes(source: Optional[Callable], num_bytes: int, buffer: int = MULTIPART_THRESHOLD):
+def print_bytes(source: Callable, num_bytes: int, buffer: int = MULTIPART_THRESHOLD):
     """
     Print data from a file until a certain number of bytes is hit.
 
