@@ -137,7 +137,7 @@ class TestTerraNotebookUtilsBytesLogic(TestCaseSuppressWarnings):
                 out = sys.stdout.read()
                 self.assertEqual('123456789\n123456789\n123456789', out.strip())
 
-            os.remove(tmp_file)
+        os.remove(tmp_file)
 
 
 class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
