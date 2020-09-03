@@ -57,7 +57,7 @@ def drs_copy_batch(args: argparse.Namespace):
 
 @drs_cli.command("head", arguments={
     "-c": dict(type=int, required=False, default=None,
-               help="Return the first integer n bytes of a file (uncompressed)."),
+               help="Return the first integer c bytes of a file (uncompressed)."),
     "--buffer": dict(type=int, required=False, default=MULTIPART_THRESHOLD,
                      help="Control the buffer size when fetching data."),
     "drs_url": dict(type=str),
