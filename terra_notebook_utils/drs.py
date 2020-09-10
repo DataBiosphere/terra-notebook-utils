@@ -11,7 +11,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from collections import namedtuple
-from typing import Tuple, Iterable, Optional, Callable
+from typing import Tuple, Iterable, Optional, Callable, IO
 from google.cloud.exceptions import NotFound, Forbidden
 
 from terra_notebook_utils import (WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD,
@@ -127,32 +127,6 @@ def copy_to_local(drs_url: str,
         logger.info(f"Downloading {drs_url} to {filepath}")
         blob.download_to_file(fh)
 
-def print_bytes(source: Callable, num_bytes: int, buffer: int = MULTIPART_THRESHOLD):
-    """
-    Print data from a file until a certain number of bytes is hit.
-
-    This is done by pulling chunks of the file and printing until bytes is reached.
-
-    :param blob: The Google blob object.
-    :param num_bytes: Number of bytes to print before stopping.
-    :param buffer: Size of the data chunks to grab each time.  The default buffer is 32Mib.
-    """
-    num_bytes_left = num_bytes
-    start = 0
-    end = buffer
-    while True:
-        if num_bytes_left <= buffer:
-            sys.stdout.buffer.write(source(start=start, end=num_bytes))
-            return
-        else:
-            data = source(start=start, end=end)
-            if not data:
-                return
-            sys.stdout.buffer.write(data)
-            num_bytes_left -= buffer
-            start += buffer
-            end += buffer
-
 def head(drs_url: str,
          num_bytes: int,
          buffer: int = MULTIPART_THRESHOLD,
@@ -171,7 +145,8 @@ def head(drs_url: str,
     client, info = resolve_drs_for_gs_storage(drs_url)
     blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
     try:
-        print_bytes(source=blob.download_as_bytes, num_bytes=num_bytes, buffer=buffer)
+        with gscio.Reader(blob) as handle:
+            sys.stdout.buffer.write(handle(num_bytes, buffer=buffer))
     except (NotFound, Forbidden):
         raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
                                  f'Could not be accessed because of:\n'
