@@ -145,8 +145,8 @@ def head(drs_url: str,
     client, info = resolve_drs_for_gs_storage(drs_url)
     blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
     try:
-        with gscio.Reader(blob) as handle:
-            sys.stdout.buffer.write(handle(num_bytes, buffer=buffer))
+        with gscio.Reader(blob, chunk_size=buffer) as handle:
+            sys.stdout.buffer.write(handle(num_bytes))
     except (NotFound, Forbidden):
         raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
                                  f'Could not be accessed because of:\n'
