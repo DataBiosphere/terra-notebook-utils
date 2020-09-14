@@ -23,11 +23,11 @@ class Config:
     @classmethod
     def resolve(cls, override_workspace: Optional[str] = None, override_namespace: Optional[str] = None):
         workspace_name = (override_workspace or
-                          os.environ.get('WORKSPACE_NAME') or
-                          cls.info['workspace'])  # Should this be a higher priority?
+                          cls.info['workspace'] or
+                          os.environ.get('WORKSPACE_NAME'))
         namespace = (override_namespace or
+                     cls.info['workspace_google_project'] or
                      os.environ.get('GOOGLE_PROJECT') or  # This env var is set in Terra notebooks
-                     cls.info['workspace_google_project'] or  # Should this be a higher priority?
                      os.environ.get('GCP_PROJECT') or  # Useful for running outside of notebook
                      os.environ.get('GCLOUD_PROJECT'))  # Fallback
         if workspace_name and namespace is None:
