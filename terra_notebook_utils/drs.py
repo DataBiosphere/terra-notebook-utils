@@ -153,8 +153,13 @@ def head(drs_url: str,
                                      f'{traceback.format_exc()}')
     blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
     try:
+        # sys.stdout.buffer is used outside of a python notebook
+        # INSIDE of a python notebook, this is a ipykernel.iostream.OutStream object:
+        # https://github.com/ipython/ipykernel/blob/master/ipykernel/iostream.py#L265
+        # this seems to be able to handle bytes as well as unicode
+        stdout_buffer = getattr(sys.stdout, 'buffer', sys.stdout)
         with gscio.Reader(blob, chunk_size=buffer) as handle:
-            sys.stdout.buffer.write(handle.read(num_bytes))
+            stdout_buffer.write(handle.read(num_bytes))
     except (NotFound, Forbidden):
         raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
                                  f'Could not be accessed because of:\n'
