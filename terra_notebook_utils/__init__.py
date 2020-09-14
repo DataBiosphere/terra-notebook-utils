@@ -22,22 +22,22 @@ class Config:
 
     @classmethod
     def resolve(cls, override_workspace: Optional[str] = None, override_namespace: Optional[str] = None):
-        workspace = (override_workspace or
-                     os.environ.get('WORKSPACE_NAME') or
-                     cls.info['workspace'])  # Should this be a higher priority?
+        workspace_name = (override_workspace or
+                          os.environ.get('WORKSPACE_NAME') or
+                          cls.info['workspace'])  # Should this be a higher priority?
         namespace = (override_namespace or
                      os.environ.get('GOOGLE_PROJECT') or  # This env var is set in Terra notebooks
                      cls.info['workspace_google_project'] or  # Should this be a higher priority?
                      os.environ.get('GCP_PROJECT') or  # Useful for running outside of notebook
                      os.environ.get('GCLOUD_PROJECT'))  # Fallback
-        if workspace and namespace is None:
+        if workspace_name and namespace is None:
             from terra_notebook_utils.workspace import get_workspace_namespace
-            namespace = get_workspace_namespace(workspace)
-        if not workspace:
+            namespace = get_workspace_namespace(workspace_name)
+        if not workspace_name:
             raise RuntimeError("This command requires a workspace. Either pass in a workspace with `--workspace`,"
                                " or configure a default workspace for the cli (see `tnu config --help`)."
                                " A default workspace may also be configured by setting the `WORKSPACE_NAME` env var")
-        return workspace, namespace
+        return workspace_name, namespace
 
 
 Config.load()
