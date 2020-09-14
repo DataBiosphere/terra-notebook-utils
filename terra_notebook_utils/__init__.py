@@ -1,13 +1,49 @@
 import os
+import json
 
-WORKSPACE_NAME = os.environ.get('WORKSPACE_NAME', None)
-WORKSPACE_GOOGLE_PROJECT = os.environ.get('GOOGLE_PROJECT')  # This env var is set in Terra notebooks
+from typing import Optional
+
+
+class Config:
+    info = dict(workspace=None, workspace_google_project=None)
+    path = os.path.join(os.path.expanduser("~"), ".tnu_config")
+
+    @classmethod
+    def load(cls):
+        if not os.path.isfile(cls.path):
+            cls.write()
+        with open(cls.path) as fh:
+            cls.info = json.loads(fh.read())
+
+    @classmethod
+    def write(cls):
+        with open(cls.path, "w") as fh:
+            fh.write(json.dumps(cls.info, indent=2))
+
+    @classmethod
+    def resolve(cls, override_workspace: Optional[str] = None, override_namespace: Optional[str] = None):
+        workspace = (override_workspace or
+                     os.environ.get('WORKSPACE_NAME') or
+                     cls.info['workspace'])  # Should this be a higher priority?
+        namespace = (override_namespace or
+                     os.environ.get('GOOGLE_PROJECT') or  # This env var is set in Terra notebooks
+                     cls.info['workspace_google_project'] or  # Should this be a higher priority?
+                     os.environ.get('GCP_PROJECT') or  # Useful for running outside of notebook
+                     os.environ.get('GCLOUD_PROJECT'))  # Fallback
+        if workspace and namespace is None:
+            from terra_notebook_utils.workspace import get_workspace_namespace
+            namespace = get_workspace_namespace(workspace)
+        if not workspace:
+            raise RuntimeError("This command requires a workspace. Either pass in a workspace with `--workspace`,"
+                               " or configure a default workspace for the cli (see `tnu config --help`)."
+                               " A default workspace may also be configured by setting the `WORKSPACE_NAME` env var")
+        return workspace, namespace
+
+
+Config.load()
+WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT = Config.resolve()
 TERRA_DEPLOYMENT_ENV = os.environ.get('TERRA_DEPLOYMENT_ENV', 'prod')
 
-if not WORKSPACE_GOOGLE_PROJECT:
-    WORKSPACE_GOOGLE_PROJECT = os.environ.get('GCP_PROJECT')  # Useful for running outside of notebook
-if not WORKSPACE_GOOGLE_PROJECT:
-    WORKSPACE_GOOGLE_PROJECT = os.environ.get('GCLOUD_PROJECT')  # Fallback
 # For a list of gcloud project related environment variables, see:
 # https://cloud.google.com/functions/docs/env-var#environment_variables_set_automatically
 WORKSPACE_BUCKET = os.environ.get('WORKSPACE_BUCKET', None)
