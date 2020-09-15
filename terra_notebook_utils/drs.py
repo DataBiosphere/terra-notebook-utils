@@ -189,6 +189,7 @@ def head(drs_url: str,
                 def read(self):
                     raise NotImplementedError("I... can't... READ... T____T ")
 
+            setattr(sys.stdout.session, 'packer', 'pickle')
             setattr(sys.stdout, 'write', partial(BytesOutStream.write, sys.stdout))
             setattr(sys.stdout, '_new_buffer', partial(BytesOutStream._new_buffer, sys.stdout))
             sys.stdout._new_buffer()
