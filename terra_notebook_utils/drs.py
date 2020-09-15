@@ -3,7 +3,6 @@ Utilities for working with DRS objects
 """
 import os
 import sys
-import io
 import re
 import json
 import logging
