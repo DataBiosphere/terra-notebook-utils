@@ -160,7 +160,10 @@ def head(drs_url: str,
         # this seems to be able to handle bytes as well as unicode
         stdout_buffer = getattr(sys.stdout, 'buffer', None)
 
-        if not stdout_buffer:
+        if stdout_buffer:
+            with gscio.Reader(blob, chunk_size=buffer) as handle:
+                stdout_buffer.write(handle.read(num_bytes))
+        else:
             # We're in a notebook, where instead of sending messages to sys.stdout.buffer,
             # we need to send serialized messages to a Session object.
             # Since we want to print bytes instead of the object's default unicode,
@@ -193,10 +196,13 @@ def head(drs_url: str,
             setattr(sys.stdout, 'write', partial(BytesOutStream.write, sys.stdout))
             setattr(sys.stdout, '_new_buffer', partial(BytesOutStream._new_buffer, sys.stdout))
             sys.stdout._new_buffer()
-            stdout_buffer = sys.stdout
+            with gscio.Reader(blob, chunk_size=buffer) as handle:
+                sys.stdout.write(handle.read(num_bytes))
+            setattr(sys.stdout.session, 'packer', 'json')
+            setattr(sys.stdout, 'write', partial(OutStream.write, sys.stdout))
+            setattr(sys.stdout, '_new_buffer', partial(OutStream._new_buffer, sys.stdout))
+            sys.stdout._new_buffer()
 
-        with gscio.Reader(blob, chunk_size=buffer) as handle:
-            stdout_buffer.write(handle.read(num_bytes))
     except (NotFound, Forbidden):
         raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
                                  f'Could not be accessed because of:\n'
