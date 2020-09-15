@@ -246,7 +246,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             cmd = f'tnu drs head {fake_drs_url} ' \
                   f'--workspace={WORKSPACE_NAME} ' \
                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
-            e = ''
+            message = ''
             try:
                 self._run_cmd(cmd)
             except subprocess.CalledProcessError as e:
