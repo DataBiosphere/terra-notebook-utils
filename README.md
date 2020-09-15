@@ -81,6 +81,8 @@ Copy drs object to local file system or bucket:
 from terra_notebook_utils import drs
 drs.copy("drs://my-drs-url", "gs://my-dst-bucket/my-dst-key")
 drs.copy("drs://my-drs-url", "local_filepath")
+drs.copy_batch(["drs://my-drs-url1", "drs://my-drs-url2"], "local_directory")
+drs.copy_batch(["drs://my-drs-url1", "drs://my-drs-url2"], "gs://my-dst-bucket/prefix")
 ```
 
 Head drs object:
@@ -95,6 +97,8 @@ Copy drs object to local or bucket:
 ```
 tnu drs copy drs://my-drs-url gs://my-dst-bucket/my-dstkey
 tnu drs copy drs://my-drs-url local_filepath
+tnu drs copy-batch drs://my-drs-url1 drs://my-drs-url2 --dst local_directory
+tnu drs copy-batch drs://my-drs-url1 drs://my-drs-url2 --dst gs://my-dst-bucket/prefix
 ```
 
 Head drs object:
