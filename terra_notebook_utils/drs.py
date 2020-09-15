@@ -166,6 +166,7 @@ def head(drs_url: str,
             # Since we want to print bytes instead of the object's default unicode,
             # we rework the notebook's internal method.
             from ipykernel.iostream import OutStream
+            from functools import partial
             class BytesOutStream(OutStream):
                 def write(self, string):
                     is_child = (not self._is_master_process())
@@ -188,13 +189,11 @@ def head(drs_url: str,
                 def read(self):
                     raise NotImplementedError("I... can't... READ... T____T ")
 
-            func_type = type(sys.stdout.write)
-            sys.stdout.write = func_type(BytesOutStream.write, sys.stdout, OutStream)
-            func_type = type(sys.stdout._new_buffer)
-            sys.stdout._new_buffer = func_type(BytesOutStream._new_buffer, sys.stdout, OutStream)
+            setattr(sys.stdout, 'write', partial(BytesOutStream.write, sys.stdout))
+            setattr(sys.stdout, '_new_buffer', partial(BytesOutStream._new_buffer, sys.stdout))
 
-            with gscio.Reader(blob, chunk_size=buffer) as handle:
-                stdout_buffer.write(handle.read(num_bytes))
+        with gscio.Reader(blob, chunk_size=buffer) as handle:
+            stdout_buffer.write(handle.read(num_bytes))
     except (NotFound, Forbidden):
         raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
                                  f'Could not be accessed because of:\n'
