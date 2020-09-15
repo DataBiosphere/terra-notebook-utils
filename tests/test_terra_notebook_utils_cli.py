@@ -242,14 +242,17 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
                 self.assertEqual(len(stdout), 10)
 
         with self.subTest("Test heading a non-existent drs url."):
-            # TODO: cli_builder swallows exit codes, so CLI failures always exit with "0"
-            # TODO: change cli_builder to not do this, then use "except subprocess.CalledProcessError as e:" here
             fake_drs_url = 'drs://nothing'
             cmd = f'tnu drs head {fake_drs_url} ' \
                   f'--workspace={WORKSPACE_NAME} ' \
                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
-            output = self._run_cmd(cmd)
-            self.assertIn(b'GSBlobInaccessible', output)
+            e = ''
+            try:
+                self._run_cmd(cmd)
+            except subprocess.CalledProcessError as e:
+                pass
+
+            self.assertIn(b'GSBlobInaccessible', e)
 
 
 @testmode("workspace_access")
