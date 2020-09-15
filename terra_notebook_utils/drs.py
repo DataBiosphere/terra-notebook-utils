@@ -191,6 +191,7 @@ def head(drs_url: str,
 
             setattr(sys.stdout, 'write', partial(BytesOutStream.write, sys.stdout))
             setattr(sys.stdout, '_new_buffer', partial(BytesOutStream._new_buffer, sys.stdout))
+            sys.stdout._new_buffer()
             stdout_buffer = sys.stdout
 
         with gscio.Reader(blob, chunk_size=buffer) as handle:
