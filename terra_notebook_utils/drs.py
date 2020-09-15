@@ -153,21 +153,14 @@ def head(drs_url: str,
                                      f'{traceback.format_exc()}')
     blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
     try:
-        # sys.stdout.buffer is used outside of a python notebook since we want to write/display bytes,
-        # and is not available inside of a python notebook.
-        stdout_buffer = getattr(sys.stdout, 'buffer', None)
-
-        if stdout_buffer:
-            with gscio.Reader(blob, chunk_size=buffer) as handle:
-                stdout_buffer.write(handle.read(num_bytes))
-        else:
-            # We're in a notebook, where sys.stdout is a ipykernel.iostream.OutStream object:
-            # https://github.com/ipython/ipykernel/blob/master/ipykernel/iostream.py#L265
-            # the stream is flushed into a messaging system that communicates with a
-            # Session object and really really wants to be unicode so we have to use this
-            # alternative representation for display and streaming.
-            with gscio.Reader(blob, chunk_size=buffer) as handle:
-                print(repr(handle.read(num_bytes))[2:-1])
+        # sys.stdout.buffer is used outside of a python notebook since that's the standard non-lossy way
+        # to write/display bytes; sys.stdout.buffer is not available inside of a python notebook
+        # though, as sys.stdout is a ipykernel.iostream.OutStream object:
+        # https://github.com/ipython/ipykernel/blob/master/ipykernel/iostream.py#L265
+        # so we use bare sys.stdout and rely on the ipykernel method's lossy unicode stream
+        stdout_buffer = getattr(sys.stdout, 'buffer', sys.stdout)
+        with gscio.Reader(blob, chunk_size=buffer) as handle:
+            stdout_buffer.write(handle.read(num_bytes))
 
     except (NotFound, Forbidden):
         raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
