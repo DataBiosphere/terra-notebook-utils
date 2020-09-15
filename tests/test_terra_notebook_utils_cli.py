@@ -250,9 +250,9 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             try:
                 self._run_cmd(cmd)
             except subprocess.CalledProcessError as e:
-                pass
+                message = e
 
-            self.assertIn(b'GSBlobInaccessible', e)
+            self.assertIn(b'GSBlobInaccessible', message)
 
 
 @testmode("workspace_access")
