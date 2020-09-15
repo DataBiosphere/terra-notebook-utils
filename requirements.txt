@@ -4,3 +4,4 @@ firecloud
 bgzip >= 0.3.0
 cli-builder
 oauth2client
+ipykernel

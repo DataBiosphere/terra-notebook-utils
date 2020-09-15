@@ -3,6 +3,7 @@ Utilities for working with DRS objects
 """
 import os
 import sys
+import io
 import re
 import json
 import logging
@@ -157,9 +158,43 @@ def head(drs_url: str,
         # INSIDE of a python notebook, this is a ipykernel.iostream.OutStream object:
         # https://github.com/ipython/ipykernel/blob/master/ipykernel/iostream.py#L265
         # this seems to be able to handle bytes as well as unicode
-        stdout_buffer = getattr(sys.stdout, 'buffer', sys.stdout)
-        with gscio.Reader(blob, chunk_size=buffer) as handle:
-            stdout_buffer.write(handle.read(num_bytes))
+        stdout_buffer = getattr(sys.stdout, 'buffer', None)
+
+        if not stdout_buffer:
+            # We're in a notebook, where instead of sending messages to sys.stdout.buffer,
+            # we need to send serialized messages to a Session object.
+            # Since we want to print bytes instead of the object's default unicode,
+            # we rework the notebook's internal method.
+            from ipykernel.iostream import OutStream
+            class BytesOutStream(OutStream):
+                def write(self, string):
+                    is_child = (not self._is_master_process())
+                    # only touch the buffer in the IO thread to avoid races
+                    self.pub_thread.schedule(lambda: self._buffer.write(string))
+                    if is_child:
+                        # mp.Pool cannot be trusted to flush promptly (or ever),
+                        # and this helps.
+                        if self._subprocess_flush_pending:
+                            return
+                        self._subprocess_flush_pending = True
+                        # We can not rely on self._io_loop.call_later from a subprocess
+                        self.pub_thread.schedule(self._flush)
+                    else:
+                        self._schedule_flush()
+
+                def _new_buffer(self):
+                    self._buffer = io.BytesIO()
+
+                def read(self):
+                    raise NotImplementedError("I... can't... READ... T____T ")
+
+            func_type = type(sys.stdout.write)
+            sys.stdout.write = func_type(BytesOutStream.write, sys.stdout, OutStream)
+            func_type = type(sys.stdout._new_buffer)
+            sys.stdout._new_buffer = func_type(BytesOutStream._new_buffer, sys.stdout, OutStream)
+
+            with gscio.Reader(blob, chunk_size=buffer) as handle:
+                stdout_buffer.write(handle.read(num_bytes))
     except (NotFound, Forbidden):
         raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
                                  f'Could not be accessed because of:\n'
