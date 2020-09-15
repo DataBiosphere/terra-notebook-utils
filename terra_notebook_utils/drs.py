@@ -219,6 +219,8 @@ def copy_batch(drs_urls: Iterable[str],
             src_blob = src_bucket.get_blob(src_info.key)
             basename = src_info.name or _url_basename(drs_url)
             if dst.startswith("gs://"):
+                if dst.endswith("/"):
+                    raise ValueError("Bucket destination cannot end with '/'")
                 dst_bucket_name, dst_pfx = _bucket_name_and_key(dst)
                 dst_bucket = gs.get_client().bucket(dst_bucket_name)
                 dst_key = f"{dst_pfx}/{basename}"
