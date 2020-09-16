@@ -223,7 +223,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             self.assertEqual(len(stdout), 1, stdout)
 
             cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
-                   f'--bytes=3',
+                   '--bytes=3',
                    f'--workspace={WORKSPACE_NAME}',
                    f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
             stdout = self._run_cmd(cmd)
@@ -232,7 +232,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
 
             for buffer in [1, 2, 10, 11]:
                 cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
-                       f'--bytes=10',
+                       '--bytes=10',
                        f'--buffer={buffer}',
                        f'--workspace={WORKSPACE_NAME} ',
                        f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
