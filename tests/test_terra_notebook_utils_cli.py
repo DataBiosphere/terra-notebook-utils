@@ -216,14 +216,14 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
 
     def test_head(self):
         with self.subTest("Test heading a drs url."):
-            cmd = f'tnu drs head {self.drs_url} ' \
+            cmd = f'{pkg_root}/scripts/tnu drs head {self.drs_url} ' \
                   f'--workspace={WORKSPACE_NAME} ' \
                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
             stdout = self._run_cmd(cmd)
-            self.assertEqual(stdout, b'\x1f')
-            self.assertEqual(len(stdout), 1)
+            self.assertEqual(stdout, b'\x1f', stdout)
+            self.assertEqual(len(stdout), 1, stdout)
 
-            cmd = f'tnu drs head {self.drs_url} ' \
+            cmd = f'{pkg_root}/scripts/tnu drs head {self.drs_url} ' \
                   f'--bytes=3 ' \
                   f'--workspace={WORKSPACE_NAME} ' \
                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
@@ -232,7 +232,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             self.assertEqual(len(stdout), 3)
 
             for buffer in [1, 2, 10, 11]:
-                cmd = f'tnu drs head {self.drs_url} ' \
+                cmd = f'{pkg_root}/scripts/tnu drs head {self.drs_url} ' \
                       f'--bytes=10 ' \
                       f'--buffer={buffer} ' \
                       f'--workspace={WORKSPACE_NAME} ' \
@@ -245,7 +245,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             # TODO: cli_builder swallows exit codes, so CLI failures always exit with "0"
             # TODO: change cli_builder to not do this, then use "except subprocess.CalledProcessError as e:" here
             fake_drs_url = 'drs://nothing'
-            cmd = f'tnu drs head {fake_drs_url} ' \
+            cmd = f'{pkg_root}/scripts/tnu drs head {fake_drs_url} ' \
                   f'--workspace={WORKSPACE_NAME} ' \
                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
             output = self._run_cmd(cmd)
