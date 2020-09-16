@@ -8,12 +8,12 @@ import base64
 import unittest
 import argparse
 import subprocess
-import shlex
 from unittest import mock
 from random import randint
 from uuid import uuid4
 from contextlib import redirect_stdout
 from tempfile import NamedTemporaryFile
+from typing import List
 
 import google_crc32c
 
@@ -106,8 +106,8 @@ class _CLITestCase(TestCaseSuppressWarnings):
                 return out.getvalue().strip()
 
     @staticmethod
-    def _run_cmd(cmd: str) -> bytes:
-        p = subprocess.run(shlex.split(cmd), capture_output=True, check=True)
+    def _run_cmd(cmd: List[str]) -> bytes:
+        p = subprocess.run(cmd, capture_output=True, check=True)
         return p.stdout
 
 
@@ -215,27 +215,27 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
 
     def test_head(self):
         with self.subTest("Test heading a drs url."):
-            cmd = f'{pkg_root}/scripts/tnu drs head {self.drs_url} ' \
-                  f'--workspace={WORKSPACE_NAME} ' \
-                  f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+                   f'--workspace={WORKSPACE_NAME}',
+                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
             stdout = self._run_cmd(cmd)
             self.assertEqual(stdout, b'\x1f', stdout)
             self.assertEqual(len(stdout), 1, stdout)
 
-            cmd = f'{pkg_root}/scripts/tnu drs head {self.drs_url} ' \
-                  f'--bytes=3 ' \
-                  f'--workspace={WORKSPACE_NAME} ' \
-                  f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+                   f'--bytes=3',
+                   f'--workspace={WORKSPACE_NAME}',
+                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
             stdout = self._run_cmd(cmd)
             self.assertEqual(stdout, b'\x1f\x8b\x08')
             self.assertEqual(len(stdout), 3)
 
             for buffer in [1, 2, 10, 11]:
-                cmd = f'{pkg_root}/scripts/tnu drs head {self.drs_url} ' \
-                      f'--bytes=10 ' \
-                      f'--buffer={buffer} ' \
-                      f'--workspace={WORKSPACE_NAME} ' \
-                      f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+                cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+                       f'--bytes=10',
+                       f'--buffer={buffer}',
+                       f'--workspace={WORKSPACE_NAME} ',
+                       f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
                 stdout = self._run_cmd(cmd)
                 self.assertEqual(stdout, b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03')
                 self.assertEqual(len(stdout), 10)
@@ -244,9 +244,9 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             # TODO: cli_builder swallows exit codes, so CLI failures always exit with "0"
             # TODO: change cli_builder to not do this, then use "except subprocess.CalledProcessError as e:" here
             fake_drs_url = 'drs://nothing'
-            cmd = f'{pkg_root}/scripts/tnu drs head {fake_drs_url} ' \
-                  f'--workspace={WORKSPACE_NAME} ' \
-                  f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', fake_drs_url,
+                   f'--workspace={WORKSPACE_NAME} ',
+                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
             output = self._run_cmd(cmd)
             self.assertIn(b'GSBlobInaccessible', output)
 
