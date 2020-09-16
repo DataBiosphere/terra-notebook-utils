@@ -104,12 +104,10 @@ class _CLITestCase(TestCaseSuppressWarnings):
                     cmd(args)
                 return out.getvalue().strip()
 
-    def _run_cmd(self, cmd):
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        stdout, stderr = p.communicate()
-        if p.returncode:
-            raise subprocess.CalledProcessError(p.returncode, p.args, output=stdout, stderr=stderr)
-        return stdout
+    @staticmethod
+    def _run_cmd(cmd: str) -> str:
+        p = subprocess.run(cmd.split(), capture_output=True, check=True)
+        return p.stdout
 
 
 class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
