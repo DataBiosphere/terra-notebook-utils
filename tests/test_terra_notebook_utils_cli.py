@@ -248,7 +248,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
                   f'--workspace={WORKSPACE_NAME} ' \
                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
 
-            with self.assertRaises(subprocess.CalledProcessError) as e:
+            with self.assertRaises(subprocess.CalledProcessError):
                 try:
                     self._run_cmd(cmd)
                 except subprocess.CalledProcessError:
