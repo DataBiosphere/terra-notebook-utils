@@ -105,7 +105,7 @@ class _CLITestCase(TestCaseSuppressWarnings):
                 return out.getvalue().strip()
 
     @staticmethod
-    def _run_cmd(cmd: str) -> str:
+    def _run_cmd(cmd: str) -> bytes:
         p = subprocess.run(cmd.split(), capture_output=True, check=True)
         return p.stdout
 
