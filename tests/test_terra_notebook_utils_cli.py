@@ -106,7 +106,7 @@ class _CLITestCase(TestCaseSuppressWarnings):
 
     @staticmethod
     def _run_cmd(cmd: str) -> bytes:
-        p = subprocess.run(cmd.split(), capture_output=True, check=True)
+        p = subprocess.run(cmd, capture_output=True, check=True, shell=True)
         return p.stdout
 
 
