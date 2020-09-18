@@ -15,7 +15,7 @@ from typing import Tuple, Iterable, Optional, Callable, IO
 from google.cloud.exceptions import NotFound, Forbidden
 
 from terra_notebook_utils import (WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD,
-                                  IO_CONCURRENCY)
+                                  IO_CONCURRENCY, MARTHA_URL)
 from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 
 import gs_chunked_io as gscio
@@ -63,13 +63,14 @@ def fetch_drs_info(drs_url: str) -> dict:
     """
     access_token = gs.get_access_token()
 
-    martha_url = f"https://us-central1-broad-dsde-{TERRA_DEPLOYMENT_ENV}.cloudfunctions.net/martha_v2"
     headers = {
         'authorization': f"Bearer {access_token}",
         'content-type': "application/json"
     }
 
-    resp = requests.post(martha_url, headers=headers, data=json.dumps(dict(url=drs_url)))
+    logger.info(f"Resolving DRS uri '{drs_url}' through '{MARTHA_URL}'.")
+
+    resp = requests.post(MARTHA_URL, headers=headers, data=json.dumps(dict(url=drs_url)))
 
     if 200 == resp.status_code:
         resp_data = resp.json()
@@ -79,27 +80,75 @@ def fetch_drs_info(drs_url: str) -> dict:
         raise RuntimeError(f"expected status 200, got {resp.status_code}")
     return resp_data
 
+def extract_credentials_from_drs_response(response: dict):
+    if 'googleServiceAccount' not in response or response['googleServiceAccount'] is None:
+        credentials_data = None
+    else:
+        credentials_data = response['googleServiceAccount']['data']
+
+    return credentials_data
+
+def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> DRSInfo:
+    """
+    Convert response from martha_v2 to DRSInfo
+    """
+    credentials_data = extract_credentials_from_drs_response(drs_response)
+
+    if 'data_object' in drs_response['dos']:
+        data_object = drs_response['dos']['data_object']
+
+        if 'urls' not in data_object:
+            raise Exception(f"No GCS url found for DRS uri '{drs_url}'")
+        else:
+            for url_info in data_object['urls']:
+                if 'url' in url_info and url_info['url'].startswith(_GS_SCHEMA):
+                    data_url = url_info['url']
+                    break
+                else:
+                    raise Exception(f"No GCS url found for DRS uri '{drs_url}'")
+
+        bucket_name, key = _parse_gs_url(data_url)
+        return DRSInfo(credentials=credentials_data,
+                       bucket_name=bucket_name,
+                       key=key,
+                       name=data_object.get('name', None),
+                       size=data_object.get('size', None),
+                       updated=data_object.get('updated', None))
+    else:
+        return DRSInfo(credentials=credentials_data,
+                       bucket_name=None,
+                       key=None,
+                       name=None,
+                       size=None,
+                       updated=None)
+
+def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> DRSInfo:
+    """
+    Convert response from martha_v3 to DRSInfo
+    """
+    if 'gsUri' not in drs_response:
+        raise Exception(f"No GCS url found for DRS uri '{drs_url}'")
+
+    credentials_data = extract_credentials_from_drs_response(drs_response)
+
+    return DRSInfo(credentials=credentials_data,
+                   bucket_name=drs_response.get('bucket', None),
+                   key=drs_response.get('name', None),
+                   name=drs_response.get('name', None),
+                   size=drs_response.get('size', None),
+                   updated=drs_response.get('timeUpdated', None))
+
 def resolve_drs_info_for_gs_storage(drs_url: str) -> DRSInfo:
     """
     Attempt to resolve gs:// url and credentials for a DRS object.
     """
     assert drs_url.startswith("drs://")
-    drs_info = fetch_drs_info(drs_url)
-    credentials_data = drs_info['googleServiceAccount']['data']
-    for url_info in drs_info['dos']['data_object']['urls']:
-        if url_info['url'].startswith(_GS_SCHEMA):
-            data_url = url_info['url']
-            break
-    else:
-        raise Exception(f"Unable to resolve GS url for {drs_url}")
+    drs_response: dict = fetch_drs_info(drs_url)
 
-    bucket_name, key = _parse_gs_url(data_url)
-    return DRSInfo(credentials=credentials_data,
-                   bucket_name=bucket_name,
-                   key=key,
-                   name=drs_info['dos']['data_object'].get("name"),
-                   size=drs_info['dos']['data_object'].get("size"),
-                   updated=drs_info['dos']['data_object'].get("updated"))
+    if 'dos' in drs_response:
+        return convert_martha_v2_response_to_DRSInfo(drs_url, drs_response)
+    else:
+        return convert_martha_v3_response_to_DRSInfo(drs_url, drs_response)
 
 def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     """
@@ -107,7 +156,13 @@ def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     """
     assert drs_url.startswith("drs://")
     info = resolve_drs_info_for_gs_storage(drs_url)
-    client = gs.get_client(info.credentials, project=info.credentials['project_id'])
+
+    if info.credentials is not None:
+        project_id = info.credentials['project_id']
+    else:
+        project_id = None
+
+    client = gs.get_client(info.credentials, project=project_id)
     return client, info
 
 def copy_to_local(drs_url: str,

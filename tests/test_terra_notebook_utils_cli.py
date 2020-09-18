@@ -251,6 +251,38 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             self.assertIn(b'GSBlobInaccessible', output)
 
 
+class TestTerraNotebookUtilsCLI_DRSInDev(_CLITestCase):
+    jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-" \
+                   "2a2bfaa24c7a_c0e40912-8b14-43f6-9a2f-b278144d0060"
+    expected_crc32c = "/VKJIw=="
+
+    @testmode("dev_env_access")
+    def test_copy(self):
+        with self.subTest("test local"):
+            with NamedTemporaryFile() as tf:
+                self._test_cmd(terra_notebook_utils.cli.drs.drs_copy,
+                               drs_url=self.jade_dev_url,
+                               dst=tf.name,
+                               workspace=WORKSPACE_NAME,
+                               google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+                with open(tf.name, "rb") as fh:
+                    data = fh.read()
+                self.assertEqual(_crc32c(data), self.expected_crc32c)
+
+        with self.subTest("test gs"):
+            key = "test-drs-cli-object"
+            self._test_cmd(terra_notebook_utils.cli.drs.drs_copy,
+                           drs_url=self.jade_dev_url,
+                           dst=f"gs://{WORKSPACE_BUCKET}/{key}",
+                           workspace=WORKSPACE_NAME,
+                           google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+            blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
+            out = io.BytesIO()
+            blob.download_to_file(out)
+            blob.reload()  # download_to_file causes the crc32c to change, for some reason. Reload blob to recover.
+            self.assertEqual(self.expected_crc32c, blob.crc32c)
+            self.assertEqual(_crc32c(out.getvalue()), blob.crc32c)
+
 @testmode("workspace_access")
 class TestTerraNotebookUtilsCLI_Table(_CLITestCase):
     common_kwargs = dict(workspace=WORKSPACE_NAME, namespace=WORKSPACE_GOOGLE_PROJECT)

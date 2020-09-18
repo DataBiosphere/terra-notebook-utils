@@ -142,7 +142,7 @@ For local development:
 Developing within a docker image is recommended, since that most closely models how users will use this. Additionally, there are some issues with installing the requirements.txt on mac.
 If you don't wish to run this within a docker image, skip to step 5.
 2. run `docker pull us.gcr.io/broad-dsp-gcr-public/terra-jupyter-python:0.0.12`
-3. run the image from *one directory above* the root directory of this repo via `docker run -itd --entrypoint='/bin/bash' -v $PWD/terra-notebook-utils:/work -u root -e PIP_USER=false --name test-image terra-jupyter-python:0.0.12`
+3. run the image from *one directory above* the root directory of this repo via `docker run -itd --entrypoint='/bin/bash' -v $PWD/terra-notebook-utils:/work -u root -e PIP_USER=false --name test-image us.gcr.io/broad-dsp-gcr-public/terra-jupyter-python:0.0.12`
 4. Attach your terminal to the image via `docker exec -it test-image bash`, then navigate to the directory the code is mounted to via `cd /work`. Note that the above command ensures any changes you make to files in the repo will be updated in the image as well.
 5. log in with your Google credentials using `gcloud auth application-default login`,
 6. install requirements with `pip install -r requirements.txt`
@@ -151,18 +151,45 @@ If you don't wish to run this within a docker image, skip to step 5.
   - `export WORKSPACE_NAME=[workspaceWithinProject]`
   - `export TERRA_DEPLOYMENT_ENV=dev` 
   - `export WORKSPACE_BUCKET=[bucketWithinWorkspace]`
-8. run the python shell via `python`, and import any modules you wish to use. For example, `from terra_notebook_utils import drs`
+  - `export GCLOUD_PROJECT=[valid google project]` (set this if your DRS uri does not return Google SA)
+8. For Python API
+  - run the python shell via `python`, and import any modules you wish to use. For example, `from terra_notebook_utils import drs`
+  For CLI
+  - run `pip install terra-notebook-utils`
+  - run `import terra_notebook_utils as tnu`
+  - run `scripts/tnu <command>`, for example `scripts/tnu drs copy drs://url/here local_path`
 
-A sample non-protected test DRS url that resolves to a small file in dev: `drs://dg.712C/fa640b0e-9779-452f-99a6-16d833d15bd0`
+Sample DRS urls used in tests:
+(you would need to get access to these before successfully resolving it)
+  - `drs://dg.712C/fa640b0e-9779-452f-99a6-16d833d15bd0`: non-protected test DRS url that resolves to a small file in dev
+  - `drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-2a2bfaa24c7a_c0e40912-8b14-43f6-9a2f-b278144d0060`: Jade Dev test url
+Make sure you are setting proper environment variables mentioned in step 7 for each DRS url
 
 
 ## Tests
-To run tests,
-1. log in with your Google credentials using `gcloud auth application-default login`,
-2. Your account must have access to the workspace `terra-notebook-utils-tests` 
-3. Run `export GOOGLE_PROJECT=firecloud-cgl; export TERRA_DEPLOYMENT_ENV=prod; export WORKSPACE_NAME=terra-notebook-utils-tests`
-4. install requirements with `pip install -r requirements-dev.txt`,
-5. run `make test` in the package root.
+To run tests, follow the same setup from Local Development till step 4. Then,
+1. Your account must have access to the workspace `terra-notebook-utils-tests` 
+2. install requirements with `pip install -r requirements-dev.txt`
+3. Set `export WORKSPACE_NAME=terra-notebook-utils-tests`
+
+Test Env: Prod 
+This will run tests against Terra and Martha Prod (make sure you have proper access to DRS urls, workspace and Google bucket)
+4. log in with your Google credentials using `gcloud auth application-default login` with your Terra Prod account
+5. Set `export GOOGLE_PROJECT=firecloud-cgl; export TERRA_DEPLOYMENT_ENV=prod` 
+6. run in package root:
+  - `make test`: skips controlled and dev access tests
+  - `make mypy controlled_access_test`: runs tests marked as `controlled_access`
+  
+Test Env: Dev (currently it has tests for DRS methods)
+This will run tests against Terra and Martha Dev using Jade Dev DRS url (make sure your Terra Dev account has access to this url)
+4. log in with your Google credentials using `gcloud auth application-default login` with your Terra Dev account
+5. Set 
+  - `export GOOGLE_PROJECT=[google project to be billed]`
+  - `export TERRA_DEPLOYMENT_ENV=dev`
+  - `export WORKSPACE_BUCKET=[bucketWithinWorkspace]` (or a bucket where you want to copy data resolved through DRS url)
+6. run in package root:
+  - `make mypy dev_env_access_test`: runs tests marked as `dev_env_access`
+
 
 ## Links
 Project home page [GitHub](https://github.com/DataBiosphere/terra-notebook-utils)  

@@ -12,6 +12,9 @@ all_test:
 controlled_access_test:
 	$(MAKE) TNU_TESTMODE="controlled_access" test
 
+dev_env_access_test:
+	$(MAKE) TNU_TESTMODE="dev_env_access" test
+
 lint:
 	flake8 $(MODULES) *.py
 
