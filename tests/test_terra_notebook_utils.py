@@ -160,6 +160,9 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
                 'updated': "2020-04-27T15:56:09.696Z",
                 'urls': [
                     {
+                        'url': 's3://my_bucket/my_data'
+                    },
+                    {
                         'url': 'gs://bogus/my_data'
                     }
                 ],
@@ -197,7 +200,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
             }
         }
     }
-    mock_martha_v2_response_withput_gs_uri = {
+    mock_martha_v2_response_without_gs_uri = {
         'dos': {
             'data_object': {
                 'checksums': [
@@ -354,7 +357,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
             self.assertEqual(15601108255, actual_info.size)
             self.assertEqual('2020-04-27T15:56:09.696Z', actual_info.updated)
 
-    # test for when we get everything what we wanted in martha_v3 response
+    # test for when we get everything what we wanted in martha_v2 response
     def test_martha_v2_response(self):
         resp_json = mock.MagicMock(return_value=self.mock_martha_v2_response)
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
@@ -415,7 +418,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     # test for when no GCS url is found in martha_v2 response. It should throw error
     def test_martha_v2_response_without_gs_uri(self):
-        resp_json = mock.MagicMock(return_value=self.mock_martha_v2_response_withput_gs_uri)
+        resp_json = mock.MagicMock(return_value=self.mock_martha_v2_response_without_gs_uri)
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         from contextlib import ExitStack
         with ExitStack() as es:

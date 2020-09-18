@@ -100,12 +100,13 @@ def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
         if 'urls' not in data_object:
             raise Exception(f"No GCS url found for DRS uri '{drs_url}'")
         else:
+            data_url = None
             for url_info in data_object['urls']:
                 if 'url' in url_info and url_info['url'].startswith(_GS_SCHEMA):
                     data_url = url_info['url']
                     break
-                else:
-                    raise Exception(f"No GCS url found for DRS uri '{drs_url}'")
+            if data_url is None:
+                raise Exception(f"No GCS url found for DRS uri '{drs_url}'")
 
         bucket_name, key = _parse_gs_url(data_url)
         return DRSInfo(credentials=credentials_data,
