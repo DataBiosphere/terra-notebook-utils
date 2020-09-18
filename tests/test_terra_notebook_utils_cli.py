@@ -258,7 +258,7 @@ class TestTerraNotebookUtilsCLI_DRSInDev(_CLITestCase):
 
     @testmode("dev_env_access")
     def test_copy(self):
-        with self.subTest("test local"):
+        with self.subTest("test copy to local path"):
             with NamedTemporaryFile() as tf:
                 self._test_cmd(terra_notebook_utils.cli.drs.drs_copy,
                                drs_url=self.jade_dev_url,
@@ -269,7 +269,7 @@ class TestTerraNotebookUtilsCLI_DRSInDev(_CLITestCase):
                     data = fh.read()
                 self.assertEqual(_crc32c(data), self.expected_crc32c)
 
-        with self.subTest("test gs"):
+        with self.subTest("test copy to gs bucket"):
             key = "test-drs-cli-object"
             self._test_cmd(terra_notebook_utils.cli.drs.drs_copy,
                            drs_url=self.jade_dev_url,
