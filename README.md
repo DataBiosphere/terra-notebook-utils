@@ -175,6 +175,7 @@ To run tests, follow the same setup from Local Development till step 4. Make sur
 **Test Env: Prod**
 
 This will run tests against Terra and Martha Prod (make sure you have proper access to DRS urls, workspace and Google bucket)
+
 3. log in with your Google credentials using `gcloud auth application-default login` with your Terra Prod account
 4. set `export GOOGLE_PROJECT=firecloud-cgl; export TERRA_DEPLOYMENT_ENV=prod` 
 5. run in package root:
@@ -184,6 +185,7 @@ This will run tests against Terra and Martha Prod (make sure you have proper acc
 **Test Env: Dev** (currently it has tests for DRS methods)
 
 This will run tests against Terra and Martha Dev using Jade Dev DRS url (make sure your Terra Dev account has access to the above mentioned url)
+
 3. log in with your Google credentials using `gcloud auth application-default login` with your Terra Dev account
 4. Set 
     - `export GOOGLE_PROJECT=[googleProjectToBeBilled]`
