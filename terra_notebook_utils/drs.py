@@ -132,7 +132,7 @@ def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
     return DRSInfo(credentials=credentials_data,
                    bucket_name=drs_response.get('bucket', None),
                    key=drs_response.get('name', None),
-                   name=None, # currently martha_v3 doesn't return the file name. This should be changed in WA-348.
+                   name=None,  # currently martha_v3 doesn't return the file name. This should be changed in WA-348.
                    size=drs_response.get('size', None),
                    updated=drs_response.get('timeUpdated', None))
 
