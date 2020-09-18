@@ -89,6 +89,45 @@ class TestTerraNotebookUtilsTable(TestCaseSuppressWarnings):
             table.delete_table(table_name)
 
 
+# These tests will only run on `make mypy dev_env_access_test` command as they are testing DRS against Terra Dev env
+@testmode("dev_env_access")
+class TestTerraNotebookUtilsDRSInDev(TestCaseSuppressWarnings):
+    jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-" \
+                   "2a2bfaa24c7a_c0e40912-8b14-43f6-9a2f-b278144d0060"
+
+    def test_resolve_drs_for_google_storage(self):
+        _, info = drs.resolve_drs_for_gs_storage(self.jade_dev_url)
+        self.assertEqual(info.bucket_name, "broad-jade-dev-data-bucket")
+        self.assertEqual(info.key, "ca8edd48-e954-4c20-b911-b017fedffb67/c0e40912-8b14-43f6-9a2f-b278144d0060")
+        self.assertEqual(info.name, "ca8edd48-e954-4c20-b911-b017fedffb67/c0e40912-8b14-43f6-9a2f-b278144d0060")
+        self.assertEqual(info.size, 62043448)
+
+    def test_head(self):
+        # Can't use io.BytesIO() with contextlib.redirect_stdout(out) here as it doesn't support
+        # sys.stdout.buffer so this workaround gets the bytes stream as stdout, just for testing
+        with encoded_bytes_stream():
+            drs.head(self.jade_dev_url)
+            sys.stdout.seek(0)
+            out = sys.stdout.read()
+            self.assertEqual(1, len(out))
+
+    def test_download(self):
+        with tempfile.NamedTemporaryFile() as tf:
+            drs.copy_to_local(self.jade_dev_url, tf.name)
+
+    def test_copy_to_local(self):
+        with tempfile.NamedTemporaryFile() as tf:
+            drs.copy(self.jade_dev_url, tf.name)
+
+    def test_multipart_copy(self):
+        with mock.patch("terra_notebook_utils.MULTIPART_THRESHOLD", 1024 * 1024):
+            drs.copy_to_bucket(self.jade_dev_url, "test_oneshot_object")
+
+    def test_copy_to_bucket(self):
+        key = f"gs://{WORKSPACE_BUCKET}/test_oneshot_object_{uuid4()}"
+        drs.copy_to_bucket(self.jade_dev_url, key)
+
+
 class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
     drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
     jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-2a2bfaa24c7a_" \
@@ -456,44 +495,6 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
         with self.assertRaises(ValueError):
             drs._bucket_name_and_key(f"gs://{expected_bucket_name}/")
 
-
-# These tests will only run on `make mypy dev_env_access_test` command as they are testing DRS against Terra Dev env
-@testmode("dev_env_access")
-class TestTerraNotebookUtilsDRSInDev(TestCaseSuppressWarnings):
-    jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-" \
-                   "2a2bfaa24c7a_c0e40912-8b14-43f6-9a2f-b278144d0060"
-
-    def test_resolve_drs_for_google_storage(self):
-        _, info = drs.resolve_drs_for_gs_storage(self.jade_dev_url)
-        self.assertEqual(info.bucket_name, "broad-jade-dev-data-bucket")
-        self.assertEqual(info.key, "ca8edd48-e954-4c20-b911-b017fedffb67/c0e40912-8b14-43f6-9a2f-b278144d0060")
-        self.assertEqual(info.name, "ca8edd48-e954-4c20-b911-b017fedffb67/c0e40912-8b14-43f6-9a2f-b278144d0060")
-        self.assertEqual(info.size, 62043448)
-
-    def test_head(self):
-        # Can't use io.BytesIO() with contextlib.redirect_stdout(out) here as it doesn't support
-        # sys.stdout.buffer so this workaround gets the bytes stream as stdout, just for testing
-        with encoded_bytes_stream():
-            drs.head(self.jade_dev_url)
-            sys.stdout.seek(0)
-            out = sys.stdout.read()
-            self.assertEqual(1, len(out))
-
-    def test_download(self):
-        with tempfile.NamedTemporaryFile() as tf:
-            drs.copy_to_local(self.jade_dev_url, tf.name)
-
-    def test_copy_to_local(self):
-        with tempfile.NamedTemporaryFile() as tf:
-            drs.copy(self.jade_dev_url, tf.name)
-
-    def test_multipart_copy(self):
-        with mock.patch("terra_notebook_utils.MULTIPART_THRESHOLD", 1024 * 1024):
-            drs.copy_to_bucket(self.jade_dev_url, "test_oneshot_object")
-
-    def test_copy_to_bucket(self):
-        key = f"gs://{WORKSPACE_BUCKET}/test_oneshot_object_{uuid4()}"
-        drs.copy_to_bucket(self.jade_dev_url, key)
 
 @testmode("workspace_access")
 class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):

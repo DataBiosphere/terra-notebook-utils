@@ -172,16 +172,6 @@ To run tests, follow the same setup from Local Development till step 4. Make sur
 1. install requirements with `pip install -r requirements-dev.txt`
 2. set `export WORKSPACE_NAME=terra-notebook-utils-tests`
 
-**Test Env: Prod**
-
-This will run tests against Terra and Martha Prod (make sure you have proper access to DRS urls, workspace and Google bucket)
-
-3. log in with your Google credentials using `gcloud auth application-default login` with your Terra Prod account
-4. set `export GOOGLE_PROJECT=firecloud-cgl; export TERRA_DEPLOYMENT_ENV=prod` 
-5. run in package root:
-    - `make test`: skips controlled and dev access tests
-    - `make mypy controlled_access_test`: runs tests marked as `controlled_access`
-  
 **Test Env: Dev** (currently it has tests for DRS methods)
 
 This will run tests against Terra and Martha Dev using Jade Dev DRS url (make sure your Terra Dev account has access to the above mentioned url)
@@ -193,6 +183,18 @@ This will run tests against Terra and Martha Dev using Jade Dev DRS url (make su
     - `export WORKSPACE_BUCKET=[bucketWithinWorkspace]` (or a bucket where you want to copy data resolved through DRS url)
 5. run in package root:
     - `make mypy dev_env_access_test`: runs tests marked as `dev_env_access`
+
+
+**Test Env: Prod**
+
+This will run tests against Terra and Martha Prod (make sure you have proper access to DRS urls, workspace and Google bucket)
+
+3. log in with your Google credentials using `gcloud auth application-default login` with your Terra Prod account
+4. set `export GOOGLE_PROJECT=firecloud-cgl; export TERRA_DEPLOYMENT_ENV=prod` 
+5. run in package root:
+    - `make test`: skips controlled and dev access tests
+    - `make mypy controlled_access_test`: runs tests marked as `controlled_access`
+    - `make mypy all_test`: runs all tests for Prod (controlled_access and workspace_access)
 
 ## Links
 Project home page [GitHub](https://github.com/DataBiosphere/terra-notebook-utils)  

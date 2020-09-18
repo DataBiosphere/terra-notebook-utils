@@ -92,9 +92,8 @@ def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
     """
     Convert response from martha_v2 to DRSInfo
     """
-    credentials_data = extract_credentials_from_drs_response(drs_response)
-
     if 'data_object' in drs_response['dos']:
+        credentials_data = extract_credentials_from_drs_response(drs_response)
         data_object = drs_response['dos']['data_object']
 
         if 'urls' not in data_object:
@@ -116,12 +115,7 @@ def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
                        size=data_object.get('size', None),
                        updated=data_object.get('updated', None))
     else:
-        return DRSInfo(credentials=credentials_data,
-                       bucket_name=None,
-                       key=None,
-                       name=None,
-                       size=None,
-                       updated=None)
+        raise Exception(f"No metadata was returned for DRS uri '{drs_url}'")
 
 def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> DRSInfo:
     """
@@ -132,10 +126,13 @@ def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
 
     credentials_data = extract_credentials_from_drs_response(drs_response)
 
+    # Related ticket links:
+    # WA-344: Return file name in martha_response (https://broadworkbench.atlassian.net/browse/WA-344)
+    # WA-348: Add this new file name in TNU (https://broadworkbench.atlassian.net/browse/WA-348)
     return DRSInfo(credentials=credentials_data,
                    bucket_name=drs_response.get('bucket', None),
                    key=drs_response.get('name', None),
-                   name=drs_response.get('name', None),
+                   name=None, # currently martha_v3 doesn't return the file name. This should be changed in WA-348.
                    size=drs_response.get('size', None),
                    updated=drs_response.get('timeUpdated', None))
 

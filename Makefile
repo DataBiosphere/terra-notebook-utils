@@ -6,14 +6,14 @@ export TNU_TESTMODE?=workspace_access
 
 test: lint mypy tests
 
+dev_env_access_test:
+	$(MAKE) TNU_TESTMODE="dev_env_access" test
+
 all_test: 
 	$(MAKE) TNU_TESTMODE="workspace_access controlled_access" test
 
 controlled_access_test:
 	$(MAKE) TNU_TESTMODE="controlled_access" test
-
-dev_env_access_test:
-	$(MAKE) TNU_TESTMODE="dev_env_access" test
 
 lint:
 	flake8 $(MODULES) *.py
