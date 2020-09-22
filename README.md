@@ -182,7 +182,7 @@ This will run tests against Terra and Martha Dev using Jade Dev DRS url (make su
     - `export TERRA_DEPLOYMENT_ENV=dev`
     - `export WORKSPACE_BUCKET=[bucketWithinWorkspace]` (or a bucket where you want to copy data resolved through DRS url)
 5. run in package root:
-    - `make mypy dev_env_access_test`: runs tests marked as `dev_env_access`
+    - `make dev_env_access_test`: runs tests marked as `dev_env_access`
 
 
 **Test Env: Prod**
@@ -193,8 +193,8 @@ This will run tests against Terra and Martha Prod (make sure you have proper acc
 4. set `export GOOGLE_PROJECT=firecloud-cgl; export TERRA_DEPLOYMENT_ENV=prod` 
 5. run in package root:
     - `make test`: skips controlled and dev access tests
-    - `make mypy controlled_access_test`: runs tests marked as `controlled_access`
-    - `make mypy all_test`: runs all tests for Prod (controlled_access and workspace_access)
+    - `make controlled_access_test`: runs tests marked as `controlled_access`
+    - `make all_test`: runs all tests for Prod (controlled_access and workspace_access)
 
 ## Links
 Project home page [GitHub](https://github.com/DataBiosphere/terra-notebook-utils)  

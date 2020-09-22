@@ -182,12 +182,13 @@ class TestTerraNotebookUtilsCLI_Profile(_CLITestCase):
         self._test_cmd(terra_notebook_utils.cli.profile.list_billing_projects)
 
 
+# These tests will only run on `make dev_env_access_test` command as they are testing DRS against Terra Dev env
+@testmode("dev_env_access")
 class TestTerraNotebookUtilsCLI_DRSInDev(_CLITestCase):
     jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-" \
                    "2a2bfaa24c7a_c0e40912-8b14-43f6-9a2f-b278144d0060"
     expected_crc32c = "/VKJIw=="
 
-    @testmode("dev_env_access")
     def test_copy(self):
         with self.subTest("test copy to local path"):
             with NamedTemporaryFile() as tf:

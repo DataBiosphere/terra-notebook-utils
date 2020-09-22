@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 from terra_notebook_utils import drs, MULTIPART_THRESHOLD
 from terra_notebook_utils.cli import dispatch, Config
+from terra_notebook_utils.drs import DRSResolutionError
 
 
 drs_cli = dispatch.group("drs", help=drs.__doc__)
@@ -106,7 +107,13 @@ def drs_info(args: argparse.Namespace):
     """
     Get information about drs:// objects
     """
-    info = drs.resolve_drs_info_for_gs_storage(args.drs_url)
+    try:
+        info = drs.resolve_drs_info_for_gs_storage(args.drs_url)
+    except DRSResolutionError:
+        raise
+    except Exception:
+        raise
+
     data = info._asdict()
     data['url'] = f"gs://{info.bucket_name}/{info.key}"
     del data['credentials']
@@ -121,5 +128,11 @@ def drs_credentials(args: argparse.Namespace):
     """
     Return the credentials needed to access a DRS url.
     """
-    info = drs.resolve_drs_info_for_gs_storage(args.drs_url)
+    try:
+        info = drs.resolve_drs_info_for_gs_storage(args.drs_url)
+    except DRSResolutionError:
+        raise
+    except Exception:
+        raise
+
     print(json.dumps(info.credentials, indent=2))

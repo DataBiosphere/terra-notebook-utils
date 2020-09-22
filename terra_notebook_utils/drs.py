@@ -29,6 +29,9 @@ DRSInfo = namedtuple("DRSInfo", "credentials bucket_name key name size updated")
 class GSBlobInaccessible(Exception):
     pass
 
+class DRSResolutionError(Exception):
+    pass
+
 def _parse_gs_url(gs_url: str) -> Tuple[str, str]:
     if gs_url.startswith(_GS_SCHEMA):
         bucket_name, object_key = gs_url[len(_GS_SCHEMA):].split("/", 1)
@@ -76,11 +79,22 @@ def fetch_drs_info(drs_url: str) -> dict:
         resp_data = resp.json()
     else:
         logger.warning(resp.content)
-        # TODO: Terra returns every error as a 502; return the real error code here: (resp.json()['status'])
-        raise RuntimeError(f"expected status 200, got {resp.status_code}")
+        response_json = resp.json()
+
+        if 'response' in response_json:
+            if 'text' in response_json['response']:
+                error_details = f"Error: {response_json['response']['text']}"
+            else:
+                error_details = ""
+        else:
+            error_details = ""
+
+        raise DRSResolutionError(f"Unexpected response while resolving DRS path. Expected status 200, got "
+                                 f"{resp.status_code}. {error_details}")
+
     return resp_data
 
-def extract_credentials_from_drs_response(response: dict):
+def extract_credentials_from_drs_response(response: dict) -> Optional[dict]:
     if 'googleServiceAccount' not in response or response['googleServiceAccount'] is None:
         credentials_data = None
     else:
@@ -97,7 +111,7 @@ def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
         data_object = drs_response['dos']['data_object']
 
         if 'urls' not in data_object:
-            raise Exception(f"No GCS url found for DRS uri '{drs_url}'")
+            raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
         else:
             data_url = None
             for url_info in data_object['urls']:
@@ -105,24 +119,24 @@ def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
                     data_url = url_info['url']
                     break
             if data_url is None:
-                raise Exception(f"No GCS url found for DRS uri '{drs_url}'")
+                raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
 
         bucket_name, key = _parse_gs_url(data_url)
         return DRSInfo(credentials=credentials_data,
                        bucket_name=bucket_name,
                        key=key,
-                       name=data_object.get('name', None),
-                       size=data_object.get('size', None),
-                       updated=data_object.get('updated', None))
+                       name=data_object.get('name'),
+                       size=data_object.get('size'),
+                       updated=data_object.get('updated'))
     else:
-        raise Exception(f"No metadata was returned for DRS uri '{drs_url}'")
+        raise DRSResolutionError(f"No metadata was returned for DRS uri '{drs_url}'")
 
 def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> DRSInfo:
     """
     Convert response from martha_v3 to DRSInfo
     """
     if 'gsUri' not in drs_response:
-        raise Exception(f"No GCS url found for DRS uri '{drs_url}'")
+        raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
 
     credentials_data = extract_credentials_from_drs_response(drs_response)
 
@@ -130,11 +144,11 @@ def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
     # WA-344: Return file name in martha_response (https://broadworkbench.atlassian.net/browse/WA-344)
     # WA-348: Add this new file name in TNU (https://broadworkbench.atlassian.net/browse/WA-348)
     return DRSInfo(credentials=credentials_data,
-                   bucket_name=drs_response.get('bucket', None),
-                   key=drs_response.get('name', None),
+                   bucket_name=drs_response.get('bucket'),
+                   key=drs_response.get('name'),
                    name=None,  # currently martha_v3 doesn't return the file name. This should be changed in WA-348.
-                   size=drs_response.get('size', None),
-                   updated=drs_response.get('timeUpdated', None))
+                   size=drs_response.get('size'),
+                   updated=drs_response.get('timeUpdated'))
 
 def resolve_drs_info_for_gs_storage(drs_url: str) -> DRSInfo:
     """
@@ -153,7 +167,13 @@ def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage client.
     """
     assert drs_url.startswith("drs://")
-    info = resolve_drs_info_for_gs_storage(drs_url)
+
+    try:
+        info = resolve_drs_info_for_gs_storage(drs_url)
+    except DRSResolutionError:
+        raise
+    except Exception:
+        raise
 
     if info.credentials is not None:
         project_id = info.credentials['project_id']
