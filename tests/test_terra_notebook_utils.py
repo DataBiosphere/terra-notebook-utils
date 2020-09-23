@@ -345,13 +345,18 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     @testmode("controlled_access")
     def test_copy_batch(self):
+        # Currently martha_v3 doesn't return the actual file name which was previously returned by
+        # 'dos.data_object.name' key. Hence in the tests the files are copied to location using the basename from DRS
+        # urls. The changes in this test should be reverted as part of WA-348
+        # (https://broadworkbench.atlassian.net/browse/WA-348) since the actual file name will be returned by 'fileName'
+        # key in martha_v3 once WA-344 (https://broadworkbench.atlassian.net/browse/WA-344) is done.
         drs_urls = {
             # 1631686 bytes # name property disapeard from DRS response :(
             # "NWD522743.b38.irc.v1.cram.crai": "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35",  # 1631686 bytes
             "95cc4ae1-dee7-4266-8b97-77cf46d83d35": "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35",
-
-            "data_phs001237.v2.p1.c1.avro.gz": "drs://dg.4503/26e11149-5deb-4cd7-a475-16997a825655",  # 1115092 bytes
-            "RootStudyConsentSet_phs001237.TOPMed_WGS_WHI.v2.p1.c1.HMB-IRB.tar.gz":
+            "26e11149-5deb-4cd7-a475-16997a825655":
+                "drs://dg.4503/26e11149-5deb-4cd7-a475-16997a825655",  # 1115092 bytes
+            "e9c2caf2-b2a1-446d-92eb-8d5389e99ee3":
                 "drs://dg.4503/e9c2caf2-b2a1-446d-92eb-8d5389e99ee3",  # 332237 bytes
 
             # "NWD961306.freeze5.v1.vcf.gz": "drs://dg.4503/6e73a376-f7fd-47ed-ac99-0567bb5a5993",  # 2679331445 bytes
