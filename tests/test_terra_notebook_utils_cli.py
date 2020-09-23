@@ -8,6 +8,7 @@ import base64
 import unittest
 import argparse
 import subprocess
+import traceback
 from unittest import mock
 from random import randint
 from uuid import uuid4
@@ -241,14 +242,17 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
                 self.assertEqual(len(stdout), 10)
 
         with self.subTest("Test heading a non-existent drs url."):
-            # TODO: cli_builder swallows exit codes, so CLI failures always exit with "0"
-            # TODO: change cli_builder to not do this, then use "except subprocess.CalledProcessError as e:" here
             fake_drs_url = 'drs://nothing'
             cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', fake_drs_url,
                    f'--workspace={WORKSPACE_NAME} ',
                    f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
-            output = self._run_cmd(cmd)
-            self.assertIn(b'GSBlobInaccessible', output)
+
+            with self.assertRaises(subprocess.CalledProcessError):
+                try:
+                    self._run_cmd(cmd)
+                except subprocess.CalledProcessError:
+                    self.assertTrue('GSBlobInaccessible' in traceback.format_exc())
+                    raise
 
 
 @testmode("workspace_access")
