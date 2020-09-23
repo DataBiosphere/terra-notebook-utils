@@ -14,6 +14,7 @@ from random import randint
 from uuid import uuid4
 from contextlib import redirect_stdout
 from tempfile import NamedTemporaryFile
+from typing import List
 
 import google_crc32c
 
@@ -105,12 +106,10 @@ class _CLITestCase(TestCaseSuppressWarnings):
                     cmd(args)
                 return out.getvalue().strip()
 
-    def _run_cmd(self, cmd):
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        stdout, stderr = p.communicate()
-        if p.returncode:
-            raise subprocess.CalledProcessError(p.returncode, p.args, output=stdout, stderr=stderr)
-        return stdout
+    @staticmethod
+    def _run_cmd(cmd: List[str]) -> bytes:
+        p = subprocess.run(cmd, capture_output=True, check=True)
+        return p.stdout
 
 
 class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
@@ -217,36 +216,36 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
 
     def test_head(self):
         with self.subTest("Test heading a drs url."):
-            cmd = f'tnu drs head {self.drs_url} ' \
-                  f'--workspace={WORKSPACE_NAME} ' \
-                  f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+                   f'--workspace={WORKSPACE_NAME}',
+                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
             stdout = self._run_cmd(cmd)
-            self.assertEqual(stdout, b'\x1f')
-            self.assertEqual(len(stdout), 1)
+            self.assertEqual(stdout, b'\x1f', stdout)
+            self.assertEqual(len(stdout), 1, stdout)
 
-            cmd = f'tnu drs head {self.drs_url} ' \
-                  f'--bytes=3 ' \
-                  f'--workspace={WORKSPACE_NAME} ' \
-                  f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+                   '--bytes=3',
+                   f'--workspace={WORKSPACE_NAME}',
+                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
             stdout = self._run_cmd(cmd)
             self.assertEqual(stdout, b'\x1f\x8b\x08')
             self.assertEqual(len(stdout), 3)
 
             for buffer in [1, 2, 10, 11]:
-                cmd = f'tnu drs head {self.drs_url} ' \
-                      f'--bytes=10 ' \
-                      f'--buffer={buffer} ' \
-                      f'--workspace={WORKSPACE_NAME} ' \
-                      f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+                cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+                       '--bytes=10',
+                       f'--buffer={buffer}',
+                       f'--workspace={WORKSPACE_NAME} ',
+                       f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
                 stdout = self._run_cmd(cmd)
                 self.assertEqual(stdout, b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03')
                 self.assertEqual(len(stdout), 10)
 
         with self.subTest("Test heading a non-existent drs url."):
             fake_drs_url = 'drs://nothing'
-            cmd = f'tnu drs head {fake_drs_url} ' \
-                  f'--workspace={WORKSPACE_NAME} ' \
-                  f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}'
+            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', fake_drs_url,
+                   f'--workspace={WORKSPACE_NAME} ',
+                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
 
             with self.assertRaises(subprocess.CalledProcessError):
                 try:
