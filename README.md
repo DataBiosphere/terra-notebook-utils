@@ -196,6 +196,26 @@ This will run tests against Terra and Martha Prod (make sure you have proper acc
     - `make controlled_access_test`: runs tests marked as `controlled_access`
     - `make all_test`: runs all tests for Prod (controlled_access and workspace_access)
 
+## Release
+The commands mentioned in `common.mk` file are used for the release process. 
+Steps:
+- if you don't have a [PyPI](https://pypi.org/) account, please create one
+- you should be a collaborator in PyPI for Terra Notebook Utils. If you are not, please ask Brian Hannafious to add 
+you as a collaborator
+- run `make all_test` either from 
+    - inside the docker container created in Local Development or
+    - from repo root 
+  
+  (Make sure you have access to the DRS urls, workspaces and buckets as mentioned in Tests)
+  
+  Once tests pass, you can move to the release step
+- Release:
+    - For non-breaking API changes, use `make release_patch`
+    - For breaking API changes, use `make release_minor`
+    - For a major release, use `make release_major`
+
+If a release needs to be rolled back for some reason, please contact Brian Hannafious for help. 
+
 ## Links
 Project home page [GitHub](https://github.com/DataBiosphere/terra-notebook-utils)  
 Package distribution [PyPI](https://pypi.org/project/terra-notebook-utils)
