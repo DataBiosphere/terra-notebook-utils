@@ -8,6 +8,7 @@ import base64
 import unittest
 import argparse
 import subprocess
+import traceback
 from unittest import mock
 from random import randint
 from uuid import uuid4
@@ -279,13 +280,12 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', fake_drs_url,
                    f'--workspace={WORKSPACE_NAME} ',
                    f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
-            try:
-                self._run_cmd(cmd)
-            except subprocess.CalledProcessError as e:
-                self.assertIn(b'GSBlobInaccessible', e.stderr)
-                self.assertIn(b'DRSResolutionError: Unexpected response while resolving DRS path. Expected status 200, '
-                              b'got 500. Error: Received error while resolving DRS URL. getaddrinfo ENOTFOUND nothing',
-                              e.stderr)
+            with self.assertRaises(subprocess.CalledProcessError):
+                try:
+                    self._run_cmd(cmd)
+                except subprocess.CalledProcessError:
+                    self.assertTrue('GSBlobInaccessible' in traceback.format_exc())
+                    raise
 
 
 @testmode("workspace_access")
