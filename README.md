@@ -202,13 +202,10 @@ Steps:
 - if you don't have a [PyPI](https://pypi.org/) account, please create one
 - you should be a collaborator in PyPI for Terra Notebook Utils. If you are not, please ask Brian Hannafious to add 
 you as a collaborator
-- run `make all_test` either from 
-    - inside the docker container created in Local Development or
-    - from repo root 
-  
-  (Make sure you have access to the DRS urls, workspaces and buckets as mentioned in Tests)
-  
-  Once tests pass, you can move to the release step
+- follow the setup instructions as mentioned in `Tests` section above for env Prod. Make sure you have access 
+to the DRS urls, workspaces and buckets
+- run `make all_test` from inside the docker container created in `Local Development` section.
+Once tests pass, you can move to the release step
 - Release:
     - For non-breaking API changes, use `make release_patch`
     - For breaking API changes, use `make release_minor`
