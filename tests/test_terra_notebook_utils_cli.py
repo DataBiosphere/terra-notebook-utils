@@ -283,8 +283,11 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
             with self.assertRaises(subprocess.CalledProcessError):
                 try:
                     self._run_cmd(cmd)
-                except subprocess.CalledProcessError:
-                    self.assertTrue('GSBlobInaccessible' in traceback.format_exc())
+                except subprocess.CalledProcessError as e:
+                    self.assertTrue(b'GSBlobInaccessible' in e.stderr)
+                    self.assertTrue(b'DRSResolutionError: Unexpected response while resolving DRS path. Expected '
+                                    b'status 200, got 500. Error: Received error while resolving DRS URL. getaddrinfo '
+                                    b'ENOTFOUND nothing' in e.stderr)
                     raise
 
 
