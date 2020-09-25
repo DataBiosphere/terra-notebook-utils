@@ -140,13 +140,10 @@ def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
 
     credentials_data = extract_credentials_from_drs_response(drs_response)
 
-    # Related ticket links:
-    # WA-344: Return file name in martha_response (https://broadworkbench.atlassian.net/browse/WA-344)
-    # WA-348: Add this new file name in TNU (https://broadworkbench.atlassian.net/browse/WA-348)
     return DRSInfo(credentials=credentials_data,
                    bucket_name=drs_response.get('bucket'),
                    key=drs_response.get('name'),
-                   name=None,  # currently martha_v3 doesn't return the file name. This should be changed in WA-348.
+                   name=drs_response.get('fileName'),
                    size=drs_response.get('size'),
                    updated=drs_response.get('timeUpdated'))
 

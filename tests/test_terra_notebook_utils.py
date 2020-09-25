@@ -101,7 +101,7 @@ class TestTerraNotebookUtilsDRSInDev(TestCaseSuppressWarnings):
         _, info = drs.resolve_drs_for_gs_storage(self.jade_dev_url)
         self.assertEqual(info.bucket_name, "broad-jade-dev-data-bucket")
         self.assertEqual(info.key, "ca8edd48-e954-4c20-b911-b017fedffb67/c0e40912-8b14-43f6-9a2f-b278144d0060")
-        self.assertEqual(info.name, None)
+        self.assertEqual(info.name, "hapmap_3.3.hg38.vcf.gz")
         self.assertEqual(info.size, 62043448)
 
     def test_head(self):
@@ -112,6 +112,10 @@ class TestTerraNotebookUtilsDRSInDev(TestCaseSuppressWarnings):
             sys.stdout.seek(0)
             out = sys.stdout.read()
             self.assertEqual(1, len(out))
+
+        with self.assertRaises(drs.GSBlobInaccessible):
+            fake_drs_url = 'drs://nothing'
+            drs.head(fake_drs_url)
 
     def test_download(self):
         with tempfile.NamedTemporaryFile() as tf:
@@ -143,6 +147,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
         'timeUpdated': '2020-04-27T15:56:09.696Z',
         'bucket': 'broad-jade-dev-data-bucket',
         'name': 'fd8d8492-ad02-447d-b54e-35a7ffd0e7a5/8b07563a-542f-4b5c-9e00-e8fe6b1861de',
+        'fileName': 'HG00096.mapped.ILLUMINA.bwa.GBR.low_coverage.20120522.bam',
         'gsUri':
             'gs://broad-jade-dev-data-bucket/fd8d8492-ad02-447d-b54e-35a7ffd0e7a5/8b07563a-542f-4b5c-9e00-e8fe6b1861de',
         'googleServiceAccount': None,
@@ -227,6 +232,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
                 'created': "2020-04-27T15:56:09.696Z",
                 'description': "",
                 'id': "dg.4503/00e6cfa9-a183-42f6-bb44-b70347106bbe",
+                'name': "my_data",
                 'mime_type': "",
                 'size': 15601108255,
                 'updated': "2020-04-27T15:56:09.696Z",
@@ -345,18 +351,12 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
     @testmode("controlled_access")
     def test_copy_batch(self):
-        # Currently martha_v3 doesn't return the actual file name which was previously returned by
-        # 'dos.data_object.name' key. Hence in the tests the files are copied to location using the basename from DRS
-        # urls. The changes in this test should be reverted as part of WA-348
-        # (https://broadworkbench.atlassian.net/browse/WA-348) since the actual file name will be returned by 'fileName'
-        # key in martha_v3 once WA-344 (https://broadworkbench.atlassian.net/browse/WA-344) is done.
         drs_urls = {
             # 1631686 bytes # name property disapeard from DRS response :(
             # "NWD522743.b38.irc.v1.cram.crai": "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35",  # 1631686 bytes
             "95cc4ae1-dee7-4266-8b97-77cf46d83d35": "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35",
-            "26e11149-5deb-4cd7-a475-16997a825655":
-                "drs://dg.4503/26e11149-5deb-4cd7-a475-16997a825655",  # 1115092 bytes
-            "e9c2caf2-b2a1-446d-92eb-8d5389e99ee3":
+            "data_phs001237.v2.p1.c1.avro.gz": "drs://dg.4503/26e11149-5deb-4cd7-a475-16997a825655",  # 1115092 bytes
+            "RootStudyConsentSet_phs001237.TOPMed_WGS_WHI.v2.p1.c1.HMB-IRB.tar.gz":
                 "drs://dg.4503/e9c2caf2-b2a1-446d-92eb-8d5389e99ee3",  # 332237 bytes
 
             # "NWD961306.freeze5.v1.vcf.gz": "drs://dg.4503/6e73a376-f7fd-47ed-ac99-0567bb5a5993",  # 2679331445 bytes
@@ -427,7 +427,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
             self.assertEqual('broad-jade-dev-data-bucket', actual_info.bucket_name)
             self.assertEqual('fd8d8492-ad02-447d-b54e-35a7ffd0e7a5/8b07563a-542f-4b5c-9e00-e8fe6b1861de',
                              actual_info.key)
-            self.assertEqual(None, actual_info.name)
+            self.assertEqual('HG00096.mapped.ILLUMINA.bwa.GBR.low_coverage.20120522.bam', actual_info.name)
             self.assertEqual(15601108255, actual_info.size)
             self.assertEqual('2020-04-27T15:56:09.696Z', actual_info.updated)
 
@@ -442,7 +442,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
             self.assertEqual({'project_id': "foo"}, actual_info.credentials)
             self.assertEqual('bogus', actual_info.bucket_name)
             self.assertEqual('my_data', actual_info.key)
-            self.assertEqual(None, actual_info.name)
+            self.assertEqual('my_data', actual_info.name)
             self.assertEqual(15601108255, actual_info.size)
             self.assertEqual('2020-04-27T15:56:09.696Z', actual_info.updated)
 
