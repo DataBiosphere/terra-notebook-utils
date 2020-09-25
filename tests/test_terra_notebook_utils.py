@@ -160,6 +160,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
     mock_martha_v3_response_missing_fields = {
         'contentType': 'application/octet-stream',
         'bucket': 'broad-jade-dev-data-bucket',
+        'name': 'fd8d8492-ad02-447d-b54e-35a7ffd0e7a5/8b07563a-542f-4b5c-9e00-e8fe6b1861de',
         'gsUri':
             'gs://broad-jade-dev-data-bucket/fd8d8492-ad02-447d-b54e-35a7ffd0e7a5/8b07563a-542f-4b5c-9e00-e8fe6b1861de',
         'googleServiceAccount': {
@@ -456,7 +457,8 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
             _, actual_info = drs.resolve_drs_for_gs_storage(self.jade_dev_url)
             self.assertEqual({'project_id': "foo"}, actual_info.credentials)
             self.assertEqual('broad-jade-dev-data-bucket', actual_info.bucket_name)
-            self.assertEqual(None, actual_info.key)
+            self.assertEqual('fd8d8492-ad02-447d-b54e-35a7ffd0e7a5/8b07563a-542f-4b5c-9e00-e8fe6b1861de',
+                             actual_info.key)
             self.assertEqual(None, actual_info.name)
             self.assertEqual(None, actual_info.size)
             self.assertEqual(None, actual_info.updated)
