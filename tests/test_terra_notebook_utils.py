@@ -355,7 +355,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
         drs_urls = {
             # 1631686 bytes # name property disapeard from DRS response :(
             # "NWD522743.b38.irc.v1.cram.crai": "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35",  # 1631686 bytes
-            "95cc4ae1-dee7-4266-8b97-77cf46d83d35": "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35",
+            "NWD522743.b38.irc.v1.cram.crai": "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35",
             "data_phs001237.v2.p1.c1.avro.gz": "drs://dg.4503/26e11149-5deb-4cd7-a475-16997a825655",  # 1115092 bytes
             "RootStudyConsentSet_phs001237.TOPMed_WGS_WHI.v2.p1.c1.HMB-IRB.tar.gz":
                 "drs://dg.4503/e9c2caf2-b2a1-446d-92eb-8d5389e99ee3",  # 332237 bytes
