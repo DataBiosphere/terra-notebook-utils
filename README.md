@@ -161,7 +161,7 @@ For CLI
   - run `scripts/tnu <command>`, for example `scripts/tnu drs copy drs://url/here local_path`
 
 Sample DRS urls used in tests:
-(you would need to get access to these before successfully resolving it)
+(you would need to get access to these before successfully resolving them)
   - `drs://dg.712C/fa640b0e-9779-452f-99a6-16d833d15bd0`: non-protected test DRS url that resolves to a small file in dev
   - `drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-2a2bfaa24c7a_c0e40912-8b14-43f6-9a2f-b278144d0060`: Jade Dev test url
 Make sure you are setting proper environment variables mentioned in step 7 for each DRS url
@@ -202,7 +202,7 @@ Steps:
 - if you don't have a [PyPI](https://pypi.org/) account, please create one
 - you should be a collaborator in PyPI for Terra Notebook Utils. If you are not, please ask Brian Hannafious to add 
 you as a collaborator
-- follow the setup instructions as mentioned in `Tests` section above for env Prod. Make sure you have access 
+- follow the setup instructions as mentioned in `Tests` section above for env Prod; make sure you have access 
 to the DRS urls, workspaces and buckets
 - run `make all_test` from inside the docker container created in `Local Development` section.
 Once tests pass, you can move to the release step
