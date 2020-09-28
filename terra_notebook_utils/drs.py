@@ -15,7 +15,7 @@ from typing import Tuple, Iterable, Optional, Callable, IO
 from google.cloud.exceptions import NotFound, Forbidden
 
 from terra_notebook_utils import (WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD,
-                                  IO_CONCURRENCY)
+                                  IO_CONCURRENCY, MARTHA_URL)
 from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 
 import gs_chunked_io as gscio
@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 DRSInfo = namedtuple("DRSInfo", "credentials bucket_name key name size updated")
 
 class GSBlobInaccessible(Exception):
+    pass
+
+class DRSResolutionError(Exception):
     pass
 
 def _parse_gs_url(gs_url: str) -> Tuple[str, str]:
@@ -63,51 +66,118 @@ def fetch_drs_info(drs_url: str) -> dict:
     """
     access_token = gs.get_access_token()
 
-    martha_url = f"https://us-central1-broad-dsde-{TERRA_DEPLOYMENT_ENV}.cloudfunctions.net/martha_v2"
     headers = {
         'authorization': f"Bearer {access_token}",
         'content-type': "application/json"
     }
 
-    resp = requests.post(martha_url, headers=headers, data=json.dumps(dict(url=drs_url)))
+    logger.info(f"Resolving DRS uri '{drs_url}' through '{MARTHA_URL}'.")
+
+    resp = requests.post(MARTHA_URL, headers=headers, data=json.dumps(dict(url=drs_url)))
 
     if 200 == resp.status_code:
         resp_data = resp.json()
     else:
         logger.warning(resp.content)
-        # TODO: Terra returns every error as a 502; return the real error code here: (resp.json()['status'])
-        raise RuntimeError(f"expected status 200, got {resp.status_code}")
+        response_json = resp.json()
+
+        if 'response' in response_json:
+            if 'text' in response_json['response']:
+                error_details = f"Error: {response_json['response']['text']}"
+            else:
+                error_details = ""
+        else:
+            error_details = ""
+
+        raise DRSResolutionError(f"Unexpected response while resolving DRS path. Expected status 200, got "
+                                 f"{resp.status_code}. {error_details}")
+
     return resp_data
+
+def extract_credentials_from_drs_response(response: dict) -> Optional[dict]:
+    if 'googleServiceAccount' not in response or response['googleServiceAccount'] is None:
+        credentials_data = None
+    else:
+        credentials_data = response['googleServiceAccount']['data']
+
+    return credentials_data
+
+def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> DRSInfo:
+    """
+    Convert response from martha_v2 to DRSInfo
+    """
+    if 'data_object' in drs_response['dos']:
+        credentials_data = extract_credentials_from_drs_response(drs_response)
+        data_object = drs_response['dos']['data_object']
+
+        if 'urls' not in data_object:
+            raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
+        else:
+            data_url = None
+            for url_info in data_object['urls']:
+                if 'url' in url_info and url_info['url'].startswith(_GS_SCHEMA):
+                    data_url = url_info['url']
+                    break
+            if data_url is None:
+                raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
+
+        bucket_name, key = _parse_gs_url(data_url)
+        return DRSInfo(credentials=credentials_data,
+                       bucket_name=bucket_name,
+                       key=key,
+                       name=data_object.get('name'),
+                       size=data_object.get('size'),
+                       updated=data_object.get('updated'))
+    else:
+        raise DRSResolutionError(f"No metadata was returned for DRS uri '{drs_url}'")
+
+def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> DRSInfo:
+    """
+    Convert response from martha_v3 to DRSInfo
+    """
+    if 'gsUri' not in drs_response:
+        raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
+
+    credentials_data = extract_credentials_from_drs_response(drs_response)
+
+    return DRSInfo(credentials=credentials_data,
+                   bucket_name=drs_response.get('bucket'),
+                   key=drs_response.get('name'),
+                   name=drs_response.get('fileName'),
+                   size=drs_response.get('size'),
+                   updated=drs_response.get('timeUpdated'))
 
 def resolve_drs_info_for_gs_storage(drs_url: str) -> DRSInfo:
     """
     Attempt to resolve gs:// url and credentials for a DRS object.
     """
     assert drs_url.startswith("drs://")
-    drs_info = fetch_drs_info(drs_url)
-    credentials_data = drs_info['googleServiceAccount']['data']
-    for url_info in drs_info['dos']['data_object']['urls']:
-        if url_info['url'].startswith(_GS_SCHEMA):
-            data_url = url_info['url']
-            break
-    else:
-        raise Exception(f"Unable to resolve GS url for {drs_url}")
+    drs_response: dict = fetch_drs_info(drs_url)
 
-    bucket_name, key = _parse_gs_url(data_url)
-    return DRSInfo(credentials=credentials_data,
-                   bucket_name=bucket_name,
-                   key=key,
-                   name=drs_info['dos']['data_object'].get("name"),
-                   size=drs_info['dos']['data_object'].get("size"),
-                   updated=drs_info['dos']['data_object'].get("updated"))
+    if 'dos' in drs_response:
+        return convert_martha_v2_response_to_DRSInfo(drs_url, drs_response)
+    else:
+        return convert_martha_v3_response_to_DRSInfo(drs_url, drs_response)
 
 def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     """
     Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage client.
     """
     assert drs_url.startswith("drs://")
-    info = resolve_drs_info_for_gs_storage(drs_url)
-    client = gs.get_client(info.credentials, project=info.credentials['project_id'])
+
+    try:
+        info = resolve_drs_info_for_gs_storage(drs_url)
+    except DRSResolutionError:
+        raise
+    except Exception:
+        raise
+
+    if info.credentials is not None:
+        project_id = info.credentials['project_id']
+    else:
+        project_id = None
+
+    client = gs.get_client(info.credentials, project=project_id)
     return client, info
 
 def copy_to_local(drs_url: str,
@@ -145,27 +215,26 @@ def head(drs_url: str,
     enable_requester_pays(workspace_name, google_billing_project)
     try:
         client, info = resolve_drs_for_gs_storage(drs_url)
-    except Exception as e:
-        # terra always returns a 502 for everything
-        if 'got 502' in e.__repr__():
+        blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
+        try:
+            # sys.stdout.buffer is used outside of a python notebook since that's the standard non-lossy way
+            # to write/display bytes; sys.stdout.buffer is not available inside of a python notebook
+            # though, as sys.stdout is a ipykernel.iostream.OutStream object:
+            # https://github.com/ipython/ipykernel/blob/master/ipykernel/iostream.py#L265
+            # so we use bare sys.stdout and rely on the ipykernel method's lossy unicode stream
+            stdout_buffer = getattr(sys.stdout, 'buffer', sys.stdout)
+            with gscio.Reader(blob, chunk_size=buffer) as handle:
+                stdout_buffer.write(handle.read(num_bytes))
+
+        except (NotFound, Forbidden):
             raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
                                      f'Could not be accessed because of:\n'
                                      f'{traceback.format_exc()}')
-    blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
-    try:
-        # sys.stdout.buffer is used outside of a python notebook since that's the standard non-lossy way
-        # to write/display bytes; sys.stdout.buffer is not available inside of a python notebook
-        # though, as sys.stdout is a ipykernel.iostream.OutStream object:
-        # https://github.com/ipython/ipykernel/blob/master/ipykernel/iostream.py#L265
-        # so we use bare sys.stdout and rely on the ipykernel method's lossy unicode stream
-        stdout_buffer = getattr(sys.stdout, 'buffer', sys.stdout)
-        with gscio.Reader(blob, chunk_size=buffer) as handle:
-            stdout_buffer.write(handle.read(num_bytes))
-
-    except (NotFound, Forbidden):
-        raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
-                                 f'Could not be accessed because of:\n'
+    except DRSResolutionError:
+        raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n Could not be accessed because of:\n'
                                  f'{traceback.format_exc()}')
+    except Exception:
+        raise
 
 def copy_to_bucket(drs_url: str,
                    dst_key: str,
