@@ -2,14 +2,11 @@
 VCF file utilities
 """
 import io
-from uuid import uuid4
 from multiprocessing import cpu_count
 from typing import Optional
 
 import bgzip
 import gs_chunked_io as gscio
-
-from terra_notebook_utils import gs, xprofile
 
 
 cores_available = cpu_count()
@@ -95,45 +92,3 @@ def _headers_equal(a, b):
             if line_a != line_b:
                 return False
     return True
-
-
-@xprofile.profile()
-def prepare_merge_workflow_input(table_name, prefixes, output_pfx):
-    """
-    Prepare a Terra data table as input for the xvcfmerge workflow:
-    https://dockstore.org/my-workflows/github.com/DataBiosphere/xvcfmerge
-    table_name: output table
-    prefixes: prefixes containing cohort VCFs. Each prefix should contain a set of chromosome VCFs to be merged, each
-              containing the same samples. Input VCFs should have equivalent headers.
-    output_pfx: destination prefix of merged VCFs.
-    """
-    from terra_notebook_utils import table, WORKSPACE_BUCKET
-
-    bucket = gs.get_client().bucket(WORKSPACE_BUCKET)
-    vcfs_by_chrom = {chrom: list() for chrom in VCFInfo.chromosomes}
-    names_by_chrom = {chrom: list() for chrom in VCFInfo.chromosomes}
-    read_buf = memoryview(bytearray(1024 * 1024 * 50))
-    for pfx in prefixes:
-        for item in bucket.list_blobs(prefix=pfx):
-            print("Inspecting", item.name)
-            vcf = VCFInfo.with_blob(item, read_buf=read_buf)
-            chrom = vcf.chrom
-            if vcf not in vcfs_by_chrom[chrom]:
-                if len(vcfs_by_chrom[chrom]):
-                    assert _headers_equal(vcf.header, vcfs_by_chrom[chrom][0].header)
-                vcfs_by_chrom[chrom].append(vcf)
-                names_by_chrom[chrom].append(item.name)
-            else:
-                raise Exception("Two chromosomes in the same vcf?")
-
-    tsv = "\t".join([f"entity:{table_name}_id", "output", "inputs"])
-    for chrom, names in names_by_chrom.items():
-        if names:
-            output = f"gs://{WORKSPACE_BUCKET}/{output_pfx}/{chrom}.vcf.bgz"
-            inputs = [f"gs://{WORKSPACE_BUCKET}/{n}" for n in names]
-            tsv += "\r" + "\t".join([f"{uuid4()}", output, ",".join(inputs)])
-
-    table.delete_table(f"{table_name}_set")  # This table is produced by workflows and must be deleted first
-    table.delete_table(f"{table_name}")
-
-    table.upload_entities(tsv)
