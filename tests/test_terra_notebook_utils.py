@@ -22,15 +22,16 @@ import gs_chunked_io as gscio
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
-from tests import TestCaseSuppressWarnings, config, encoded_bytes_stream
+from tests import config, encoded_bytes_stream
 from tests.infra.testmode import testmode
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
 from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress, vcf, workspace
 from terra_notebook_utils.drs import DRSResolutionError
 from contextlib import ExitStack
+from tests.infra import SuppressWarningsMixin
 
 
-class TestTerraNotebookUtilsTable(TestCaseSuppressWarnings):
+class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
     @testmode("workspace_access")
     def test_fetch_attribute(self):
         table_name = "simple_germline_variation"
@@ -93,7 +94,7 @@ class TestTerraNotebookUtilsTable(TestCaseSuppressWarnings):
 
 # These tests will only run on `make dev_env_access_test` command as they are testing DRS against Terra Dev env
 @testmode("dev_env_access")
-class TestTerraNotebookUtilsDRSInDev(TestCaseSuppressWarnings):
+class TestTerraNotebookUtilsDRSInDev(SuppressWarningsMixin, unittest.TestCase):
     jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-" \
                    "2a2bfaa24c7a_c0e40912-8b14-43f6-9a2f-b278144d0060"
 
@@ -134,7 +135,7 @@ class TestTerraNotebookUtilsDRSInDev(TestCaseSuppressWarnings):
         drs.copy_to_bucket(self.jade_dev_url, key)
 
 
-class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
+class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
     drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
     jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-2a2bfaa24c7a_" \
                    "c0e40912-8b14-43f6-9a2f-b278144d0060"
@@ -556,7 +557,7 @@ class TestTerraNotebookUtilsDRS(TestCaseSuppressWarnings):
 
 
 @testmode("workspace_access")
-class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):
+class TestTerraNotebookUtilsTARGZ(SuppressWarningsMixin, unittest.TestCase):
     def test_extract(self):
         with self.subTest("Test tarball extraction to local filesystem"):
             with tempfile.TemporaryDirectory() as tempdir:
@@ -581,7 +582,7 @@ class TestTerraNotebookUtilsTARGZ(TestCaseSuppressWarnings):
 
 
 @testmode("workspace_access")
-class TestTerraNotebookUtilsVCF(TestCaseSuppressWarnings):
+class TestTerraNotebookUtilsVCF(SuppressWarningsMixin, unittest.TestCase):
     def test_vcf_info(self):
         key = "consent1/HVH_phs000993_TOPMed_WGS_freeze.8.chr7.hg38.vcf.gz"
         blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
@@ -598,7 +599,7 @@ class TestTerraNotebookUtilsVCF(TestCaseSuppressWarnings):
 
 
 @testmode("workspace_access")
-class TestTerraNotebookUtilsProgress(TestCaseSuppressWarnings):
+class TestTerraNotebookUtilsProgress(SuppressWarningsMixin, unittest.TestCase):
     def test_progress_reporter(self):
         with progress.ProgressReporter() as pr:
             pr.checkpoint(2)
@@ -642,14 +643,14 @@ class TestTerraNotebookUtilsProgress(TestCaseSuppressWarnings):
 
 
 @testmode("workspace_access")
-class TestTerraNotebookUtilsGS(TestCaseSuppressWarnings):
+class TestTerraNotebookUtilsGS(SuppressWarningsMixin, unittest.TestCase):
     def test_list_bucket(self):
         for key in gs.list_bucket("consent1"):
             print(key)
 
 
 @testmode("workspace_access")
-class TestTerraNotebookUtilsWorkspace(TestCaseSuppressWarnings):
+class TestTerraNotebookUtilsWorkspace(SuppressWarningsMixin, unittest.TestCase):
     namespace = "firecloud-cgl"
 
     def test_get_workspace(self):

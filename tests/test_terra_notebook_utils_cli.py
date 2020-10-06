@@ -21,7 +21,7 @@ import google_crc32c
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
-from tests import TestCaseSuppressWarnings, config, encoded_bytes_stream
+from tests import config, encoded_bytes_stream
 from tests.infra.testmode import testmode
 from terra_notebook_utils import gs, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 from terra_notebook_utils.cli import Config
@@ -32,10 +32,11 @@ import terra_notebook_utils.cli.workspace
 import terra_notebook_utils.cli.profile
 import terra_notebook_utils.cli.drs
 import terra_notebook_utils.cli.table
+from tests.infra import SuppressWarningsMixin
 
 
 @testmode("workspace_access")
-class TestTerraNotebookUtilsCLI_Config(TestCaseSuppressWarnings):
+class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase):
     def test_config_print(self):
         workspace = f"{uuid4()}"
         workspace_google_project = f"{uuid4()}"
@@ -93,7 +94,7 @@ class TestTerraNotebookUtilsCLI_Config(TestCaseSuppressWarnings):
                 self.assertEqual(data, dict(workspace=new_workspace,
                                             workspace_google_project=new_workspace_google_project))
 
-class _CLITestCase(TestCaseSuppressWarnings):
+class _CLITestCase(SuppressWarningsMixin, unittest.TestCase):
     common_kwargs: dict = dict()
 
     def _test_cmd(self, cmd: typing.Callable, **kwargs):
