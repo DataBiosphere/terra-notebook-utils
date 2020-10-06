@@ -11,6 +11,7 @@ import terra_notebook_utils.cli.workspace
 import terra_notebook_utils.cli.profile
 import terra_notebook_utils.cli.drs
 import terra_notebook_utils.cli.table
+import terra_notebook_utils.cli.workflows
 from terra_notebook_utils.cli import dispatch
 
 
