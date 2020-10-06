@@ -22,13 +22,13 @@ import gs_chunked_io as gscio
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
-from tests import config, encoded_bytes_stream
+from tests import config
 from tests.infra.testmode import testmode
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
 from terra_notebook_utils import drs, table, gs, tar_gz, xprofile, progress, vcf, workspace
 from terra_notebook_utils.drs import DRSResolutionError
 from contextlib import ExitStack
-from tests.infra import SuppressWarningsMixin
+from tests.infra import SuppressWarningsMixin, encoded_bytes_stream
 
 
 class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
