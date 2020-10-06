@@ -40,6 +40,9 @@ def list_submissions(args: argparse.Namespace):
     ** workspace_args
 })
 def get_submission(args: argparse.Namespace):
+    """
+    Get information about a submission, including member worklows
+    """
     args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
     submission = workflows.get_submission(args.submission_id, args.workspace, args.google_billing_project)
     print(json.dumps(submission, indent=2))
@@ -50,6 +53,9 @@ def get_submission(args: argparse.Namespace):
     ** workspace_args
 })
 def get_workflow(args: argparse.Namespace):
+    """
+    Get information about a workflow
+    """
     args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
     wf = workflows.get_workflow(args.submission_id, args.workflow_id, args.workspace, args.google_billing_project)
     print(json.dumps(wf, indent=2))
