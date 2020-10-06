@@ -21,7 +21,7 @@ import google_crc32c
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
-from tests import config
+from tests import config, CLITestMixin, ConfigOverride
 from tests.infra.testmode import testmode
 from terra_notebook_utils import gs, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 from terra_notebook_utils.cli import Config
@@ -41,7 +41,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
         workspace = f"{uuid4()}"
         workspace_google_project = f"{uuid4()}"
         with NamedTemporaryFile() as tf:
-            with _ConfigOverride(workspace, workspace_google_project, tf.name):
+            with ConfigOverride(workspace, workspace_google_project, tf.name):
                 Config.write()
                 args = argparse.Namespace()
                 out = io.StringIO()
@@ -52,19 +52,19 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
 
     def test_resolve(self):
         with self.subTest("Should fall back to env vars if arguments are None and config file missing"):
-            with _ConfigOverride(None, None):
+            with ConfigOverride(None, None):
                 workspace, namespace = Config.resolve(None, None)
                 self.assertEqual(WORKSPACE_NAME, workspace)
                 self.assertEqual(WORKSPACE_GOOGLE_PROJECT, namespace)
         with self.subTest("Should fall back to config if arguments are None/False"):
-            with _ConfigOverride(str(uuid4()), str(uuid4())):
+            with ConfigOverride(str(uuid4()), str(uuid4())):
                 workspace, namespace = Config.resolve(None, None)
                 self.assertEqual(Config.info['workspace'], workspace)
                 self.assertEqual(Config.info['workspace_google_project'], namespace)
         with self.subTest("Should attempt namespace resolve via fiss when workspace present, namespace empty"):
             expected_namespace = str(uuid4())
             with mock.patch("terra_notebook_utils.workspace.get_workspace_namespace", return_value=expected_namespace):
-                with _ConfigOverride(WORKSPACE_NAME, None):
+                with ConfigOverride(WORKSPACE_NAME, None):
                     terra_notebook_utils.cli.WORKSPACE_GOOGLE_PROJECT = None
                     workspace, namespace = Config.resolve(None, None)
                     self.assertEqual(Config.info['workspace'], workspace)
@@ -73,7 +73,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
             expected_workspace = str(uuid4())
             expected_namespace = str(uuid4())
             with mock.patch("terra_notebook_utils.workspace.get_workspace_namespace", return_value=expected_namespace):
-                with _ConfigOverride(str(uuid4()), str(uuid4())):
+                with ConfigOverride(str(uuid4()), str(uuid4())):
                     terra_notebook_utils.cli.WORKSPACE_GOOGLE_PROJECT = None
                     workspace, namespace = Config.resolve(expected_workspace, expected_namespace)
                     self.assertEqual(expected_workspace, workspace)
@@ -83,7 +83,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
         new_workspace = f"{uuid4()}"
         new_workspace_google_project = f"{uuid4()}"
         with NamedTemporaryFile() as tf:
-            with _ConfigOverride(None, None, tf.name):
+            with ConfigOverride(None, None, tf.name):
                 Config.write()
                 args = argparse.Namespace(workspace=new_workspace)
                 terra_notebook_utils.cli.config.set_config_workspace(args)
@@ -94,26 +94,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
                 self.assertEqual(data, dict(workspace=new_workspace,
                                             workspace_google_project=new_workspace_google_project))
 
-class _CLITestCase(SuppressWarningsMixin, unittest.TestCase):
-    common_kwargs: dict = dict()
-
-    def _test_cmd(self, cmd: typing.Callable, **kwargs):
-        with NamedTemporaryFile() as tf:
-            with _ConfigOverride(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, tf.name):
-                Config.write()
-                args = argparse.Namespace(**dict(**self.common_kwargs, **kwargs))
-                out = io.StringIO()
-                with redirect_stdout(out):
-                    cmd(args)
-                return out.getvalue().strip()
-
-    @staticmethod
-    def _run_cmd(cmd: List[str]) -> bytes:
-        p = subprocess.run(cmd, capture_output=True, check=True)
-        return p.stdout
-
-
-class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
+class TestTerraNotebookUtilsCLI_VCF(CLITestMixin, unittest.TestCase):
     common_kwargs = dict(google_billing_project=WORKSPACE_GOOGLE_PROJECT)
     vcf_drs_url = "drs://dg.4503/57f58130-2d66-4d46-9b2b-539f7e6c2080"
 
@@ -168,7 +149,7 @@ class TestTerraNotebookUtilsCLI_VCF(_CLITestCase):
 
 
 @testmode("workspace_access")
-class TestTerraNotebookUtilsCLI_Workspace(_CLITestCase):
+class TestTerraNotebookUtilsCLI_Workspace(CLITestMixin, unittest.TestCase):
     def test_list(self):
         self._test_cmd(terra_notebook_utils.cli.workspace.list_workspaces)
 
@@ -179,14 +160,14 @@ class TestTerraNotebookUtilsCLI_Workspace(_CLITestCase):
 
 
 @testmode("workspace_access")
-class TestTerraNotebookUtilsCLI_Profile(_CLITestCase):
+class TestTerraNotebookUtilsCLI_Profile(CLITestMixin, unittest.TestCase):
     def test_list_billing_projects(self):
         self._test_cmd(terra_notebook_utils.cli.profile.list_billing_projects)
 
 
 # These tests will only run on `make dev_env_access_test` command as they are testing DRS against Terra Dev env
 @testmode("dev_env_access")
-class TestTerraNotebookUtilsCLI_DRSInDev(_CLITestCase):
+class TestTerraNotebookUtilsCLI_DRSInDev(CLITestMixin, unittest.TestCase):
     jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-" \
                    "2a2bfaa24c7a_c0e40912-8b14-43f6-9a2f-b278144d0060"
     expected_crc32c = "/VKJIw=="
@@ -219,7 +200,7 @@ class TestTerraNotebookUtilsCLI_DRSInDev(_CLITestCase):
 
 
 @testmode("controlled_access")
-class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
+class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
     drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
     expected_crc32c = "LE1Syw=="
 
@@ -293,7 +274,7 @@ class TestTerraNotebookUtilsCLI_DRS(_CLITestCase):
 
 
 @testmode("workspace_access")
-class TestTerraNotebookUtilsCLI_Table(_CLITestCase):
+class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
     common_kwargs = dict(workspace=WORKSPACE_NAME, namespace=WORKSPACE_GOOGLE_PROJECT)
 
     @classmethod
@@ -332,25 +313,6 @@ class TestTerraNotebookUtilsCLI_Table(_CLITestCase):
                              id=self.entity_id,
                              column=column)
         self.assertEqual(self.table_data[self.row_index][column], out)
-
-class _ConfigOverride:
-    def __init__(self, workspace, namespace, path=None):
-        self.old_workspace = Config.info['workspace']
-        self.old_namespace = Config.info['workspace_google_project']
-        self.old_path = Config.path
-        self.workspace = workspace
-        self.namespace = namespace
-        self.path = path
-
-    def __enter__(self):
-        Config.info['workspace'] = self.workspace
-        Config.info['workspace_google_project'] = self.namespace
-        Config.path = self.path
-
-    def __exit__(self, *args, **kwargs):
-        Config.info['workspace'] = self.old_workspace
-        Config.info['workspace_google_project'] = self.old_namespace
-        Config.path = self.old_path
 
 def _crc32c(data: bytes) -> str:
     # Compute Google's wonky base64 encoded crc32c checksum
