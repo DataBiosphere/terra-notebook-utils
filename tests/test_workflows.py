@@ -33,6 +33,18 @@ class TestTerraNotebookUtilsWorkflows(unittest.TestCase):
         workflow_id = workflows.get_submission(self.submission_id)['workflows'][0]['workflowId']
         workflows.get_workflow(self.submission_id, workflow_id)
 
+    def test_estimate_workflow_cost(self):
+        workflow_id = workflows.get_submission(self.submission_id)['workflows'][0]['workflowId']
+        workflows.estimate_workflow_cost(self.submission_id, workflow_id)
+
+    def test_catch_key_error(self):
+        @workflows._catch_key_error
+        def foo(execution_metadata):
+            execution_metadata['asdf']
+
+        with self.assertRaises(workflows.TNUCostException):
+            foo(dict())
+
 @testmode("workspace_access")
 class TestTerraNotebookUtilsWorkflowsCLI(CLITestMixin, unittest.TestCase):
     common_kwargs = dict(workspace=WORKSPACE_NAME, google_billing_project=WORKSPACE_GOOGLE_PROJECT)
