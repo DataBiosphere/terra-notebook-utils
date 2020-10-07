@@ -3,12 +3,14 @@ import os
 import logging
 import warnings
 from math import ceil
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 
 from google.cloud.storage import Client
 from google.oauth2 import service_account
 import google.auth
 import gs_chunked_io as gscio
+from gs_chunked_io.async_collections import AsyncSet
 import google.cloud.storage.bucket as GSBucket
 
 from terra_notebook_utils import WORKSPACE_BUCKET, TERRA_DEPLOYMENT_ENV, MULTIPART_THRESHOLD, IO_CONCURRENCY
@@ -89,13 +91,16 @@ def multipart_copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst
                                prefix="Copying:",
                                size=src_blob.size // 1024 ** 2,
                                units="MB")
-    with closing(progress_bar):
-        with gscio.AsyncPartUploader(dst_key, dst_bucket, threads=IO_CONCURRENCY) as writer:
-            for chunk_number, chunk in gscio.for_each_chunk_async(src_blob, threads=IO_CONCURRENCY):
-                writer.put_part(chunk_number, chunk)
-                progress_bar.update()
-        progress_bar.update()
-    assert src_bucket.get_blob(src_key).crc32c == dst_bucket.get_blob(dst_key).crc32c
+    with ThreadPoolExecutor(max_workers=2 * IO_CONCURRENCY) as e:
+        async_uploads = AsyncSet(e, IO_CONCURRENCY)
+        async_downloads = AsyncSet(e, IO_CONCURRENCY)
+        with closing(progress_bar):
+            with gscio.AsyncPartUploader(dst_key, dst_bucket, async_uploads) as writer:
+                for chunk_number, chunk in gscio.for_each_chunk_async(src_blob, async_downloads):
+                    writer.put_part(chunk_number, chunk)
+                    progress_bar.update()
+            progress_bar.update()
+        assert src_bucket.get_blob(src_key).crc32c == dst_bucket.get_blob(dst_key).crc32c
 
 def copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst_key: str):
     src_blob = src_bucket.get_blob(src_key)
