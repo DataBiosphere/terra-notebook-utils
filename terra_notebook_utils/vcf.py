@@ -3,10 +3,14 @@ VCF file utilities
 """
 import io
 from multiprocessing import cpu_count
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 import bgzip
 import gs_chunked_io as gscio
+from gs_chunked_io.async_collections import AsyncQueue
+
+from terra_notebook_utils import IO_CONCURRENCY
 
 
 cores_available = cpu_count()
@@ -66,12 +70,14 @@ class VCFInfo:
     @classmethod
     def with_blob(cls, blob, read_buf: Optional[memoryview]=None):
         chunk_size = 1024 * 1024
-        try:
-            with gscio.Reader(blob, chunk_size=chunk_size, threads=None) as raw:
-                return cls.with_bgzip_fileobj(raw, read_buf, chunk_size)
-        except bgzip.BGZIPException:
-            with gscio.Reader(blob, chunk_size=chunk_size, threads=2) as raw:
-                return cls.with_gzip_fileobj(raw)
+        with ThreadPoolExecutor(max_workers=IO_CONCURRENCY) as e:
+            async_queue = AsyncQueue(e, IO_CONCURRENCY)
+            try:
+                with gscio.Reader(blob, chunk_size, async_queue) as raw:
+                    return cls.with_bgzip_fileobj(raw, read_buf, chunk_size)
+            except bgzip.BGZIPException:
+                with gscio.Reader(blob, chunk_size, async_queue) as raw:
+                    return cls.with_gzip_fileobj(raw)
 
     @classmethod
     def with_file(cls, filepath, read_buf: memoryview=None):
