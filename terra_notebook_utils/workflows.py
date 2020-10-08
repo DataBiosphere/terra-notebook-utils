@@ -66,7 +66,7 @@ def estimate_workflow_cost(submission_id: str,
                 cost = costs.GCPCustomN1Cost.estimate(cpus,
                                                       memory_gb,
                                                       runtime_hours,
-                                                      _parse_preembtible(execution_metadata))
+                                                      _parse_preemptible(execution_metadata))
                 yield dict(cost=cost, number_of_cpus=cpus, memory=memory_gb, duration=runtime_hours)
             except TNUCostException as exc:
                 logger.warning(f"Unable to estimate costs for workflow {workflow_id}: "
@@ -101,5 +101,5 @@ def _parse_machine_type(execution_metadata: dict) -> Tuple[int, int]:
         raise TNUCostException(f"Cannot parse cpus and memory from '{machine_type}'") from exc
 
 @_catch_key_error
-def _parse_preembtible(execution_metadata: dict) -> bool:
+def _parse_preemptible(execution_metadata: dict) -> bool:
     return bool(int(execution_metadata['runtimeAttributes']['preemptible']))
