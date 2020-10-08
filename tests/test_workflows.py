@@ -65,5 +65,13 @@ class TestTerraNotebookUtilsWorkflowsCLI(CLITestMixin, unittest.TestCase):
                                submission_id="frank",
                                workflow_id="bob")
 
+    def test_estimate_workflow_cost(self):
+        ret = dict(workflows=[dict(workflowId=1)])
+        with mock.patch("terra_notebook_utils.workflows.get_submission", return_value=ret):
+            with mock.patch("terra_notebook_utils.workflows.estimate_workflow_cost",
+                            return_value=dict()) as estimate_workflow_cost:
+                self._test_cmd(terra_notebook_utils.cli.workflows.estimate_submission_cost, submission_id="frank")
+                estimate_workflow_cost.assert_called()
+
 if __name__ == '__main__':
     unittest.main()
