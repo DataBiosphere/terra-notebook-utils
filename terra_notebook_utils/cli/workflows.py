@@ -130,4 +130,4 @@ class TXTReport:
         elif isinstance(val, float):
             return f"%{width}.2f" % round(val, decimals)
         else:
-            raise TypeError("Unsupported type '{type(val)}'")
+            raise TypeError(f"Unsupported type '{type(val)}'")
