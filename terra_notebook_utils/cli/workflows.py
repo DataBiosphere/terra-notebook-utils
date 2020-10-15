@@ -90,8 +90,7 @@ def estimate_submission_cost(args: argparse.Namespace):
                                                      args.workspace,
                                                      args.google_billing_project):
             cost, cpus, mem, duration = (item[k] for k in ('cost', 'number_of_cpus', 'memory', 'duration'))
-
-            reporter.print_line(workflow_id, shard, cpus, mem, duration, cost)
+            reporter.print_line(workflow_id, shard, cpus, mem, duration / 3600, cost)
             total += cost
             shard += 1
     reporter.print_divider()
