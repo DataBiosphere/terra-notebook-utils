@@ -14,12 +14,12 @@ from collections import namedtuple
 from typing import Tuple, Iterable, Optional, Callable, IO
 from google.cloud.exceptions import NotFound, Forbidden
 
+import gs_chunked_io as gscio
+from gs_chunked_io import async_collections
+
 from terra_notebook_utils import (WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD,
                                   IO_CONCURRENCY, MARTHA_URL)
 from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
-
-import gs_chunked_io as gscio
-from gs_chunked_io import async_collections
 
 
 logger = logging.getLogger(__name__)
@@ -312,13 +312,14 @@ def extract_tar_gz(drs_url: str,
     """
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
-    assert dst_bucket_name
     enable_requester_pays(workspace_name, google_billing_project)
     src_client, src_info = resolve_drs_for_gs_storage(drs_url)
     src_bucket = src_client.bucket(src_info.bucket_name, user_project=google_billing_project)
     dst_bucket = gs.get_client().bucket(dst_bucket_name)
-    with gscio.Reader(src_bucket.get_blob(src_info.key), threads=2) as fh:
-        tar_gz.extract(fh, dst_bucket, root=dst_pfx)
+    with ThreadPoolExecutor(max_workers=IO_CONCURRENCY) as e:
+        async_queue = async_collections.AsyncQueue(e, IO_CONCURRENCY)
+        with gscio.Reader(src_bucket.get_blob(src_info.key), async_queue=async_queue) as fh:
+            tar_gz.extract(fh, dst_bucket, root=dst_pfx)
 
 def _url_basename(url: str) -> str:
     schema_re = "[a-z]+://"
