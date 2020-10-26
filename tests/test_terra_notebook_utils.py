@@ -378,17 +378,21 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
                 names = [os.path.basename(path) for path in _list_tree(dirname)]
                 self.assertEqual(sorted(names), sorted(list(drs_urls.keys())))
 
-    # Probably don't want to run this test very often. Once a week?
-    def _test_extract_tar_gz(self):
-        # drs_url = "drs://dg.4503/273f3453-4d16-4ddd-8877-dbac958a4f4d"  # Amish cohort v4 VCF  # no access
-        # drs_url = "drs://dg.4503/88f9acc7-11f1-4478-b407-725d2dfab43d"  # cohort VCF tarball # no access
-        # drs_url = "drs://dg.4503/51a10328-c6b9-49f7-8fd7-94eaf193210f"  # cohort VCF tarball # no access
-        # drs_url = "drs://dg.4503/954acb05-fdc7-4fef-ad4e-9eb1a85117c4"  # .tar (not .tar.gz) # no access
-        # drs_url = "drs://dg.4503/da8cb525-4532-4d0f-90a3-4d327817ec73"  # cohort VCF tarball
-        # drs_url = "drs://dg.4503/954acb05-fdc7-4fef-ad4e-9eb1a85117c4"  # .tar (not .tar.gz) # no access
-        # drs_url = "drs://dg.4503/ada7d89d-a739-4572-83ec-7cf268baa1bf"  # .tar (not .tar.gz) # no access
-        drs_url = "drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71"  # .tar (not .tar.gz)
-        drs.extract_tar_gz(drs_url, "test_cohort_extract_{uuid4()}")
+    @testmode("controlled_access")
+    def test_extract_tar_gz(self):
+        expected_data = (b"\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00BC\x02\x00\x90 \xed]kO\\I\x92\xfd\xcc\xfc"
+                         b"\x8a\xd2\xb4V\xfb2\xd7\xf9~\xac\x97\x910\xb6i$\x1b\xbb\r\xdb=\xd3_\x10\x862\xae\x1d\x0c"
+                         b"\x0cU\xb8\xa7G\xfe\xf1{\xe2\xc6\xc9\xa2\xc0\xb8\xdb\xdd\xf2,_\xd2R\xc8\x87")
+        # This test uses a hack property, `_extract_single_chunk`, to extract a small amount
+        # of data from the cohort vcf pointed to by `drs://dg.4503/da8cb525-4532-4d0f-90a3-4d327817ec73`.
+        with mock.patch("terra_notebook_utils.tar_gz._extract_single_chunk", True):
+            drs_url = "drs://dg.4503/da8cb525-4532-4d0f-90a3-4d327817ec73"  # cohort VCF tarball
+            pfx = f"test_cohort_extract_{uuid4()}"
+            drs.extract_tar_gz(drs_url, pfx)
+            for key in gs.list_bucket(pfx):
+                blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
+                data = blob.download_as_bytes()[:len(expected_data)]
+                self.assertEqual(data, expected_data)
 
     @testmode("workspace_access")
     def test_arg_propagation(self):

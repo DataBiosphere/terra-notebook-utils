@@ -5,6 +5,7 @@ import tarfile
 from math import ceil
 from pathlib import Path
 from contextlib import closing
+from typing import Optional
 
 import gs_chunked_io as gscio
 from google.cloud.storage.bucket import Bucket
@@ -13,6 +14,9 @@ from terra_notebook_utils import gs
 from terra_notebook_utils.progress import ProgressBar
 
 _chunk_size = 1024 * 1024 * 32
+
+# Set this for unit tests only
+_extract_single_chunk: bool = False
 
 def extract(src_fh, dst_bucket: typing.Optional[Bucket]=None, root: typing.Optional[str]=None):
     """
@@ -35,6 +39,10 @@ def extract(src_fh, dst_bucket: typing.Optional[Bucket]=None, root: typing.Optio
                     _transfer_data(tf.extractfile(tarinfo), dst_fh, progress_bar)
                 progress_bar.update()
 
+            # Hack for speedy unit tests
+            if _extract_single_chunk:
+                return
+
 def _transfer_data(from_fh, to_fh, progress_bar: ProgressBar=None):
     while True:
         data = from_fh.read(_chunk_size)
@@ -44,6 +52,10 @@ def _transfer_data(from_fh, to_fh, progress_bar: ProgressBar=None):
             break
         if progress_bar:
             progress_bar.update()
+
+        # Hack for speedy unit tests
+        if _extract_single_chunk:
+            return
 
 def _prepare_local(tarinfo: tarfile.TarInfo, root: str):
     filepath = os.path.abspath(os.path.join(root, tarinfo.name))
