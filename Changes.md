@@ -1,3 +1,6 @@
+# Changes for v0.6.1 (2020-10-26)
+Fix extract_tar_gz bug (#189)
+
 # Changes for v0.6.0 (2020-10-15)
 Bump bgzip (#185)
 Convert workflow durations to hours (#184)
