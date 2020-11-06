@@ -93,10 +93,12 @@ def vcf_info(uri: str,
         client, drs_info = drs.resolve_drs_for_gs_storage(uri)
         blob = client.bucket(drs_info.bucket_name, user_project=google_billing_project).get_blob(drs_info.key)
         return VCFInfo.with_blob(blob)
-    if uri.startswith("gs://"):
+    elif uri.startswith("gs://"):
         bucket, key = uri[5:].split("/", 1)
         blob = gs.get_client().bucket(bucket, user_project=google_billing_project).get_blob(key)
         return VCFInfo.with_blob(blob)
+    elif uri.startswith("s3://"):
+        raise ValueError("S3 URIs not supported")
     else:
         return VCFInfo.with_file(uri)
 
