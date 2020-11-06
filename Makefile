@@ -1,6 +1,7 @@
 include common.mk
 
 MODULES=terra_notebook_utils tests
+tests:=$(wildcard tests/test_*.py)
 
 export TNU_TESTMODE?=workspace_access
 
@@ -21,9 +22,13 @@ lint:
 mypy:
 	mypy --ignore-missing-imports $(MODULES)
 
-tests:
-	PYTHONWARNINGS=ignore:ResourceWarning coverage run --source=terra_notebook_utils \
-		-m unittest discover --start-directory tests --top-level-directory . --verbose
+test: $(tests)
+	coverage combine
+	rm -f .coverage.*
+
+# A pattern rule that runs a single test script
+$(tests): %.py : mypy lint
+	coverage run -p --source=terra-notebook-utils $*.py --verbose
 
 version: terra_notebook_utils/version.py
 
