@@ -17,13 +17,6 @@ from tests.infra import SuppressWarningsMixin
 
 
 @testmode("workspace_access")
-class TestTerraNotebookUtilsGS(SuppressWarningsMixin, unittest.TestCase):
-    def test_list_bucket(self):
-        for key in gs.list_bucket("consent1"):
-            print(key)
-
-
-@testmode("workspace_access")
 class TestTerraNotebookUtilsWorkspace(SuppressWarningsMixin, unittest.TestCase):
     namespace = "firecloud-cgl"
 
