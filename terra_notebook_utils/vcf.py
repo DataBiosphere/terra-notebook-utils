@@ -2,6 +2,7 @@
 VCF file utilities
 """
 import io
+import gzip
 from multiprocessing import cpu_count
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
@@ -10,11 +11,10 @@ import bgzip
 import gs_chunked_io as gscio
 from gs_chunked_io.async_collections import AsyncQueue
 
-from terra_notebook_utils import IO_CONCURRENCY
+from terra_notebook_utils import gs, drs, IO_CONCURRENCY, WORKSPACE_GOOGLE_PROJECT
 
 
 cores_available = cpu_count()
-
 
 class VCFInfo:
     columns = ["chrom", "pos", "id", "ref", "alt", "qual", "filter", "info", "format"]
@@ -63,7 +63,6 @@ class VCFInfo:
 
     @classmethod
     def with_gzip_fileobj(cls, fileobj):
-        import gzip
         gzip_reader = gzip.GzipFile(fileobj=fileobj)
         return cls(gzip_reader)
 
@@ -88,6 +87,20 @@ class VCFInfo:
                 raw.seek(0)
                 return cls.with_gzip_fileobj(raw)
 
+def vcf_info(uri: str,
+             google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> VCFInfo:
+    if uri.startswith("drs://"):
+        client, drs_info = drs.resolve_drs_for_gs_storage(uri)
+        blob = client.bucket(drs_info.bucket_name, user_project=google_billing_project).get_blob(drs_info.key)
+        return VCFInfo.with_blob(blob)
+    elif uri.startswith("gs://"):
+        bucket, key = uri[5:].split("/", 1)
+        blob = gs.get_client().bucket(bucket, user_project=google_billing_project).get_blob(key)
+        return VCFInfo.with_blob(blob)
+    elif uri.startswith("s3://"):
+        raise ValueError("S3 URIs not supported")
+    else:
+        return VCFInfo.with_file(uri)
 
 def _headers_equal(a, b):
     for line_a, line_b in zip(a, b):
