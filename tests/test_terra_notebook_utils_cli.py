@@ -33,7 +33,8 @@ import terra_notebook_utils.cli.workspace
 import terra_notebook_utils.cli.profile
 import terra_notebook_utils.cli.drs
 import terra_notebook_utils.cli.table
-from tests.infra import SuppressWarningsMixin, encoded_bytes_stream
+from tests.infra import SuppressWarningsMixin, encoded_bytes_stream, upload_data
+from tests.infra.partialize_vcf import partialize_vcf
 
 
 @testmode("workspace_access")
@@ -99,13 +100,18 @@ class TestTerraNotebookUtilsCLI_VCF(CLITestMixin, unittest.TestCase):
     common_kwargs = dict(google_billing_project=WORKSPACE_GOOGLE_PROJECT)
     vcf_drs_url = "drs://dg.4503/57f58130-2d66-4d46-9b2b-539f7e6c2080"
 
+    @classmethod
+    def setUpClass(cls):
+        src_uri = ("gs://genomics-public-data/1000-genomes"
+                   "/vcf/ALL.chr2.integrated_phase1_v3.20101123.snps_indels_svs.genotypes.vcf")
+        cls.gs_uri = f"gs://{WORKSPACE_BUCKET}/test_vcf_cli/{uuid4()}"
+        partial_bgzip_vcf = partialize_vcf(src_uri, 500)
+        upload_data(cls.gs_uri, partial_bgzip_vcf)
+
     @testmode("workspace_access")
     def test_head(self):
         with self.subTest("Test gs:// object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.head,
-                           path="gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10"
-                                "/consent1"
-                                "/HVH_phs000993_TOPMed_WGS_freeze.8.chr10.hg38.vcf.gz")
+            self._test_cmd(terra_notebook_utils.cli.vcf.head, path=self.gs_uri)
 
         with self.subTest("Test local object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.head, path="tests/fixtures/non_block_gzipped.vcf.gz")
@@ -118,10 +124,7 @@ class TestTerraNotebookUtilsCLI_VCF(CLITestMixin, unittest.TestCase):
     @testmode("workspace_access")
     def test_samples(self):
         with self.subTest("Test gs:// object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.samples,
-                           path="gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10"
-                                "/consent1"
-                                "/HVH_phs000993_TOPMed_WGS_freeze.8.chr10.hg38.vcf.gz")
+            self._test_cmd(terra_notebook_utils.cli.vcf.samples, path=self.gs_uri)
 
         with self.subTest("Test local object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.samples, path="tests/fixtures/non_block_gzipped.vcf.gz")
@@ -134,10 +137,7 @@ class TestTerraNotebookUtilsCLI_VCF(CLITestMixin, unittest.TestCase):
 
     def test_stats(self):
         with self.subTest("Test gs:// object"):
-            self._test_cmd(terra_notebook_utils.cli.vcf.stats,
-                           path="gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10"
-                                "/consent1"
-                                "/HVH_phs000993_TOPMed_WGS_freeze.8.chr10.hg38.vcf.gz")
+            self._test_cmd(terra_notebook_utils.cli.vcf.stats, path=self.gs_uri)
 
         with self.subTest("Test local object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.stats, path="tests/fixtures/non_block_gzipped.vcf.gz")
