@@ -25,10 +25,13 @@ From any Jupyter notebook, use the following (and note the leading "%")
 %pip install --upgrade --no-cache-dir terra-notebook-utils
 ```
 
-From the CLI on standard Terra notebook runtime, which is available using the Terra terminal button, use
+From the CLI on standard Terra notebook runtimes, which are available using the terminal button in the Terra user
+interface, use
 ```
 /usr/local/bin/pip install --upgrade --no-cache-dir terra-notebook-utils
 ```
+Note that all standard notebook runtimes on Terra are based on
+[this Docker image](https://github.com/databiosphere/terra-docker#terra-base-images).
 
 For other environments, it is often enough to do
 ```
