@@ -21,18 +21,24 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
     @testmode("workspace_access")
     def test_fetch_attribute(self):
         table_name = "simple_germline_variation"
-        filter_column = "md5sum"
+        filter_column = "pfb:md5sum"
         filter_val = "d20e5f752a0d55f0a360b7abe1c8499d"
-        key = "object_id"
+        key = "pfb:object_id"
         val = table.fetch_attribute(table_name, filter_column, filter_val, key)
         self.assertEqual(val, "drs://dg.4503/6e73a376-f7fd-47ed-ac99-0567bb5a5993")
 
     @testmode("workspace_access")
     def test_fetch_object_id(self):
-        table_name = "simple_germline_variation"
-        file_name = "NWD531899.freeze5.v1.vcf.gz"
-        val = table.fetch_object_id(table_name, file_name)
-        self.assertEqual(val, "drs://dg.4503/651a4ad1-06b5-4534-bb2c-1f8ed51134f6")
+        with self.subTest("new pfb format (column headers prefixed with 'pfb:')"):
+            table_name = "simple_germline_variation"
+            file_name = "NWD531899.freeze5.v1.vcf.gz"
+            val = table.fetch_object_id(table_name, file_name)
+            self.assertEqual(val, "drs://dg.4503/651a4ad1-06b5-4534-bb2c-1f8ed51134f6")
+        with self.subTest("old format"):
+            table_name = "simple_germline_variation_old_format"
+            file_name = "NWD531899.freeze5.v1.vcf.gz"
+            val = table.fetch_object_id(table_name, file_name)
+            self.assertEqual(val, "drs://dg.4503/651a4ad1-06b5-4534-bb2c-1f8ed51134f6")
 
     @testmode("controlled_access")
     def test_get_access_token(self):
@@ -41,7 +47,7 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
     @testmode("workspace_access")
     def test_print_column(self):
         table_name = "simple_germline_variation"
-        column = "file_name"
+        column = "pfb:file_name"
         table.print_column(table_name, column)
 
     @testmode("workspace_access")

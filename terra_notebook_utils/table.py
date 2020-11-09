@@ -34,10 +34,18 @@ def fetch_attribute(table: str, filter_column: str, filter_val: str, attribute: 
 
 def fetch_object_id(table: str, file_name: str):
     """
-    Fetch `object_id` associated with `file_name` from `table`.
-    DRS urls, when available, are stored in `object_id`.
+    Fetch `object_id` associated with `pfb:file_name` from `table`.
+    DRS urls, when available, are stored in `pfb:object_id`.
+    Note: prior to 21-October, 2020, column headers omitted the "pfb:" prefix. For the time being, both formats are
+          supported.
     """
-    return fetch_attribute(table, "file_name", file_name, "object_id")
+    for pfx in ("pfb:", ""):
+        try:
+            return fetch_attribute(table, f"{pfx}file_name", file_name, f"{pfx}object_id")
+        except KeyError:
+            pass
+    else:
+        raise KeyError(f"Unable to fetch object_id for table '{table}', file_name '{file_name}'")
 
 def fetch_drs_url(table: str, file_name: str):
     val = fetch_object_id(table, file_name)
