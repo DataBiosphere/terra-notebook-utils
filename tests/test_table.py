@@ -21,8 +21,8 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
     @testmode("workspace_access")
     def test_fetch_attribute(self):
         table_name = "simple_germline_variation"
-        filter_column = "name"
-        filter_val = "74b42836-16ab-4bf7-a683-dc5e603d0bc7"
+        filter_column = "md5sum"
+        filter_val = "d20e5f752a0d55f0a360b7abe1c8499d"
         key = "object_id"
         val = table.fetch_attribute(table_name, filter_column, filter_val, key)
         self.assertEqual(val, "drs://dg.4503/6e73a376-f7fd-47ed-ac99-0567bb5a5993")

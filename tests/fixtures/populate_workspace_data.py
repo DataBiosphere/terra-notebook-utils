@@ -5,6 +5,7 @@ Upload fixtures into Terra data model
 import os
 import sys
 import json
+from uuid import uuid4
 
 from firecloud import fiss
 
@@ -38,12 +39,8 @@ def upload_entities(tsv_data):
 delete_all_entities()
 with open("tests/fixtures/workspace_manifest.json", "rb") as fh:
     manifest = json.loads(fh.read())
-    for table_name, vals in manifest.items():
-        tsv = "\t".join([f"entity:{table_name}_id", "object_id", "md5sum", "file_name", "file_size"])
-        for e in vals:
-            tsv += os.linesep + "\t".join([f"{e['entity_id']}",
-                                           e['object_id'],
-                                           e['md5sum'],
-                                           e['file_name'],
-                                           str(e['file_size'])])
+    for table_name, table_data in manifest.items():
+        tsv = "\t".join([f"entity:{table_name}_id"] + table_data['column_headers'])
+        for row in table_data['rows']:
+            tsv += os.linesep + "\t".join([f"{uuid4()}"] + row)
         upload_entities(tsv)
