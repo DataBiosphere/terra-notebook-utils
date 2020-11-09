@@ -490,6 +490,18 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         with self.assertRaises(ValueError):
             drs._bucket_name_and_key(f"gs://{expected_bucket_name}/")
 
+    @testmode("controlled_access")
+    def test_drs_info(self):
+        uri = "drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d"
+        expected_info = dict(
+            name="phg001275.v1.TOPMed_WGS_MESA_v2.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz",
+            size=183312787601,
+            updated="2019-12-26T20:20:39.396Z",
+            url=("gs://nih-nhlbi-topmed-released-phs001416-c2/"
+                 "phg001275.v1.TOPMed_WGS_MESA_v2.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz")
+        )
+        self.assertEqual(drs.drs_info(uri), expected_info)
+
 def _list_tree(root) -> Generator[str, None, None]:
     for (dirpath, dirnames, filenames) in os.walk(root):
         for filename in filenames:

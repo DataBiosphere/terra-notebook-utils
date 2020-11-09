@@ -107,19 +107,8 @@ def drs_info(args: argparse.Namespace):
     """
     Get information about drs:// objects
     """
-    try:
-        info = drs.resolve_drs_info_for_gs_storage(args.drs_url)
-    except DRSResolutionError:
-        raise
-    except Exception:
-        raise
-
-    data = info._asdict()
-    data['url'] = f"gs://{info.bucket_name}/{info.key}"
-    del data['credentials']
-    del data['bucket_name']
-    del data['key']
-    print(json.dumps(data, indent=2))
+    info = drs.drs_info(args.drs_url)
+    print(json.dumps(info, indent=2))
 
 @drs_cli.command("credentials", arguments={
     "drs_url": dict(type=str),

@@ -94,6 +94,15 @@ def fetch_drs_info(drs_url: str) -> dict:
 
     return resp_data
 
+def drs_info(drs_url: str) -> dict:
+    """
+    Return a curated subset of data from `fetch_drs_info`.
+    """
+    info = resolve_drs_info_for_gs_storage(drs_url)
+    out = dict(name=info.name, size=info.size, updated=info.updated)
+    out['url'] = f"gs://{info.bucket_name}/{info.key}"
+    return out
+
 def extract_credentials_from_drs_response(response: dict) -> Optional[dict]:
     if 'googleServiceAccount' not in response or response['googleServiceAccount'] is None:
         credentials_data = None
