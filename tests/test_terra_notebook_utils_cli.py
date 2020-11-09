@@ -24,7 +24,7 @@ sys.path.insert(0, pkg_root)  # noqa
 from tests import config  # initialize the test environment
 from tests import CLITestMixin, ConfigOverride
 from tests.infra.testmode import testmode
-from terra_notebook_utils import gs, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
+from terra_notebook_utils import gs, table, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
 from terra_notebook_utils.cli import Config
 import terra_notebook_utils.cli
 import terra_notebook_utils.cli.config
@@ -281,10 +281,12 @@ class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.table = "simple_germline_variation"
-        with open("tests/fixtures/workspace_manifest.json") as fh:
-            cls.table_data = json.loads(fh.read(), parse_int=str)[cls.table]
-        cls.columns = list(cls.table_data[0].keys())
-        cls.columns.remove("entity_id")
+        cls.table_data = list()
+        for e in table._iter_table(cls.table):
+            row = e['attributes'].copy()
+            row['entity_id'] = e['name']
+            cls.table_data.append(row)
+        cls.columns = list(e['attributes'].keys())
 
     def setUp(self):
         self.row_index = randint(0, len(self.table_data) - 1)
