@@ -60,6 +60,17 @@ def get_row(args: argparse.Namespace):
     data[f'{args.table}_id'] = e['name']
     print(json.dumps(data, indent=2))
 
+@table_cli.command("fetch-drs-url", arguments={
+    "--table": dict(type=str, required=True, help="table name"),
+    "--file-name": dict(type=str, required=True, help="file name"),
+})
+def fetch_drs_url(args: argparse.Namespace):
+    """
+    Fetch the DRS URL associated with `--file-name` in `--table`.
+    """
+    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
+    print(table.fetch_drs_url(args.table, args.file_name, args.workspace, args.namespace))
+
 @table_cli.command("get-cell", arguments={
     "--table": dict(type=str, required=True, help="table name"),
     "--id": dict(type=str, required=True, help="id of entity"),
