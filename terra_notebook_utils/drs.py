@@ -201,7 +201,7 @@ def copy_to_local(drs_url: str,
     client, info = resolve_drs_for_gs_storage(drs_url)
     blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
     if os.path.isdir(filepath):
-        filename = info.name or _url_basename(drs_url)
+        filename = info.name or info.key.rsplit("/", 1)[-1]
         filepath = os.path.join(os.path.abspath(filepath), filename)
     with open(filepath, "wb") as fh:
         logger.info(f"Downloading {drs_url} to {filepath}")
@@ -295,7 +295,7 @@ def copy_batch(drs_urls: Iterable[str],
             src_client, src_info = resolve_drs_for_gs_storage(drs_url)
             src_bucket = src_client.bucket(src_info.bucket_name, user_project=google_billing_project)
             src_blob = src_bucket.get_blob(src_info.key)
-            basename = src_info.name or _url_basename(drs_url)
+            basename = src_info.name or src_info.key.rsplit("/", 1)[-1]
             if dst.startswith("gs://"):
                 if dst.endswith("/"):
                     raise ValueError("Bucket destination cannot end with '/'")
@@ -329,19 +329,6 @@ def extract_tar_gz(drs_url: str,
         async_queue = async_collections.AsyncQueue(e, IO_CONCURRENCY)
         with gscio.Reader(src_bucket.get_blob(src_info.key), async_queue=async_queue) as fh:
             tar_gz.extract(fh, dst_bucket, root=dst_pfx)
-
-def _url_basename(url: str) -> str:
-    schema_re = "[a-z]+://"
-    path_re = ".*"
-    m = re.match(f"(?P<schema>{schema_re})(?P<path>{path_re})", url)
-    if m:
-        parts = m['path'].rsplit("/", 1)
-        if 2 == len(parts):
-            return parts[-1]
-        else:
-            raise ValueError(f"'{url}' missing basename")
-    else:
-        raise ValueError(f"'{url}' does not match '{schema_re}{path_re}'")
 
 def _bucket_name_and_key(gs_url: str) -> Tuple[str, str]:
     assert gs_url.startswith("gs://")

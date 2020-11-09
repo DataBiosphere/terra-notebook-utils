@@ -461,19 +461,6 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             ):
                 drs.resolve_drs_for_gs_storage(self.jade_dev_url)
 
-    def test_url_basename(self):
-        with self.subTest("Should raise for invalid or missing schemas"):
-            for broken_url in ["alsdf", "s:/asdf", "s//saldf"]:
-                with self.assertRaises(ValueError):
-                    drs._url_basename(broken_url)
-        with self.subTest("Should raise when basename is absent"):
-            with self.assertRaises(ValueError):
-                drs._url_basename("drs://alskdjflasjdf")
-        with self.subTest("Should return drs url basename"):
-            expected_basename = "my_cool_basename"
-            basename = drs._url_basename(f"drs://asldkfj/argle/{expected_basename}")
-            self.assertEqual(expected_basename, basename)
-
     def test_bucket_name_and_key(self):
         expected_bucket_name = f"{uuid4()}"
         expected_key = f"{uuid4()}/{uuid4()}"
