@@ -124,6 +124,9 @@ Head drs object:
 tnu drs head drs://my-drs-url --bytes 10
 ```
 
+The CLI outputs error messages, not strack traces. Stack traces are available by defining the environment variable
+`TNU_CLI_DEBUG`.
+
 ### The VCF API and CLI
 
 terra-notebook-utils provides some CLI commands useful for getting information about VCF files.
