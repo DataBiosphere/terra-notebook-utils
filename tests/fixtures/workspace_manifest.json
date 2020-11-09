@@ -1,5 +1,40 @@
 {
   "simple_germline_variation": {
+    "column_headers": ["pfb:object_id", "pfb:md5sum", "pfb:file_name", "pfb:file_size"],
+    "rows": [
+      [
+        "drs://dg.4503/08202c2d-5e93-4ff1-b8bf-c35389b161a4",
+        "268d88684ed4762687acdc7bfd613359",
+        "NWD269366.freeze5.v1.vcf.gz",
+        "2679258166"
+      ],
+      [
+        "drs://dg.4503/651a4ad1-06b5-4534-bb2c-1f8ed51134f6",
+        "e306d694acbb6ef111eed7387c5cd635",
+        "NWD531899.freeze5.v1.vcf.gz",
+        "2679411265"
+      ],
+      [
+        "drs://dg.4503/6e73a376-f7fd-47ed-ac99-0567bb5a5993",
+        "d20e5f752a0d55f0a360b7abe1c8499d",
+        "NWD961306.freeze5.v1.vcf.gz",
+        "2679331445"
+      ],
+      [
+        "drs://dg.4503/52537f62-503c-41ac-a01f-8350e16fb1be",
+        "6ef33756f320e85b9a43978be0000a8d",
+        "NWD504758.freeze5.v1.vcf.gz",
+        "2679380128"
+      ],
+      [
+        "drs://dg.4503/32c380e0-c196-47c7-8a69-6e4370ac9fc7",
+        "c7227d9bc7b62449a04fbccd1d89511a",
+        "NWD929979.freeze5.v1.vcf.gz",
+        "2679390725"
+      ]
+    ]
+  },
+  "simple_germline_variation_old_format": {
     "column_headers": ["object_id", "md5sum", "file_name", "file_size"],
     "rows": [
       [
@@ -35,6 +70,47 @@
     ]
   },
   "reference_file": {
+    "column_headers": ["pfb:object_id", "pfb:md5sum", "pfb:file_name", "pfb:file_size"],
+    "rows": [
+      [
+        "drs://dg.4503/d544250a-df27-435e-889f-daa812e11767",
+        "af988992fc97ca0bf17d09872eebca9f",
+        "phg001055.v1.TOPMed_WGS_Amish_v3.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-IRB-MDS.tar.gz",
+        "98461390327"
+      ],
+      [
+        "drs://dg.4503/12ff82f7-ef21-45ce-9fc0-901c15df3ed0",
+        "77072102fbba229205d48b2cc524fdbc",
+        "phg001277.v1.TOPMed_WGS_HVH_v4.genotype-calls-vcf.WGS_markerset_grc38.c1.HMB-IRB-MDS.tar.gz",
+        "191245589200"
+      ],
+      [
+        "drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d",
+        "aec4c2708e3a7ecaf6b66f12d63318ff",
+        "phg001275.v1.TOPMed_WGS_MESA_v2.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz",
+        "183312787601"
+      ],
+      [
+        "drs://dg.4503/bd20d8e8-d2bb-449d-b991-c3337c4120d2",
+        "e0ea93d0ea50bc1c7f578f451fac2203",
+        "phg001152.v1.TOPMed_WGS_HVH_v3.genotype-calls-vcf.WGS_markerset_grc38.c1.HMB-IRB-MDS.tar.gz",
+        "89897068717"
+      ],
+      [
+        "drs://dg.4503/b5bc1435-b8e8-4d54-ad78-0af02de9c183",
+        "61798c663fa8b5b2c2bc6bef982b07ac",
+        "phg001207.v1.TOPMed_WGS_MESA.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz",
+        "86341386051"
+      ],
+      [
+        "drs://dg.4503/273f3453-4d16-4ddd-8877-dbac958a4f4d",
+        "066b362e7ab4727718195e033a2b6e50",
+        "phg001280.v1.TOPMed_WGS_Amish_v4.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-IRB-MDS.tar.gz",
+        "204207631496"
+      ]
+    ]
+  },
+  "reference_file_old_format": {
     "column_headers": ["object_id", "md5sum", "file_name", "file_size"],
     "rows": [
       [
