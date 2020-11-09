@@ -22,17 +22,25 @@ def _get_item_val(item: dict, key: str):
     else:
         return item['attributes'][key]
 
-def fetch_attribute(table: str, filter_column: str, filter_val: str, attribute: str):
+def fetch_attribute(table: str,
+                    filter_column: str,
+                    filter_val: str,
+                    attribute: str,
+                    workspace_name: Optional[str]=WORKSPACE_NAME,
+                    workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """
     Fetch `attribute` from `table` from the same row containing `filter_val` in column `filter_column`
     """
-    for item in _iter_table(table):
+    for item in _iter_table(table, workspace_name, workspace_google_project):
         if filter_val == _get_item_val(item, filter_column):
             return _get_item_val(item, attribute)
     else:
         raise ValueError(f"No row found for table {table}, filter_column {filter_column} filter_val {filter_val}")
 
-def fetch_object_id(table: str, file_name: str):
+def fetch_object_id(table: str,
+                    file_name: str,
+                    workspace_name: Optional[str]=WORKSPACE_NAME,
+                    workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """
     Fetch `object_id` associated with `pfb:file_name` from `table`.
     DRS urls, when available, are stored in `pfb:object_id`.
@@ -41,14 +49,22 @@ def fetch_object_id(table: str, file_name: str):
     """
     for pfx in ("pfb:", ""):
         try:
-            return fetch_attribute(table, f"{pfx}file_name", file_name, f"{pfx}object_id")
+            return fetch_attribute(table,
+                                   f"{pfx}file_name",
+                                   file_name,
+                                   f"{pfx}object_id",
+                                   workspace_name,
+                                   workspace_google_project)
         except KeyError:
             pass
     else:
         raise KeyError(f"Unable to fetch object_id for table '{table}', file_name '{file_name}'")
 
-def fetch_drs_url(table: str, file_name: str):
-    val = fetch_object_id(table, file_name)
+def fetch_drs_url(table: str,
+                  file_name: str,
+                  workspace_name: Optional[str]=WORKSPACE_NAME,
+                  workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    val = fetch_object_id(table, file_name, workspace_name, workspace_google_project)
     if not val.startswith("drs://"):
         raise ValueError(f"Expected DRS url in {table} for {file_name}, got {val} instead.")
     return val
