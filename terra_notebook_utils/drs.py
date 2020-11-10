@@ -259,6 +259,8 @@ def copy_to_bucket(drs_url: str,
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
     src_client, src_info = resolve_drs_for_gs_storage(drs_url)
+    if not dst_key:
+        dst_key = src_info.name or src_info.key.rsplit("/", 1)[-1]
     dst_client = gs.get_client()
     src_bucket = src_client.bucket(src_info.bucket_name, user_project=google_billing_project)
     dst_bucket = dst_client.bucket(dst_bucket_name)
@@ -334,7 +336,8 @@ def _bucket_name_and_key(gs_url: str) -> Tuple[str, str]:
     assert gs_url.startswith("gs://")
     parts = gs_url[5:].split("/", 1)
     if 1 >= len(parts) or not parts[1]:
-        raise ValueError(f"Invalid bucket location: {gs_url}"
-                         "gs:// url should contain bucket name and key with '/' delimiter.")
-    bucket_name, key = parts
+        bucket_name = parts[0]
+        key = ""
+    else:
+        bucket_name, key = parts
     return bucket_name, key

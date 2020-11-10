@@ -278,9 +278,18 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         with self.subTest("Test copy to local location"):
             with tempfile.NamedTemporaryFile() as tf:
                 drs.copy(self.drs_url, tf.name)
+                self.assertTrue(os.path.isfile(tf.name))
         with self.subTest("Test copy to bucket location"):
-            key = f"gs://{WORKSPACE_BUCKET}/test_oneshot_object_{uuid4()}"
-            drs.copy(self.drs_url, key)
+            key = f"test_oneshot_object_{uuid4()}"
+            drs.copy(self.drs_url, f"gs://{WORKSPACE_BUCKET}/{key}")
+            self.assertTrue(self._gs_obj_exists(key))
+        with self.subTest("Test copy to bare bucket"):
+            name = drs.drs_info(self.drs_url)['name']
+            drs.copy(self.drs_url, f"gs://{WORKSPACE_BUCKET}")
+            self.assertTrue(self._gs_obj_exists(name))
+
+    def _gs_obj_exists(self, key: str) -> bool:
+        return gs.get_client().bucket(WORKSPACE_BUCKET).blob(key).exists()
 
     @testmode("controlled_access")
     def test_copy_batch(self):
@@ -463,19 +472,18 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
 
     def test_bucket_name_and_key(self):
         expected_bucket_name = f"{uuid4()}"
-        expected_key = f"{uuid4()}/{uuid4()}"
-        bucket_name, key = drs._bucket_name_and_key(f"gs://{expected_bucket_name}/{expected_key}")
-        self.assertEqual(expected_bucket_name, bucket_name)
-        self.assertEqual(expected_key, key)
+        random_key = f"{uuid4()}/{uuid4()}"
+        for gs_url, expected_key in [(f"gs://{expected_bucket_name}/{random_key}", random_key),
+                                     (f"gs://{expected_bucket_name}/", ""),
+                                     (f"gs://{expected_bucket_name}", "")]:
+            bucket_name, key = drs._bucket_name_and_key(gs_url)
+            with self.subTest(gs_url, key=expected_key):
+                self.assertEqual(expected_bucket_name, bucket_name)
+                self.assertEqual(expected_key, key)
 
-        with self.assertRaises(AssertionError):
-            drs._bucket_name_and_key(f"{expected_bucket_name}")
-
-        with self.assertRaises(ValueError):
-            drs._bucket_name_and_key(f"gs://{expected_bucket_name}")
-
-        with self.assertRaises(ValueError):
-            drs._bucket_name_and_key(f"gs://{expected_bucket_name}/")
+        with self.subTest("Should raise for non-valid URIs"):
+            with self.assertRaises(AssertionError):
+                drs._bucket_name_and_key("not a valid gs url")
 
     @testmode("controlled_access")
     def test_drs_info(self):
