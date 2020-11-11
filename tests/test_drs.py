@@ -284,7 +284,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             drs.copy(self.drs_url, f"gs://{WORKSPACE_BUCKET}/{key}")
             self.assertTrue(self._gs_obj_exists(key))
         with self.subTest("Test copy to bare bucket"):
-            name = drs.drs_info(self.drs_url)['name']
+            name = drs.info(self.drs_url)['name']
             drs.copy(self.drs_url, f"gs://{WORKSPACE_BUCKET}")
             self.assertTrue(self._gs_obj_exists(name))
 
@@ -486,7 +486,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
                 drs._bucket_name_and_key("not a valid gs url")
 
     @testmode("controlled_access")
-    def test_drs_info(self):
+    def test_info(self):
         uri = "drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d"
         expected_info = dict(
             name="phg001275.v1.TOPMed_WGS_MESA_v2.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz",
@@ -495,7 +495,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             url=("gs://nih-nhlbi-topmed-released-phs001416-c2/"
                  "phg001275.v1.TOPMed_WGS_MESA_v2.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz")
         )
-        self.assertEqual(drs.drs_info(uri), expected_info)
+        self.assertEqual(drs.info(uri), expected_info)
 
 def _list_tree(root) -> Generator[str, None, None]:
     for (dirpath, dirnames, filenames) in os.walk(root):

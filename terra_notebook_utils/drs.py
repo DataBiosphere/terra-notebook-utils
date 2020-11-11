@@ -94,7 +94,7 @@ def fetch_drs_info(drs_url: str) -> dict:
 
     return resp_data
 
-def drs_info(drs_url: str) -> dict:
+def info(drs_url: str) -> dict:
     """
     Return a curated subset of data from `fetch_drs_info`.
     """
