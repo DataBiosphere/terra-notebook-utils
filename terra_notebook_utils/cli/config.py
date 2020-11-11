@@ -20,14 +20,14 @@ def set_config_workspace(args: argparse.Namespace):
     Config.info["workspace"] = args.workspace
     Config.write()
 
-@config_cli.command("set-workspace-google-project", arguments={
-    "billing_project": dict()
+@config_cli.command("set-workspace-namespace", arguments={
+    "workspace_namespace": dict(type=str)
 })
-def set_config_billing_project(args: argparse.Namespace):
+def set_config_workspace_namespace(args: argparse.Namespace):
     """
-    Set billing project for cli commands
+    Set workspace namespace for cli commands
     """
-    Config.info["workspace_google_project"] = args.billing_project
+    Config.info["workspace_namespace"] = args.workspace_namespace
     Config.write()
 
 @config_cli.command("print")

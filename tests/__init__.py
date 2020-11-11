@@ -17,7 +17,7 @@ from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
 class ConfigOverride:
     def __init__(self, workspace, namespace, path=None):
         self.old_workspace = Config.info['workspace']
-        self.old_namespace = Config.info['workspace_google_project']
+        self.old_namespace = Config.info['workspace_namespace']
         self.old_path = Config.path
         self.workspace = workspace
         self.namespace = namespace
@@ -25,12 +25,12 @@ class ConfigOverride:
 
     def __enter__(self):
         Config.info['workspace'] = self.workspace
-        Config.info['workspace_google_project'] = self.namespace
+        Config.info['workspace_namespace'] = self.namespace
         Config.path = self.path
 
     def __exit__(self, *args, **kwargs):
         Config.info['workspace'] = self.old_workspace
-        Config.info['workspace_google_project'] = self.old_namespace
+        Config.info['workspace_namespace'] = self.old_namespace
         Config.path = self.old_path
 
 class CLITestMixin:

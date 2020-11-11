@@ -25,24 +25,24 @@ def list_workspaces(args: argparse.Namespace):
 
 @workspace_cli.command("get", arguments={
     "--workspace": dict(type=str, required=True, help="workspace name"),
-    "--namespace": dict(type=str, required=False, default=None, help="workspace namespace"),
+    "--workspace-namespace": dict(type=str, required=False, default=None, help="workspace namespace"),
 })
 def get_workspace(args: argparse.Namespace):
     """
     Get information about a workspace
     """
-    data = workspace.get_workspace(args.workspace, args.namespace)
+    data = workspace.get_workspace(args.workspace, args.workspace_namespace)
     print(json.dumps(data, indent=2))
 
 @workspace_cli.command("get-bucket", arguments={
     "--workspace": dict(type=str, required=False, default=Config.info['workspace'], help="workspace name"),
-    "--namespace": dict(type=str, required=False, default=None, help="workspace namespace"),
+    "--workspace-namespace": dict(type=str, required=False, default=None, help="workspace namespace"),
 })
 def get_workspace_bucket(args: argparse.Namespace):
     """
     Get workspace bucket
     """
-    data = workspace.get_workspace(args.workspace, args.namespace)
+    data = workspace.get_workspace(args.workspace, args.workspace_namespace)
     bucket_name = data.get('workspace', dict()).get('bucketName', None)
     print(bucket_name)
 

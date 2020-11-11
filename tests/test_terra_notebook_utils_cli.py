@@ -41,16 +41,16 @@ from tests.infra.partialize_vcf import partialize_vcf
 class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase):
     def test_config_print(self):
         workspace = f"{uuid4()}"
-        workspace_google_project = f"{uuid4()}"
+        workspace_namespace = f"{uuid4()}"
         with NamedTemporaryFile() as tf:
-            with ConfigOverride(workspace, workspace_google_project, tf.name):
+            with ConfigOverride(workspace, workspace_namespace, tf.name):
                 Config.write()
                 args = argparse.Namespace()
                 out = io.StringIO()
                 with redirect_stdout(out):
                     terra_notebook_utils.cli.config.config_print(args)
                 data = json.loads(out.getvalue())
-                self.assertEqual(data, dict(workspace=workspace, workspace_google_project=workspace_google_project))
+                self.assertEqual(data, dict(workspace=workspace, workspace_namespace=workspace_namespace))
 
     def test_resolve(self):
         with self.subTest("Should fall back to env vars if arguments are None and config file missing"):
@@ -62,7 +62,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
             with ConfigOverride(str(uuid4()), str(uuid4())):
                 workspace, namespace = Config.resolve(None, None)
                 self.assertEqual(Config.info['workspace'], workspace)
-                self.assertEqual(Config.info['workspace_google_project'], namespace)
+                self.assertEqual(Config.info['workspace_namespace'], namespace)
         with self.subTest("Should attempt namespace resolve via fiss when workspace present, namespace empty"):
             expected_namespace = str(uuid4())
             with mock.patch("terra_notebook_utils.workspace.get_workspace_namespace", return_value=expected_namespace):
@@ -71,7 +71,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
                     workspace, namespace = Config.resolve(None, None)
                     self.assertEqual(Config.info['workspace'], workspace)
                     self.assertEqual(expected_namespace, namespace)
-        with self.subTest("Should attempt namespace resolve via fiss when workspace present, namespace empty"):
+        with self.subTest("Should use overrides for workspace and workspace_namespace"):
             expected_workspace = str(uuid4())
             expected_namespace = str(uuid4())
             with mock.patch("terra_notebook_utils.workspace.get_workspace_namespace", return_value=expected_namespace):
@@ -83,21 +83,21 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
 
     def test_config_set(self):
         new_workspace = f"{uuid4()}"
-        new_workspace_google_project = f"{uuid4()}"
+        new_workspace_namespace = f"{uuid4()}"
         with NamedTemporaryFile() as tf:
             with ConfigOverride(None, None, tf.name):
                 Config.write()
                 args = argparse.Namespace(workspace=new_workspace)
                 terra_notebook_utils.cli.config.set_config_workspace(args)
-                args = argparse.Namespace(billing_project=new_workspace_google_project)
-                terra_notebook_utils.cli.config.set_config_billing_project(args)
+                args = argparse.Namespace(workspace_namespace=new_workspace_namespace)
+                terra_notebook_utils.cli.config.set_config_workspace_namespace(args)
                 with open(tf.name) as fh:
                     data = json.loads(fh.read())
                 self.assertEqual(data, dict(workspace=new_workspace,
-                                            workspace_google_project=new_workspace_google_project))
+                                            workspace_namespace=new_workspace_namespace))
 
-class TestTerraNotebookUtilsCLI_VCF(CLITestMixin, unittest.TestCase):
-    common_kwargs = dict(google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+class TestTerraNotebookUtilsCLI_VCF(SuppressWarningsMixin, CLITestMixin, unittest.TestCase):
+    common_kwargs = dict(workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
     vcf_drs_url = "drs://dg.4503/57f58130-2d66-4d46-9b2b-539f7e6c2080"
 
     @classmethod
@@ -157,13 +157,13 @@ class TestTerraNotebookUtilsCLI_Workspace(CLITestMixin, unittest.TestCase):
     def test_get(self):
         self._test_cmd(terra_notebook_utils.cli.workspace.get_workspace,
                        workspace=WORKSPACE_NAME,
-                       namespace="firecloud-cgl")
+                       workspace_namespace="firecloud-cgl")
 
 
 @testmode("workspace_access")
 class TestTerraNotebookUtilsCLI_Profile(CLITestMixin, unittest.TestCase):
-    def test_list_billing_projects(self):
-        self._test_cmd(terra_notebook_utils.cli.profile.list_billing_projects)
+    def list_workspace_namespaces(self):
+        self._test_cmd(terra_notebook_utils.cli.profile.list_workspace_namespaces)
 
 
 # These tests will only run on `make dev_env_access_test` command as they are testing DRS against Terra Dev env
@@ -180,7 +180,7 @@ class TestTerraNotebookUtilsCLI_DRSInDev(CLITestMixin, unittest.TestCase):
                                drs_url=self.jade_dev_url,
                                dst=tf.name,
                                workspace=WORKSPACE_NAME,
-                               google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+                               workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
                 with open(tf.name, "rb") as fh:
                     data = fh.read()
                 self.assertEqual(_crc32c(data), self.expected_crc32c)
@@ -191,7 +191,7 @@ class TestTerraNotebookUtilsCLI_DRSInDev(CLITestMixin, unittest.TestCase):
                            drs_url=self.jade_dev_url,
                            dst=f"gs://{WORKSPACE_BUCKET}/{key}",
                            workspace=WORKSPACE_NAME,
-                           google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+                           workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
             blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
             out = io.BytesIO()
             blob.download_to_file(out)
@@ -212,7 +212,7 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
                                drs_url=self.drs_url,
                                dst=tf.name,
                                workspace=WORKSPACE_NAME,
-                               google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+                               workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
                 with open(tf.name, "rb") as fh:
                     data = fh.read()
                 self.assertEqual(_crc32c(data), self.expected_crc32c)
@@ -223,7 +223,7 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
                            drs_url=self.drs_url,
                            dst=f"gs://{WORKSPACE_BUCKET}/{key}",
                            workspace=WORKSPACE_NAME,
-                           google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+                           workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
             blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
             out = io.BytesIO()
             blob.download_to_file(out)
@@ -235,7 +235,7 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
         with self.subTest("Test heading a drs url."):
             cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
                    f'--workspace={WORKSPACE_NAME}',
-                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
+                   f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
             stdout = self._run_cmd(cmd)
             self.assertEqual(stdout, b'\x1f', stdout)
             self.assertEqual(len(stdout), 1, stdout)
@@ -243,7 +243,7 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
             cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
                    '--bytes=3',
                    f'--workspace={WORKSPACE_NAME}',
-                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
+                   f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
             stdout = self._run_cmd(cmd)
             self.assertEqual(stdout, b'\x1f\x8b\x08')
             self.assertEqual(len(stdout), 3)
@@ -253,16 +253,16 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
                        '--bytes=10',
                        f'--buffer={buffer}',
                        f'--workspace={WORKSPACE_NAME} ',
-                       f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
+                       f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
                 stdout = self._run_cmd(cmd)
                 self.assertEqual(stdout, b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03')
                 self.assertEqual(len(stdout), 10)
 
         with self.subTest("Test heading a non-existent drs url."):
-            fake_drs_url = 'drs://nothing'
+            fake_drs_url = 'drs://nothing/asf/f'
             cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', fake_drs_url,
-                   f'--workspace={WORKSPACE_NAME} ',
-                   f'--google-billing-project={WORKSPACE_GOOGLE_PROJECT}']
+                   f'--workspace={WORKSPACE_NAME}',
+                   f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
             with self.assertRaises(subprocess.CalledProcessError):
                 try:
                     self._run_cmd(cmd)
@@ -276,7 +276,7 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
 
 @testmode("workspace_access")
 class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
-    common_kwargs = dict(workspace=WORKSPACE_NAME, namespace=WORKSPACE_GOOGLE_PROJECT)
+    common_kwargs = dict(workspace=WORKSPACE_NAME, workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
 
     @classmethod
     def setUpClass(cls):

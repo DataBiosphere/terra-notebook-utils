@@ -15,12 +15,12 @@ workspace_args: Dict[str, Dict[str, Any]] = {
         default=None,
         help="workspace name. If not provided, the configured CLI workspace will be used"
     ),
-    "--google-billing-project": dict(
+    "--workspace-namespace": dict(
         type=str,
         required=False,
-        default=Config.info['workspace_google_project'],
+        default=Config.info['workspace_namespace'],
         help=("The billing project for GS requests. "
-              "If omitted, the CLI configured `workspace_google_project` will be used. "
+              "If omitted, the CLI configured `workspace_namespace` will be used. "
               "Note that DRS URLs also involve a GS request.")
     )
 }
@@ -37,8 +37,8 @@ def drs_copy(args: argparse.Namespace):
         tnu drs copy drs://my-drs-id /tmp/doom
         tnu drs copy drs://my-drs-id gs://my-cool-bucket/my-cool-bucket-key
     """
-    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
-    drs.copy(args.drs_url, args.dst, args.workspace, args.google_billing_project)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    drs.copy(args.drs_url, args.dst, args.workspace, args.workspace_namespace)
 
 @drs_cli.command("copy-batch", arguments={
     "drs_urls": dict(type=str, nargs="*", help="space separated list of drs:// URIs"),
@@ -53,8 +53,8 @@ def drs_copy_batch(args: argparse.Namespace):
         tnu drs copy drs://my-drs-1 drs://my-drs-2 drs://my-drs-3 --dst gs://my-cool-bucket/my-cool-folder
     """
     assert 1 <= len(args.drs_urls)
-    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
-    drs.copy_batch(args.drs_urls, args.dst, args.workspace, args.google_billing_project)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    drs.copy_batch(args.drs_urls, args.dst, args.workspace, args.workspace_namespace)
 
 @drs_cli.command("head", arguments={
     "drs_url": dict(type=str),
@@ -70,7 +70,7 @@ def drs_head(args: argparse.Namespace):
     Example:
         tnu drs head drs://crouching-drs-hidden-access
     """
-    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     # TODO: cli_build doesn't seem to honor "required=False"
     if not getattr(args, 'buffer', None):
         setattr(args, 'buffer', MULTIPART_THRESHOLD)
@@ -80,7 +80,7 @@ def drs_head(args: argparse.Namespace):
              num_bytes=args.bytes,
              buffer=args.buffer,
              workspace_name=args.workspace,
-             google_billing_project=args.google_billing_project)
+             workspace_namespace=args.workspace_namespace)
 
 @drs_cli.command("extract-tar-gz", arguments={
     "drs_url": dict(type=str),
@@ -97,8 +97,8 @@ def drs_extract_tar_gz(args: argparse.Namespace):
     assert args.dst_gs_url.startswith("gs://")
     bucket, pfx = args.dst_gs_url[5:].split("/", 1)
     pfx = pfx or None
-    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
-    drs.extract_tar_gz(args.drs_url, pfx, bucket, args.workspace, args.google_billing_project)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    drs.extract_tar_gz(args.drs_url, pfx, bucket, args.workspace, args.workspace_namespace)
 
 @drs_cli.command("info", arguments={
     "drs_url": dict(type=str),

@@ -13,10 +13,10 @@ table_cli = dispatch.group("table", help=table.__doc__, arguments={
         default=None,
         help="workspace name. If not provided, the configured CLI workspace will be used"
     ),
-    "--namespace": dict(
+    "--workspace-namespace": dict(
         type=str,
         default=None,
-        help=("workspace namespace (google billing project). If not provided, the configured CLI google billing "
+        help=("workspace namespace. If not provided, the configured CLI google billing "
               "project will be used.")
     ),
 })
@@ -27,9 +27,9 @@ def list_tables(args: argparse.Namespace):
     """
     List all tables, with column headers, in the workspace
     """
-    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     out = dict()
-    for t, attributes in table.list_tables(args.workspace, args.namespace):
+    for t, attributes in table.list_tables(args.workspace, args.workspace_namespace):
         out[t] = attributes
     print(json.dumps(out, indent=2))
 
@@ -40,8 +40,8 @@ def get_table(args: argparse.Namespace):
     """
     Get all rows
     """
-    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
-    for e in table.list_entities(args.table, args.workspace, args.namespace):
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    for e in table.list_entities(args.table, args.workspace, args.workspace_namespace):
         data = e['attributes']
         data[f'{args.table}_id'] = e['name']
         print(json.dumps(data, indent=2))
@@ -54,8 +54,8 @@ def get_row(args: argparse.Namespace):
     """
     Get one row
     """
-    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
-    e = table.get_row(args.table, args.id, args.workspace, args.namespace)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    e = table.get_row(args.table, args.id, args.workspace, args.workspace_namespace)
     data = e['attributes']
     data[f'{args.table}_id'] = e['name']
     print(json.dumps(data, indent=2))
@@ -68,8 +68,8 @@ def fetch_drs_url(args: argparse.Namespace):
     """
     Fetch the DRS URL associated with `--file-name` in `--table`.
     """
-    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
-    print(table.fetch_drs_url(args.table, args.file_name, args.workspace, args.namespace))
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    print(table.fetch_drs_url(args.table, args.file_name, args.workspace, args.workspace_namespace))
 
 @table_cli.command("get-cell", arguments={
     "--table": dict(type=str, required=True, help="table name"),
@@ -80,8 +80,8 @@ def get_cell(args: argparse.Namespace):
     """
     Get cell value
     """
-    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
-    for e in table.list_entities(args.table, args.workspace, args.namespace):
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    for e in table.list_entities(args.table, args.workspace, args.workspace_namespace):
         if args.id == e['name']:
             print(e['attributes'][args.column])
 
@@ -101,7 +101,7 @@ def put_row(args: argparse.Namespace):
     input_keys=test_vcfs/a.vcf.gz,test_vcfs/b.vcf.gz \\
     output_key=foo.vcf.gz
     """
-    args.workspace, args.namespace = Config.resolve(args.workspace, args.namespace)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     headers = [f"{args.table}_id"]
     values = [args.id]
     for pair in args.data:
@@ -109,4 +109,4 @@ def put_row(args: argparse.Namespace):
         headers.append(key)
         values.append(val)
     tsv = "\t".join(headers) + os.linesep + "\t".join(values)
-    table.upload_entities(tsv, args.workspace, args.namespace)
+    table.upload_entities(tsv, args.workspace, args.workspace_namespace)

@@ -47,7 +47,7 @@ class TestTerraNotebookUtilsWorkflows(unittest.TestCase):
 
 @testmode("workspace_access")
 class TestTerraNotebookUtilsWorkflowsCLI(CLITestMixin, unittest.TestCase):
-    common_kwargs = dict(workspace=WORKSPACE_NAME, google_billing_project=WORKSPACE_GOOGLE_PROJECT)
+    common_kwargs = dict(workspace=WORKSPACE_NAME, workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
 
     def test_list_submissions(self):
         with mock.patch("terra_notebook_utils.workflows.list_submissions"):

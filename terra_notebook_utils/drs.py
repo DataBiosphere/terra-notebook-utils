@@ -41,12 +41,12 @@ def _parse_gs_url(gs_url: str) -> Tuple[str, str]:
 
 @lru_cache()
 def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
-                          google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+                          workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     assert workspace_name
     import urllib.parse
     encoded_workspace = urllib.parse.quote(workspace_name)
     rawls_url = (f"https://rawls.dsde-{TERRA_DEPLOYMENT_ENV}.broadinstitute.org/api/workspaces/"
-                 f"{google_billing_project}/{encoded_workspace}/enableRequesterPaysForLinkedServiceAccounts")
+                 f"{workspace_namespace}/{encoded_workspace}/enableRequesterPaysForLinkedServiceAccounts")
     logger.info("Enabling requester pays for your workspace. This will only take a few seconds...")
     access_token = gs.get_access_token()
 
@@ -192,14 +192,14 @@ def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
 def copy_to_local(drs_url: str,
                   filepath: str,
                   workspace_name: Optional[str]=WORKSPACE_NAME,
-                  google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+                  workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """
     Copy a DRS object to the local filesystem.
     """
     assert drs_url.startswith("drs://")
-    enable_requester_pays(workspace_name, google_billing_project)
+    enable_requester_pays(workspace_name, workspace_namespace)
     client, info = resolve_drs_for_gs_storage(drs_url)
-    blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
+    blob = client.bucket(info.bucket_name, user_project=workspace_namespace).blob(info.key)
     if os.path.isdir(filepath):
         filename = info.name or info.key.rsplit("/", 1)[-1]
         filepath = os.path.join(os.path.abspath(filepath), filename)
@@ -211,20 +211,20 @@ def head(drs_url: str,
          num_bytes: int = 1,
          buffer: int = MULTIPART_THRESHOLD,
          workspace_name: Optional[str] = WORKSPACE_NAME,
-         google_billing_project: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
+         workspace_namespace: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
     """
     Head a DRS object by byte.
 
     :param drs_url: A drs:// schema URL.
     :param num_bytes: Number of bytes to print from the DRS object.
     :param workspace_name: The name of the terra workspace.
-    :param google_billing_project: The name of the terra google billing project.
+    :param workspace_namespace: The name of the terra workspace namespace.
     """
     assert drs_url.startswith("drs://"), f'Not a DRS schema: {drs_url}'
-    enable_requester_pays(workspace_name, google_billing_project)
+    enable_requester_pays(workspace_name, workspace_namespace)
     try:
         client, info = resolve_drs_for_gs_storage(drs_url)
-        blob = client.bucket(info.bucket_name, user_project=google_billing_project).blob(info.key)
+        blob = client.bucket(info.bucket_name, user_project=workspace_namespace).blob(info.key)
         try:
             # sys.stdout.buffer is used outside of a python notebook since that's the standard non-lossy way
             # to write/display bytes; sys.stdout.buffer is not available inside of a python notebook
@@ -249,20 +249,20 @@ def copy_to_bucket(drs_url: str,
                    dst_key: str,
                    dst_bucket_name: str=None,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
-                   google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """
     Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.
     If `dst_bucket` is None, copy into workspace bucket.
     """
     assert drs_url.startswith("drs://")
-    enable_requester_pays(workspace_name, google_billing_project)
+    enable_requester_pays(workspace_name, workspace_namespace)
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
     src_client, src_info = resolve_drs_for_gs_storage(drs_url)
     if not dst_key:
         dst_key = src_info.name or src_info.key.rsplit("/", 1)[-1]
     dst_client = gs.get_client()
-    src_bucket = src_client.bucket(src_info.bucket_name, user_project=google_billing_project)
+    src_bucket = src_client.bucket(src_info.bucket_name, user_project=workspace_namespace)
     dst_bucket = dst_client.bucket(dst_bucket_name)
     logger.info(f"Beginning to copy from {src_bucket} to {dst_bucket}. This can take a while for large files...")
     gs.copy(src_bucket, dst_bucket, src_info.key, dst_key)
@@ -270,7 +270,7 @@ def copy_to_bucket(drs_url: str,
 def copy(drs_url: str,
          dst: str,
          workspace_name: Optional[str]=WORKSPACE_NAME,
-         google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+         workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """
     Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with "gs://".
     """
@@ -281,21 +281,21 @@ def copy(drs_url: str,
                        key,
                        bucket_name,
                        workspace_name=workspace_name,
-                       google_billing_project=google_billing_project)
+                       workspace_namespace=workspace_namespace)
     else:
-        copy_to_local(drs_url, dst, workspace_name, google_billing_project)
+        copy_to_local(drs_url, dst, workspace_name, workspace_namespace)
 
 def copy_batch(drs_urls: Iterable[str],
                dst: str,
                workspace_name: Optional[str]=WORKSPACE_NAME,
-               google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    enable_requester_pays(workspace_name, google_billing_project)
+               workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    enable_requester_pays(workspace_name, workspace_namespace)
     with ThreadPoolExecutor(max_workers=IO_CONCURRENCY) as oneshot_executor:
         oneshot_pool = async_collections.AsyncSet(oneshot_executor, concurrency=IO_CONCURRENCY)
         for drs_url in drs_urls:
             assert drs_url.startswith("drs://")
             src_client, src_info = resolve_drs_for_gs_storage(drs_url)
-            src_bucket = src_client.bucket(src_info.bucket_name, user_project=google_billing_project)
+            src_bucket = src_client.bucket(src_info.bucket_name, user_project=workspace_namespace)
             src_blob = src_bucket.get_blob(src_info.key)
             basename = src_info.name or src_info.key.rsplit("/", 1)[-1]
             if dst.startswith("gs://"):
@@ -309,7 +309,7 @@ def copy_batch(drs_urls: Iterable[str],
                 else:
                     gs.multipart_copy(src_bucket, dst_bucket, src_info.key, dst_key)
             else:
-                oneshot_pool.put(copy_to_local, drs_url, dst, workspace_name, google_billing_project)
+                oneshot_pool.put(copy_to_local, drs_url, dst, workspace_name, workspace_namespace)
         for _ in oneshot_pool.consume():
             pass
 
@@ -317,15 +317,15 @@ def extract_tar_gz(drs_url: str,
                    dst_pfx: str=None,
                    dst_bucket_name: str=None,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
-                   google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """
     Extract a `.tar.gz` archive resolved by a DRS url into a Google Storage bucket.
     """
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
-    enable_requester_pays(workspace_name, google_billing_project)
+    enable_requester_pays(workspace_name, workspace_namespace)
     src_client, src_info = resolve_drs_for_gs_storage(drs_url)
-    src_bucket = src_client.bucket(src_info.bucket_name, user_project=google_billing_project)
+    src_bucket = src_client.bucket(src_info.bucket_name, user_project=workspace_namespace)
     dst_bucket = gs.get_client().bucket(dst_bucket_name)
     with ThreadPoolExecutor(max_workers=IO_CONCURRENCY) as e:
         async_queue = async_collections.AsyncQueue(e, IO_CONCURRENCY)

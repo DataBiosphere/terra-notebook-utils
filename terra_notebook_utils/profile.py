@@ -4,7 +4,7 @@ Miscelenious user profile commands
 from firecloud import fiss
 
 
-def list_billing_projects() -> list:
+def list_workspace_namespaces() -> list:
     """
     Billing projects available to the current usuer
     """

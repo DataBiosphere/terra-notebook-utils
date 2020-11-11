@@ -3,7 +3,7 @@ Configure the CLI
 """
 import os
 import json
-from typing import Optional
+from typing import Optional, Tuple
 
 import cli_builder
 
@@ -11,7 +11,7 @@ from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
 
 
 class Config:
-    info = dict(workspace=None, workspace_google_project=None)
+    info = dict(workspace=None, workspace_namespace=None)
     path = os.path.join(os.path.expanduser("~"), ".tnu_config")
 
     @classmethod
@@ -27,16 +27,20 @@ class Config:
             fh.write(json.dumps(cls.info, indent=2))
 
     @classmethod
-    def resolve(cls, override_workspace: Optional[str], override_namespace: Optional[str]):
+    def resolve(cls, override_workspace: Optional[str], override_namespace: Optional[str]) -> Tuple[str, str]:
         workspace = override_workspace or (cls.info['workspace'] or WORKSPACE_NAME)
-        namespace = override_namespace or (cls.info['workspace_google_project'] or WORKSPACE_GOOGLE_PROJECT)
-        if workspace and namespace is None:
+        namespace = override_namespace or (cls.info['workspace_namespace'] or WORKSPACE_GOOGLE_PROJECT)
+        if not workspace:
+            raise RuntimeError("This command requies a workspace. Either pass in with `--workspace`,"
+                               " or configure the CLI (see `tnu config --help`). A default may also be configured by"
+                               " setting the `WORKSPACE_NAME` env var")
+        if namespace is None:
             from terra_notebook_utils.workspace import get_workspace_namespace
             namespace = get_workspace_namespace(workspace)
-        if not workspace:
-            raise RuntimeError("This command requies a workspace. Either pass in a workspace with `--workspace`,"
-                               " or configure a default workspace for the cli (see `tnu config --help`)."
-                               " A default workspace may also be configued by setting the `WORKSPACE_NAME` env var")
+        if not namespace:
+            raise RuntimeError("This command requies a workspace namespace. Either pass in with `--workspace-namespace`"
+                               ", or configure the CLI (see `tnu config --help`). A default may also be"
+                               " configued by setting the `WORKSPACE_GOOGLE_PROJECT` env var")
         return workspace, namespace
 Config.load()
 
