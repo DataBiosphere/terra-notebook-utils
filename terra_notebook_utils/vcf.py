@@ -88,14 +88,14 @@ class VCFInfo:
                 return cls.with_gzip_fileobj(raw)
 
 def vcf_info(uri: str,
-             google_billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> VCFInfo:
+             workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> VCFInfo:
     if uri.startswith("drs://"):
         client, drs_info = drs.resolve_drs_for_gs_storage(uri)
-        blob = client.bucket(drs_info.bucket_name, user_project=google_billing_project).get_blob(drs_info.key)
+        blob = client.bucket(drs_info.bucket_name, user_project=workspace_namespace).get_blob(drs_info.key)
         return VCFInfo.with_blob(blob)
     elif uri.startswith("gs://"):
         bucket, key = uri[5:].split("/", 1)
-        blob = gs.get_client().bucket(bucket, user_project=google_billing_project).get_blob(key)
+        blob = gs.get_client().bucket(bucket, user_project=workspace_namespace).get_blob(key)
         return VCFInfo.with_blob(blob)
     elif uri.startswith("s3://"):
         raise ValueError("S3 URIs not supported")

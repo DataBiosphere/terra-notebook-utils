@@ -18,12 +18,12 @@ workspace_args: Dict[str, Dict[str, Any]] = {
         default=None,
         help="workspace name. If not provided, the configured CLI workspace will be used"
     ),
-    "--google-billing-project": dict(
+    "--workspace-namespace": dict(
         type=str,
         required=False,
-        default=Config.info['workspace_google_project'],
+        default=Config.info['workspace_namespace'],
         help=("The billing project for GS requests. "
-              "If omitted, the CLI configured `workspace_google_project` will be used. "
+              "If omitted, the CLI configured `workspace_namespace` will be used. "
               "Note that DRS URLs also involve a GS request.")
     )
 }
@@ -33,9 +33,9 @@ def list_submissions(args: argparse.Namespace):
     """
     List workflow submissions in chronological order
     """
-    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     listing = [(s['submissionId'], s['submissionDate'], s['status'])
-               for s in workflows.list_submissions(args.workspace, args.google_billing_project)]
+               for s in workflows.list_submissions(args.workspace, args.workspace_namespace)]
     for submission_id, date, status in sorted(listing, key=lambda item: item[1]):
         print(submission_id, date, status)
 
@@ -47,8 +47,8 @@ def get_submission(args: argparse.Namespace):
     """
     Get information about a submission, including member worklows
     """
-    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
-    submission = workflows.get_submission(args.submission_id, args.workspace, args.google_billing_project)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    submission = workflows.get_submission(args.submission_id, args.workspace, args.workspace_namespace)
     print(json.dumps(submission, indent=2))
 
 @workflow_cli.command("get-workflow", arguments={
@@ -60,8 +60,8 @@ def get_workflow(args: argparse.Namespace):
     """
     Get information about a workflow
     """
-    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
-    wf = workflows.get_workflow(args.submission_id, args.workflow_id, args.workspace, args.google_billing_project)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    wf = workflows.get_workflow(args.submission_id, args.workflow_id, args.workspace, args.workspace_namespace)
     print(json.dumps(wf, indent=2))
 
 @workflow_cli.command("estimate-submission-cost", arguments={
@@ -72,8 +72,8 @@ def estimate_submission_cost(args: argparse.Namespace):
     """
     Estimate costs for all workflows in a submission
     """
-    args.workspace, args.google_billing_project = Config.resolve(args.workspace, args.google_billing_project)
-    submission = workflows.get_submission(args.submission_id, args.workspace, args.google_billing_project)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    submission = workflows.get_submission(args.submission_id, args.workspace, args.workspace_namespace)
     reporter = TXTReport([("workflow_id", 37),
                           ("shard", 6),
                           ("cpus", 5),
@@ -88,7 +88,7 @@ def estimate_submission_cost(args: argparse.Namespace):
         for item in workflows.estimate_workflow_cost(args.submission_id,
                                                      workflow_id,
                                                      args.workspace,
-                                                     args.google_billing_project):
+                                                     args.workspace_namespace):
             cost, cpus, mem, duration = (item[k] for k in ('cost', 'number_of_cpus', 'memory', 'duration'))
             reporter.print_line(workflow_id, shard, cpus, mem, duration / 3600, cost)
             total += cost

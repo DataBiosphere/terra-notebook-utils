@@ -11,10 +11,10 @@ vcf_cli = dispatch.group("vcf", help=vcf.__doc__, arguments={
     "path": dict(
         help="local path, gs://, or drs://"
     ),
-    "--google-billing-project": dict(
+    "--workspace-namespace": dict(
         type=str,
         required=False,
-        default=Config.info['workspace_google_project'],
+        default=Config.info['workspace_namespace'],
         help=("The billing project for GS requests. "
               "If omitted, the CLI configured `workspace_google_project` will be used. "
               "Note that DRS URLs also involve a GS request.")
@@ -27,8 +27,8 @@ def head(args: argparse.Namespace):
     """
     Output VCF header.
     """
-    _, args.google_billing_project = Config.resolve(None, args.google_billing_project)
-    blob = _get_blob(args.path, args.google_billing_project)
+    _, args.workspace_namespace = Config.resolve(None, args.workspace_namespace)
+    blob = _get_blob(args.path, args.workspace_namespace)
     if blob:
         info = vcf.VCFInfo.with_blob(blob)
     else:
@@ -40,8 +40,8 @@ def samples(args: argparse.Namespace):
     """
     Output VCF samples.
     """
-    _, args.google_billing_project = Config.resolve(None, args.google_billing_project)
-    blob = _get_blob(args.path, args.google_billing_project)
+    _, args.workspace_namespace = Config.resolve(None, args.workspace_namespace)
+    blob = _get_blob(args.path, args.workspace_namespace)
     if blob:
         info = vcf.VCFInfo.with_blob(blob)
     else:
@@ -53,8 +53,8 @@ def stats(args: argparse.Namespace):
     """
     Output VCF stats.
     """
-    _, args.google_billing_project = Config.resolve(None, args.google_billing_project)
-    blob = _get_blob(args.path, args.google_billing_project)
+    _, args.workspace_namespace = Config.resolve(None, args.workspace_namespace)
+    blob = _get_blob(args.path, args.workspace_namespace)
     if blob:
         info = vcf.VCFInfo.with_blob(blob)
         size = blob.size

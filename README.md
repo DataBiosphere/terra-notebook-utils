@@ -68,23 +68,25 @@ tnu vcf -h
 ```
 
 ```
-# Show your available billing projects
-tnu profile list-billing-projects
+# Show your available workspace namespaces (also known as Google billing projects)
+tnu profile list-workspace-namespaces
 ```
 
 ### CLI Configuration
 
-Several CLI commands target a workspace or require a Google billing project. Defaults can be configured using the
+Several CLI commands target a workspace or require a workspace namespace. Defaults can be configured using the
 commands
 ```
 tnu config set-workspace my-workspace
-tnu config set-workspace-google-project my-billing-project
+tnu config set-workspace-google-project my-workspace-namespace
 ```
 
-Alternatively, workspace and billing project can be passed in to individual commands instead of, or as overrides to,
+Note that workspace namespace is the same as Google billing project.
+
+Alternatively, workspace and workspace namespace can be passed in to individual commands instead of, or as overrides to,
 the configured defaults. See command help, e.g. `tnu table get --help`, for usage information.
 
-Finally, workspace and billing project can be specified with the environment variables
+Finally, workspace and workspace namespace can be specified with the environment variables
 `WORKSPACE_NAME` and `GOOGLE_PROJECT`. These values are used with lowest precedence.
 
 ### The DRS API and CLI
