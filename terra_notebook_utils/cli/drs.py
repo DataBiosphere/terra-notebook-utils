@@ -107,7 +107,7 @@ def drs_info(args: argparse.Namespace):
     """
     Get information about drs:// objects
     """
-    info = drs.drs_info(args.drs_url)
+    info = drs.info(args.drs_url)
     print(json.dumps(info, indent=2))
 
 @drs_cli.command("credentials", arguments={
