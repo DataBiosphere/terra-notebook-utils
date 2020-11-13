@@ -4,6 +4,7 @@ Configure the CLI
 import os
 import json
 from typing import Optional, Tuple
+from terra_notebook_utils import version
 
 import cli_builder
 
@@ -45,8 +46,8 @@ class Config:
 Config.load()
 
 
-descr = """
-    Welcome to the terra-notebook-utils cli
+descr = f"""
+    Welcome to the terra-notebook-utils cli, version {version.__version__}
              ___
            _(((,|    What's DNA??
           /  _-\\\\
