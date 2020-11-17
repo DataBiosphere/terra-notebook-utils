@@ -20,7 +20,7 @@ from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WOR
 from terra_notebook_utils import drs, gs, tar_gz, vcf
 from terra_notebook_utils.drs import DRSResolutionError
 from contextlib import ExitStack
-from tests.infra import SuppressWarningsMixin, encoded_bytes_stream
+from tests.infra import SuppressWarningsMixin
 
 
 # These tests will only run on `make dev_env_access_test` command as they are testing DRS against Terra Dev env
