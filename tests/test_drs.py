@@ -37,13 +37,8 @@ class TestTerraNotebookUtilsDRSInDev(SuppressWarningsMixin, unittest.TestCase):
         self.assertEqual(info.size, 62043448)
 
     def test_head(self):
-        # Can't use io.BytesIO() with contextlib.redirect_stdout(out) here as it doesn't support
-        # sys.stdout.buffer so this workaround gets the bytes stream as stdout, just for testing
-        with encoded_bytes_stream():
-            drs.head(self.jade_dev_url)
-            sys.stdout.seek(0)
-            out = sys.stdout.read()
-            self.assertEqual(1, len(out))
+        the_bytes = drs.head(self.jade_dev_url)
+        self.assertEqual(1, len(the_bytes))
 
         with self.assertRaises(drs.GSBlobInaccessible):
             fake_drs_url = 'drs://nothing'
@@ -246,19 +241,11 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
     @testmode("controlled_access")
     def test_head(self):
         drs_url = 'drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71'
-        # Can't use io.BytesIO() with contextlib.redirect_stdout(out) here as it doesn't support
-        # sys.stdout.buffer so this workaround gets the bytes stream as stdout, just for testing
-        with encoded_bytes_stream():
-            drs.head(drs_url)
-            sys.stdout.seek(0)
-            out = sys.stdout.read()
-            self.assertEqual(1, len(out))
+        the_bytes = drs.head(drs_url)
+        self.assertEqual(1, len(the_bytes))
 
-        with encoded_bytes_stream():
-            drs.head(drs_url, num_bytes=10)
-            sys.stdout.seek(0)
-            out = sys.stdout.read()
-            self.assertEqual(10, len(out))
+        drs.head(drs_url, num_bytes=10)
+        self.assertEqual(10, len(the_bytes))
 
         with self.assertRaises(drs.GSBlobInaccessible):
             fake_drs_url = 'drs://nothing'
