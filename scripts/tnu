@@ -16,4 +16,8 @@ from terra_notebook_utils.cli import dispatch
 
 
 if __name__ == "__main__":
-    dispatch(sys.argv[1:])
+    if 2 == len(sys.argv) and "--version" == sys.argv[1].strip():
+        from terra_notebook_utils import version
+        print(version.__version__)
+    else:
+        dispatch(sys.argv[1:])

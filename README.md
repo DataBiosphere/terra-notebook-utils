@@ -72,6 +72,11 @@ tnu vcf -h
 tnu profile list-workspace-namespaces
 ```
 
+```
+# Show version
+tnu --version
+```
+
 ### CLI Configuration
 
 Several CLI commands target a workspace or require a workspace namespace. Defaults can be configured using the
