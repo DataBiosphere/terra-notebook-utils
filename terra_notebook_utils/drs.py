@@ -225,25 +225,14 @@ def head(drs_url: str,
     try:
         client, info = resolve_drs_for_gs_storage(drs_url)
         blob = client.bucket(info.bucket_name, user_project=workspace_namespace).blob(info.key)
-        try:
-            # sys.stdout.buffer is used outside of a python notebook since that's the standard non-lossy way
-            # to write/display bytes; sys.stdout.buffer is not available inside of a python notebook
-            # though, as sys.stdout is a ipykernel.iostream.OutStream object:
-            # https://github.com/ipython/ipykernel/blob/master/ipykernel/iostream.py#L265
-            # so we use bare sys.stdout and rely on the ipykernel method's lossy unicode stream
-            stdout_buffer = getattr(sys.stdout, 'buffer', sys.stdout)
-            with gscio.Reader(blob, chunk_size=buffer) as handle:
-                stdout_buffer.write(handle.read(num_bytes))
+        with gscio.Reader(blob, chunk_size=buffer) as handle:
+            the_bytes = handle.read(num_bytes)
 
-        except (NotFound, Forbidden):
-            raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
-                                     f'Could not be accessed because of:\n'
-                                     f'{traceback.format_exc()}')
-    except DRSResolutionError:
-        raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n Could not be accessed because of:\n'
+    except (DRSResolutionError, NotFound, Forbidden):
+        raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
+                                 f'Could not be accessed because of:\n'
                                  f'{traceback.format_exc()}')
-    except Exception:
-        raise
+    return the_bytes
 
 def copy_to_bucket(drs_url: str,
                    dst_key: str,

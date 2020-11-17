@@ -1,3 +1,4 @@
+import sys
 import json
 import argparse
 from typing import Any, Dict
@@ -76,11 +77,18 @@ def drs_head(args: argparse.Namespace):
         setattr(args, 'buffer', MULTIPART_THRESHOLD)
     if not getattr(args, 'bytes', None):
         setattr(args, 'bytes', 1)
-    drs.head(args.drs_url,
-             num_bytes=args.bytes,
-             buffer=args.buffer,
-             workspace_name=args.workspace,
-             workspace_namespace=args.workspace_namespace)
+    the_bytes = drs.head(args.drs_url,
+                         num_bytes=args.bytes,
+                         buffer=args.buffer,
+                         workspace_name=args.workspace,
+                         workspace_namespace=args.workspace_namespace)
+    # sys.stdout.buffer is used outside of a python notebook since that's the standard non-lossy way
+    # to write/display bytes; sys.stdout.buffer is not available inside of a python notebook
+    # though, as sys.stdout is a ipykernel.iostream.OutStream object:
+    # https://github.com/ipython/ipykernel/blob/master/ipykernel/iostream.py#L265
+    # so we use bare sys.stdout and rely on the ipykernel method's lossy unicode stream
+    stdout_buffer = getattr(sys.stdout, 'buffer', sys.stdout)
+    stdout_buffer.write(the_bytes)
 
 @drs_cli.command("extract-tar-gz", arguments={
     "drs_url": dict(type=str),

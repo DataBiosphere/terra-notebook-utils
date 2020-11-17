@@ -33,7 +33,7 @@ import terra_notebook_utils.cli.workspace
 import terra_notebook_utils.cli.profile
 import terra_notebook_utils.cli.drs
 import terra_notebook_utils.cli.table
-from tests.infra import SuppressWarningsMixin, encoded_bytes_stream, upload_data
+from tests.infra import SuppressWarningsMixin, upload_data
 from tests.infra.partialize_vcf import partialize_vcf
 
 

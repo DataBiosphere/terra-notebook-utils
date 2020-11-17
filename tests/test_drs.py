@@ -20,7 +20,7 @@ from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WOR
 from terra_notebook_utils import drs, gs, tar_gz, vcf
 from terra_notebook_utils.drs import DRSResolutionError
 from contextlib import ExitStack
-from tests.infra import SuppressWarningsMixin, encoded_bytes_stream
+from tests.infra import SuppressWarningsMixin
 
 
 # These tests will only run on `make dev_env_access_test` command as they are testing DRS against Terra Dev env
@@ -37,13 +37,8 @@ class TestTerraNotebookUtilsDRSInDev(SuppressWarningsMixin, unittest.TestCase):
         self.assertEqual(info.size, 62043448)
 
     def test_head(self):
-        # Can't use io.BytesIO() with contextlib.redirect_stdout(out) here as it doesn't support
-        # sys.stdout.buffer so this workaround gets the bytes stream as stdout, just for testing
-        with encoded_bytes_stream():
-            drs.head(self.jade_dev_url)
-            sys.stdout.seek(0)
-            out = sys.stdout.read()
-            self.assertEqual(1, len(out))
+        the_bytes = drs.head(self.jade_dev_url)
+        self.assertEqual(1, len(the_bytes))
 
         with self.assertRaises(drs.GSBlobInaccessible):
             fake_drs_url = 'drs://nothing'
@@ -246,19 +241,11 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
     @testmode("controlled_access")
     def test_head(self):
         drs_url = 'drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71'
-        # Can't use io.BytesIO() with contextlib.redirect_stdout(out) here as it doesn't support
-        # sys.stdout.buffer so this workaround gets the bytes stream as stdout, just for testing
-        with encoded_bytes_stream():
-            drs.head(drs_url)
-            sys.stdout.seek(0)
-            out = sys.stdout.read()
-            self.assertEqual(1, len(out))
+        the_bytes = drs.head(drs_url)
+        self.assertEqual(1, len(the_bytes))
 
-        with encoded_bytes_stream():
-            drs.head(drs_url, num_bytes=10)
-            sys.stdout.seek(0)
-            out = sys.stdout.read()
-            self.assertEqual(10, len(out))
+        the_bytes = drs.head(drs_url, num_bytes=10)
+        self.assertEqual(10, len(the_bytes))
 
         with self.assertRaises(drs.GSBlobInaccessible):
             fake_drs_url = 'drs://nothing'
