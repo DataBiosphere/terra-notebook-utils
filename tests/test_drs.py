@@ -244,7 +244,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         the_bytes = drs.head(drs_url)
         self.assertEqual(1, len(the_bytes))
 
-        drs.head(drs_url, num_bytes=10)
+        the_bytes = drs.head(drs_url, num_bytes=10)
         self.assertEqual(10, len(the_bytes))
 
         with self.assertRaises(drs.GSBlobInaccessible):
