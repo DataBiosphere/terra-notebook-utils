@@ -68,7 +68,11 @@ def estimate_workflow_cost(submission_id: str,
                                                       memory_gb,
                                                       runtime_hours,
                                                       _parse_preemptible(execution_metadata))
-                yield dict(task_name=task_name, cost=cost, number_of_cpus=cpus, memory=memory_gb, duration=runtime_hours)
+                yield dict(task_name=task_name,
+                           cost=cost,
+                           number_of_cpus=cpus,
+                           memory=memory_gb,
+                           duration=runtime_hours)
             except TNUCostException as exc:
                 logger.warning(f"Unable to estimate costs for workflow {workflow_id}: "
                                f"{exc.args[0]}")
