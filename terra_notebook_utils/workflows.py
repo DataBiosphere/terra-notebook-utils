@@ -66,13 +66,13 @@ def estimate_workflow_cost(submission_id: str,
         for execution_metadata in workflow_metadata:
             try:
                 task_name = workflow_name.split(".")[1]
-                cpus, memory_gb = _parse_machine_type(execution_metadata)
+                cpus, memory_gb = _parse_machine_type(_get("jes.machineType", execution_metadata))
                 # Assume that Google Lifesciences Pipelines API uses N1 custome machine type
-                runtime = _parse_runtime_seconds(execution_metadata)
-                cost = costs.GCPCustomN1Cost.estimate(cpus,
-                                                      memory_gb,
-                                                      runtime,
-                                                      _parse_preemptible(execution_metadata))
+                start = datetime.strptime(_get("start", execution_metadata), date_format)
+                end = datetime.strptime(_get("end", execution_metadata), date_format)
+                runtime = (end - start).total_seconds()
+                preemptible = bool(int(_get("runtimeAttributes.preemptible", execution_metadata)))
+                cost = costs.GCPCustomN1Cost.estimate(cpus, memory_gb, runtime, preemptible)
                 yield dict(task_name=task_name,
                            cost=cost,
                            number_of_cpus=cpus,
@@ -82,13 +82,7 @@ def estimate_workflow_cost(submission_id: str,
                 logger.warning(f"Unable to estimate costs for workflow {workflow_id}: "
                                f"{exc.args[0]}")
 
-def _parse_runtime_seconds(execution_metadata: dict) -> float:
-    start = datetime.strptime(_get("start", execution_metadata), date_format)
-    end = datetime.strptime(_get("end", execution_metadata), date_format)
-    return (end - start).total_seconds()
-
-def _parse_machine_type(execution_metadata: dict) -> Tuple[int, float]:
-    machine_type = _get("jes.machineType", execution_metadata)
+def _parse_machine_type(machine_type: str) -> Tuple[int, float]:
     parts = machine_type.split("-", 2)
     if 3 != len(parts) or "custom" != parts[0]:
         raise TNUCostException(f"Cannot estimate costs for machine type '{machine_type}'"
@@ -98,6 +92,3 @@ def _parse_machine_type(execution_metadata: dict) -> Tuple[int, float]:
         return cpus, memory_gb
     except ValueError as exc:
         raise TNUCostException(f"Cannot parse cpus and memory from '{machine_type}'") from exc
-
-def _parse_preemptible(execution_metadata: dict) -> bool:
-    return bool(int(_get("runtimeAttributes.preemptible", execution_metadata)))
