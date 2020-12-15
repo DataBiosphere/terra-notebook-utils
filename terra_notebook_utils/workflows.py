@@ -55,24 +55,22 @@ def estimate_workflow_cost(submission_id: str,
                            workspace_name: Optional[str]=WORKSPACE_NAME,
                            workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     all_metadata = get_workflow(submission_id, workflow_id, workspace_name, workspace_namespace)
-    machine_type: Optional[str]
     for workflow_name, workflow_metadata in all_metadata['calls'].items():
         for execution_metadata in workflow_metadata:
             try:
                 task_name = workflow_name.split(".")[1]
-                cpus, memory_mb = _parse_machine_type(execution_metadata)
-                memory_gb = int(memory_mb / 1024)
-                runtime_hours = _parse_runtime_seconds(execution_metadata)
+                cpus, memory_gb = _parse_machine_type(execution_metadata)
                 # Assume that Google Lifesciences Pipelines API uses N1 custome machine type
+                runtime = _parse_runtime_seconds(execution_metadata)
                 cost = costs.GCPCustomN1Cost.estimate(cpus,
                                                       memory_gb,
-                                                      runtime_hours,
+                                                      runtime,
                                                       _parse_preemptible(execution_metadata))
                 yield dict(task_name=task_name,
                            cost=cost,
                            number_of_cpus=cpus,
                            memory=memory_gb,
-                           duration=runtime_hours)
+                           duration=runtime)
             except TNUCostException as exc:
                 logger.warning(f"Unable to estimate costs for workflow {workflow_id}: "
                                f"{exc.args[0]}")
@@ -100,8 +98,8 @@ def _parse_machine_type(execution_metadata: dict) -> Tuple[int, int]:
         raise TNUCostException(f"Cannot estimate costs for machine type '{machine_type}'"
                                "Please contact terra-notebook-utils maintainers to add support")
     try:
-        cpus, memory_mb = int(parts[1]), int(parts[2])
-        return cpus, memory_mb
+        cpus, memory_gb = int(parts[1]), int(int(parts[2]) / 1024)
+        return cpus, memory_gb
     except ValueError as exc:
         raise TNUCostException(f"Cannot parse cpus and memory from '{machine_type}'") from exc
 
