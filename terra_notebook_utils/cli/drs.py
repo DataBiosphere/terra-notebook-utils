@@ -72,11 +72,6 @@ def drs_head(args: argparse.Namespace):
         tnu drs head drs://crouching-drs-hidden-access
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    # TODO: cli_build doesn't seem to honor "required=False"
-    if not getattr(args, 'buffer', None):
-        setattr(args, 'buffer', MULTIPART_THRESHOLD)
-    if not getattr(args, 'bytes', None):
-        setattr(args, 'bytes', 1)
     the_bytes = drs.head(args.drs_url,
                          num_bytes=args.bytes,
                          buffer=args.buffer,
