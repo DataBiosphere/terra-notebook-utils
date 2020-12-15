@@ -37,13 +37,9 @@ class TestTerraNotebookUtilsWorkflows(unittest.TestCase):
         workflow_id = workflows.get_submission(self.submission_id)['workflows'][0]['workflowId']
         workflows.estimate_workflow_cost(self.submission_id, workflow_id)
 
-    def test_catch_key_error(self):
-        @workflows._catch_key_error
-        def foo(execution_metadata):
-            execution_metadata['asdf']
-
+    def test_get_utility(self):
         with self.assertRaises(workflows.TNUCostException):
-            foo(dict())
+            workflows._get("not.a.valid.path", dict(foo="bar"))
 
 @testmode("workspace_access")
 class TestTerraNotebookUtilsWorkflowsCLI(CLITestMixin, unittest.TestCase):
