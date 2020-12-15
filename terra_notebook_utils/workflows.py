@@ -66,18 +66,23 @@ def estimate_workflow_cost(submission_id: str,
         for execution_metadata in workflow_metadata:
             try:
                 task_name = workflow_name.split(".")[1]
-                cpus, memory_gb = _parse_machine_type(_get("jes.machineType", execution_metadata))
-                # Assume that Google Lifesciences Pipelines API uses N1 custome machine type
-                start = datetime.strptime(_get("start", execution_metadata), date_format)
-                end = datetime.strptime(_get("end", execution_metadata), date_format)
-                runtime = (end - start).total_seconds()
-                preemptible = bool(int(_get("runtimeAttributes.preemptible", execution_metadata)))
-                cost = costs.GCPCustomN1Cost.estimate(cpus, memory_gb, runtime, preemptible)
+                call_cached = bool(int(_get("callCaching.hit", execution_metadata)))
+                if call_cached:
+                    cost, cpus, memory_gb, runtime = 0.0, 0, 0, 0.0
+                else:
+                    cpus, memory_gb = _parse_machine_type(_get("jes.machineType", execution_metadata))
+                    # Assume that Google Lifesciences Pipelines API uses N1 custome machine type
+                    start = datetime.strptime(_get("start", execution_metadata), date_format)
+                    end = datetime.strptime(_get("end", execution_metadata), date_format)
+                    runtime = (end - start).total_seconds()
+                    preemptible = bool(int(_get("runtimeAttributes.preemptible", execution_metadata)))
+                    cost = costs.GCPCustomN1Cost.estimate(cpus, memory_gb, runtime, preemptible)
                 yield dict(task_name=task_name,
                            cost=cost,
                            number_of_cpus=cpus,
                            memory=memory_gb,
-                           duration=runtime)
+                           duration=runtime,
+                           call_cached=call_cached)
             except TNUCostException as exc:
                 logger.warning(f"Unable to estimate costs for workflow {workflow_id}: "
                                f"{exc.args[0]}")
