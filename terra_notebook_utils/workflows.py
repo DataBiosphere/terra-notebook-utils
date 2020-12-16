@@ -68,7 +68,7 @@ def estimate_workflow_cost(submission_id: str,
                 task_name = workflow_name.split(".")[1]
                 call_cached = bool(int(_get("callCaching.hit", execution_metadata)))
                 if call_cached:
-                    cost, cpus, memory_gb, runtime = 0.0, 0, 0, 0.0
+                    cost, cpus, memory_gb, runtime = 0.0, 0, 0.0, 0.0
                 else:
                     cpus, memory_gb = _parse_machine_type(_get("jes.machineType", execution_metadata))
                     # Assume that Google Lifesciences Pipelines API uses N1 custome machine type
