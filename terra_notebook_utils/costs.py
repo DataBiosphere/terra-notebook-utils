@@ -11,7 +11,7 @@ class GCPCustomN1Cost:
     preemptible_per_hour_per_gb = 0.00094
 
     @classmethod
-    def estimate(cls, cpus: int, memory_gb: int, runtime_seconds: float, preemptible: bool) -> float:
+    def estimate(cls, cpus: int, memory_gb: float, runtime_seconds: float, preemptible: bool) -> float:
         # GCP Instance Billing Model:
         # https://cloud.google.com/compute/vm-instance-pricing#billingmodel
         if preemptible:
