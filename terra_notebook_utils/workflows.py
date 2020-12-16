@@ -91,14 +91,14 @@ def _parse_runtime_seconds(execution_metadata: dict) -> float:
     return (end - start).total_seconds()
 
 @_catch_key_error
-def _parse_machine_type(execution_metadata: dict) -> Tuple[int, int]:
+def _parse_machine_type(execution_metadata: dict) -> Tuple[int, float]:
     machine_type = execution_metadata['jes']['machineType']
     parts = machine_type.split("-", 2)
     if 3 != len(parts) or "custom" != parts[0]:
         raise TNUCostException(f"Cannot estimate costs for machine type '{machine_type}'"
                                "Please contact terra-notebook-utils maintainers to add support")
     try:
-        cpus, memory_gb = int(parts[1]), int(int(parts[2]) / 1024)
+        cpus, memory_gb = int(parts[1]), float(parts[2]) / 1024
         return cpus, memory_gb
     except ValueError as exc:
         raise TNUCostException(f"Cannot parse cpus and memory from '{machine_type}'") from exc
