@@ -6,8 +6,9 @@ import json
 import logging
 from datetime import datetime
 from functools import lru_cache
-from typing import Tuple, Generator, Optional
+from typing import Any, Dict, Generator, Optional, Tuple
 
+import jmespath
 from firecloud import fiss
 
 from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, costs
@@ -50,6 +51,12 @@ def get_workflow(submission_id: str,
     resp.raise_for_status()
     return resp.json()
 
+def _get(path: str, data: Dict[str, Any]) -> Any:
+    res = jmespath.search(path, data)
+    if res is None:
+        raise TNUCostException(f"'{path}' not found in {json.dumps(data, indent=2)}")
+    return res
+
 def estimate_workflow_cost(submission_id: str,
                            workflow_id: str,
                            workspace_name: Optional[str]=WORKSPACE_NAME,
@@ -75,24 +82,13 @@ def estimate_workflow_cost(submission_id: str,
                 logger.warning(f"Unable to estimate costs for workflow {workflow_id}: "
                                f"{exc.args[0]}")
 
-def _catch_key_error(func):
-    def _wrapper(execution_metadata: dict):
-        try:
-            return func(execution_metadata)
-        except KeyError as ke:
-            missing_key = ke.args[0]
-            raise TNUCostException(f"'{func.__name__}' failed: '{missing_key}' not found in workflow metadata")
-    return _wrapper
-
-@_catch_key_error
 def _parse_runtime_seconds(execution_metadata: dict) -> float:
-    start = datetime.strptime(execution_metadata['start'], date_format)
-    end = datetime.strptime(execution_metadata['end'], date_format)
+    start = datetime.strptime(_get("start", execution_metadata), date_format)
+    end = datetime.strptime(_get("end", execution_metadata), date_format)
     return (end - start).total_seconds()
 
-@_catch_key_error
 def _parse_machine_type(execution_metadata: dict) -> Tuple[int, float]:
-    machine_type = execution_metadata['jes']['machineType']
+    machine_type = _get("jes.machineType", execution_metadata)
     parts = machine_type.split("-", 2)
     if 3 != len(parts) or "custom" != parts[0]:
         raise TNUCostException(f"Cannot estimate costs for machine type '{machine_type}'"
@@ -103,6 +99,5 @@ def _parse_machine_type(execution_metadata: dict) -> Tuple[int, float]:
     except ValueError as exc:
         raise TNUCostException(f"Cannot parse cpus and memory from '{machine_type}'") from exc
 
-@_catch_key_error
 def _parse_preemptible(execution_metadata: dict) -> bool:
-    return bool(int(execution_metadata['runtimeAttributes']['preemptible']))
+    return bool(int(_get("runtimeAttributes.preemptible", execution_metadata)))
