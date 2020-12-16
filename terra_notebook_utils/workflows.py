@@ -54,7 +54,7 @@ def get_workflow(submission_id: str,
 def _get(path: str, data: Dict[str, Any]) -> Any:
     res = jmespath.search(path, data)
     if res is None:
-        raise TNUCostException(f"'{path}' note found in {json.dumps(data)}")
+        raise TNUCostException(f"'{path}' not found in {json.dumps(data)}")
     return res
 
 def estimate_workflow_cost(submission_id: str,
