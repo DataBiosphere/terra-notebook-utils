@@ -79,6 +79,7 @@ def estimate_submission_cost(args: argparse.Namespace):
                           ("cpus", 5),
                           ("memory (GB)", 12),
                           ("duration (h)", 13),
+                          ("call cached", 12),
                           ("cost", 5)])
     reporter.print_headers()
     total = 0
@@ -89,12 +90,16 @@ def estimate_submission_cost(args: argparse.Namespace):
                                                      workflow_id,
                                                      args.workspace,
                                                      args.workspace_namespace):
-            cost, cpus, mem, duration = (item[k] for k in ('cost', 'number_of_cpus', 'memory', 'duration'))
-            reporter.print_line(workflow_id, shard, cpus, mem, duration / 3600, cost)
+            cost, cpus, mem, duration, call_cached = (item[k] for k in ('cost',
+                                                                        'number_of_cpus',
+                                                                        'memory',
+                                                                        'duration',
+                                                                        'call_cached'))
+            reporter.print_line(workflow_id, shard, cpus, mem, duration / 3600, call_cached, cost)
             total += cost
             shard += 1
     reporter.print_divider()
-    reporter.print_line("", "", "", "", "", total)
+    reporter.print_line("", "", "", "", "", "", total)
 
 class TXTReport:
     def __init__(self, fields: List[Tuple[str, int]]):
@@ -122,7 +127,7 @@ class TXTReport:
         print("-" * self.width)
 
     def ff(self, val: Any, width: int, decimals: int=2) -> str:
-        if isinstance(val, str):
+        if isinstance(val, (str, bool)):
             return f"%{width}s" % val
         elif isinstance(val, int):
             return f"%{width}i" % val
