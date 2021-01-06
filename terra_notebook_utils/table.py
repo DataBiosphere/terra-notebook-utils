@@ -21,6 +21,18 @@ UPDATE_OPS = List[Dict[str, Any]]
 COLUMN_HEADERS = Tuple[str, ...]
 ROW_LIKE = Tuple[str, ATTRIBUTES]
 
+# A note on types:
+# As presented in Terra's UI, tables may contain string, integer, and booleas values.  However, Firecloud API clients
+# must transmit tables using TSV formatted data, which is not typed. So, alas, we cannot transmit typed data to Terra
+# data tables, and cannot transform uploaded types via the Firecloud API (as far as I know).
+#
+# It would be preferable if the Firecloud API exposed JSON endpoints for uploading table data (which may already exist
+# on the backedn?)
+
+# It turns out google.auth.transport.requests.AuthorizedSession is not thread safe.
+# Fortunately fiss.fapi._set_session caches the result. Call it once on the main thread.
+fiss.fapi._set_session()
+
 class Writer(_AsyncContextManager):
     """
     Distribute row uploads across as few API calls as possible.
