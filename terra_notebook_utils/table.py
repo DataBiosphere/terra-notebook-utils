@@ -123,6 +123,49 @@ class Writer(_AsyncContextManager):
         if self._tsvs:
             self._upload()
 
+class Deleter(_AsyncContextManager):
+    """
+    Distribute row deletes across as few API calls as possible.
+    """
+    def __init__(self, name: str, **kwargs):
+        self.name = name
+        self._workspace_name = kwargs.get("workspace_name", WORKSPACE_NAME)
+        self._workspace_google_project = kwargs.get("workspace_google_project", WORKSPACE_GOOGLE_PROJECT)
+        self._init_request_data()
+
+    def _init_request_data(self):
+        self._request_data: List[Dict[str, str]] = list()
+
+    def del_row(self, item: Union[str, ROW_LIKE]):
+        if isinstance(item, str):
+            name = item
+        elif isinstance(item, Row):
+            name = item.name
+        else:
+            name = item[0]
+        self._request_data.append(dict(entityType=self.name, entityName=name))
+        if 500 <= len(self._request_data):
+            self._delete()
+
+    def _delete(self):
+        self.submit(self._do_fiss_delete, self._request_data)
+        self._init_request_data()
+
+    def _do_fiss_delete(self, ents: List[Dict[str, str]]):
+        try:
+            fiss.fapi.delete_entities(self._workspace_google_project,
+                                      self._workspace_name,
+                                      ents).raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            if 400 == e.response.status_code:
+                pass
+            else:
+                raise
+
+    def _prepare_for_exit(self):
+        if self._request_data:
+            self._delete()
+
 def _iter_table(table: str,
                 workspace_name: Optional[str]=WORKSPACE_NAME,
                 workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
