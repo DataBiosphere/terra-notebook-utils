@@ -3,11 +3,11 @@ import json
 import typing
 import argparse
 
-from terra_notebook_utils import table
+from terra_notebook_utils import table as tnu_table
 from terra_notebook_utils.cli import dispatch, Config
 
 
-table_cli = dispatch.group("table", help=table.__doc__, arguments={
+table_cli = dispatch.group("table", help=tnu_table.__doc__, arguments={
     "--workspace": dict(
         type=str,
         default=None,
@@ -21,17 +21,15 @@ table_cli = dispatch.group("table", help=table.__doc__, arguments={
     ),
 })
 
-
 @table_cli.command("list")
 def list_tables(args: argparse.Namespace):
     """
-    List all tables, with column headers, in the workspace
+    List all tables in the workspace
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    out = dict()
-    for t, attributes in table.list_tables(args.workspace, args.workspace_namespace):
-        out[t] = attributes
-    print(json.dumps(out, indent=2))
+    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
+    for table in tnu_table.list_tables(**kwargs):
+        print(table)
 
 @table_cli.command("get", arguments={
     "--table": dict(type=str, required=True, help="table name")
@@ -41,7 +39,7 @@ def get_table(args: argparse.Namespace):
     Get all rows
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    for e in table.list_entities(args.table, args.workspace, args.workspace_namespace):
+    for e in tnu_table.list_entities(args.table, args.workspace, args.workspace_namespace):
         data = e['attributes']
         data[f'{args.table}_id'] = e['name']
         print(json.dumps(data, indent=2))
@@ -55,7 +53,7 @@ def get_row(args: argparse.Namespace):
     Get one row
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    e = table.get_row(args.table, args.id, args.workspace, args.workspace_namespace)
+    e = tnu_table.get_row(args.table, args.id, args.workspace, args.workspace_namespace)
     data = e['attributes']
     data[f'{args.table}_id'] = e['name']
     print(json.dumps(data, indent=2))
@@ -69,7 +67,7 @@ def fetch_drs_url(args: argparse.Namespace):
     Fetch the DRS URL associated with `--file-name` in `--table`.
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    print(table.fetch_drs_url(args.table, args.file_name, args.workspace, args.workspace_namespace))
+    print(tnu_table.fetch_drs_url(args.table, args.file_name, args.workspace, args.workspace_namespace))
 
 @table_cli.command("get-cell", arguments={
     "--table": dict(type=str, required=True, help="table name"),
@@ -81,7 +79,7 @@ def get_cell(args: argparse.Namespace):
     Get cell value
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    for e in table.list_entities(args.table, args.workspace, args.workspace_namespace):
+    for e in tnu_table.list_entities(args.table, args.workspace, args.workspace_namespace):
         if args.id == e['name']:
             print(e['attributes'][args.column])
 
@@ -109,4 +107,4 @@ def put_row(args: argparse.Namespace):
         headers.append(key)
         values.append(val)
     tsv = "\t".join(headers) + os.linesep + "\t".join(values)
-    table.upload_entities(tsv, args.workspace, args.workspace_namespace)
+    tnu_table.upload_entities(tsv, args.workspace, args.workspace_namespace)

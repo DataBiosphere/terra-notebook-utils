@@ -4,7 +4,7 @@ Terra data table commands
 import os
 from uuid import uuid4
 from collections import defaultdict, namedtuple
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Set, Tuple, Union
 
 import requests
 from firecloud import fiss
@@ -241,12 +241,13 @@ def fetch_drs_url(table: str,
         raise ValueError(f"Expected DRS url in {table} for {file_name}, got {val} instead.")
     return val
 
-def list_tables(workspace_name: Optional[str]=WORKSPACE_NAME,
-                workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+def list_tables(**kwargs) -> Generator[str, None, None]:
+    workspace_name = kwargs.get("workspace_name", WORKSPACE_NAME)
+    workspace_google_project = kwargs.get("workspace_google_project", WORKSPACE_GOOGLE_PROJECT)
     resp = fiss.fapi.list_entity_types(workspace_google_project, workspace_name)
     resp.raise_for_status()
-    for ent_type, data in resp.json().items():
-        yield ent_type, data['attributeNames']
+    for table_name in resp.json():
+        yield table_name
 
 def list_entities(ent_type: str,
                   workspace_name: Optional[str]=WORKSPACE_NAME,
