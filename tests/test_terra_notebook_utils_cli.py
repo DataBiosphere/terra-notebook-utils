@@ -297,8 +297,8 @@ class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
     def test_list(self):
         self._test_cmd(terra_notebook_utils.cli.table.list_tables)
 
-    def test_get(self):
-        self._test_cmd(terra_notebook_utils.cli.table.get_table, table="simple_germline_variation")
+    def test_list_rows(self):
+        self._test_cmd(terra_notebook_utils.cli.table.list_rows, table="simple_germline_variation")
 
     def test_get_row(self):
         out = self._test_cmd(terra_notebook_utils.cli.table.get_row,

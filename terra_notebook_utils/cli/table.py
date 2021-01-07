@@ -31,18 +31,17 @@ def list_tables(args: argparse.Namespace):
     for table in tnu_table.list_tables(**kwargs):
         print(table)
 
-@table_cli.command("get", arguments={
+@table_cli.command("list-rows", arguments={
     "--table": dict(type=str, required=True, help="table name")
 })
-def get_table(args: argparse.Namespace):
+def list_rows(args: argparse.Namespace):
     """
     Get all rows
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    for e in tnu_table.list_entities(args.table, args.workspace, args.workspace_namespace):
-        data = e['attributes']
-        data[f'{args.table}_id'] = e['name']
-        print(json.dumps(data, indent=2))
+    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
+    for row in tnu_table.list_rows(args.table, **kwargs):
+        print(row.name, row.attributes)
 
 @table_cli.command("get-row", arguments={
     "--table": dict(type=str, required=True, help="table name"),
@@ -66,8 +65,8 @@ def fetch_drs_url(args: argparse.Namespace):
     """
     Fetch the DRS URL associated with `--file-name` in `--table`.
     """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    print(tnu_table.fetch_drs_url(args.table, args.file_name, args.workspace, args.workspace_namespace))
+    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
+    print(tnu_table.fetch_drs_url(args.table, args.file_name, **kwargs))
 
 @table_cli.command("get-cell", arguments={
     "--table": dict(type=str, required=True, help="table name"),

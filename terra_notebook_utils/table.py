@@ -194,53 +194,6 @@ def _get_item_val(item: dict, key: str):
     else:
         return item['attributes'][key]
 
-def fetch_attribute(table: str,
-                    filter_column: str,
-                    filter_val: str,
-                    attribute: str,
-                    workspace_name: Optional[str]=WORKSPACE_NAME,
-                    workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    """
-    Fetch `attribute` from `table` from the same row containing `filter_val` in column `filter_column`
-    """
-    for item in _iter_table(table, workspace_name, workspace_google_project):
-        if filter_val == _get_item_val(item, filter_column):
-            return _get_item_val(item, attribute)
-    else:
-        raise ValueError(f"No row found for table {table}, filter_column {filter_column} filter_val {filter_val}")
-
-def fetch_object_id(table: str,
-                    file_name: str,
-                    workspace_name: Optional[str]=WORKSPACE_NAME,
-                    workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    """
-    Fetch `object_id` associated with `pfb:file_name` from `table`.
-    DRS urls, when available, are stored in `pfb:object_id`.
-    Note: prior to 21-October, 2020, column headers omitted the "pfb:" prefix. For the time being, both formats are
-          supported.
-    """
-    for pfx in ("pfb:", ""):
-        try:
-            return fetch_attribute(table,
-                                   f"{pfx}file_name",
-                                   file_name,
-                                   f"{pfx}object_id",
-                                   workspace_name,
-                                   workspace_google_project)
-        except KeyError:
-            pass
-    else:
-        raise KeyError(f"Unable to fetch object_id for table '{table}', file_name '{file_name}'")
-
-def fetch_drs_url(table: str,
-                  file_name: str,
-                  workspace_name: Optional[str]=WORKSPACE_NAME,
-                  workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    val = fetch_object_id(table, file_name, workspace_name, workspace_google_project)
-    if not val.startswith("drs://"):
-        raise ValueError(f"Expected DRS url in {table} for {file_name}, got {val} instead.")
-    return val
-
 def list_tables(**kwargs) -> Generator[str, None, None]:
     workspace_name = kwargs.get("workspace_name", WORKSPACE_NAME)
     workspace_google_project = kwargs.get("workspace_google_project", WORKSPACE_GOOGLE_PROJECT)
@@ -248,6 +201,35 @@ def list_tables(**kwargs) -> Generator[str, None, None]:
     resp.raise_for_status()
     for table_name in resp.json():
         yield table_name
+
+def _get_rows_page(table: str,
+                   page_number: int=1,
+                   page_size: int=500,
+                   sort_direction: str="asc",
+                   filter_terms: Any=None,
+                   **kwargs) -> Tuple[int, dict]:
+    resp = fiss.fapi.get_entities_query(kwargs.get("workspace_google_project", WORKSPACE_GOOGLE_PROJECT),
+                                        kwargs.get("workspace_name", WORKSPACE_NAME),
+                                        table,
+                                        page=page_number,
+                                        page_size=page_size,
+                                        sort_direction=sort_direction,
+                                        filter_terms=filter_terms)
+    resp.raise_for_status()
+    body = resp.json()
+    return body['resultMetadata']['filteredPageCount'], body['results']
+
+def _attributes_from_fiss_response(attributes: Dict[str, Any]) -> ATTRIBUTES:
+    return {key: val['items'] if isinstance(val, dict) and "items" in val else val
+            for key, val in attributes.items()}
+
+def list_rows(table: str, **kwargs) -> Generator[Row, None, None]:
+    page_number = total_pages = 1
+    while total_pages >= page_number:
+        total_pages, rows = _get_rows_page(table, page_number, **kwargs)
+        for item in rows:
+            yield Row(item['name'], _attributes_from_fiss_response(item['attributes']))
+        page_number += 1
 
 def list_entities(ent_type: str,
                   workspace_name: Optional[str]=WORKSPACE_NAME,
@@ -279,6 +261,28 @@ def upload_entities(tsv_data,
                     workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     resp = fiss.fapi.upload_entities(workspace_google_project, workspace_name, tsv_data, model="flexible")
     resp.raise_for_status()
+
+def fetch_drs_url(table: str, file_name: str, **kwargs) -> str:
+    """
+    Fetch the first `object_id` associated with `pfb:file_name` from `table`.
+    DRS urls, when available, are stored in `pfb:object_id`.
+    Note: prior to 21-October, 2020, column headers omitted the "pfb:" prefix. For the time being, both formats are
+          supported.
+    """
+    for pfx in ("pfb:", ""):
+        try:
+            for row in list_rows(table, **kwargs):
+                if file_name == row.attributes[f"{pfx}file_name"]:
+                    val = row.attributes[f"{pfx}object_id"]
+                    if isinstance(val, str) and val.startswith("drs://"):
+                        return val
+                    else:
+                        raise ValueError(f"Expected DRS url in '{table}' for '{file_name}'"
+                                         f", got '{val}' instead.")
+        except KeyError:
+            pass
+    else:
+        raise KeyError(f"Unable to fetch DRS URL for table '{table}', file_name '{file_name}'")
 
 def print_column(table: str, column: str):
     for item in _iter_table(table):
