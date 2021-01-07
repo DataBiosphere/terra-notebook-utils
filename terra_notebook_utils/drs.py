@@ -203,9 +203,13 @@ def copy_to_local(drs_url: str,
     if os.path.isdir(filepath):
         filename = info.name or info.key.rsplit("/", 1)[-1]
         filepath = os.path.join(os.path.abspath(filepath), filename)
-    with open(filepath, "wb") as fh:
-        logger.info(f"Downloading {drs_url} to {filepath}")
-        blob.download_to_file(fh)
+    logger.info(f"Downloading {drs_url} to {filepath}")
+    try:
+        with open(filepath, "wb") as fh:
+            blob.download_to_file(fh)
+    except Exception:
+        os.remove(filepath)
+        raise
 
 def head(drs_url: str,
          num_bytes: int = 1,
