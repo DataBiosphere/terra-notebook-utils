@@ -22,12 +22,12 @@ COLUMN_HEADERS = Tuple[str, ...]
 ROW_LIKE = Tuple[str, ATTRIBUTES]
 
 # A note on types:
-# As presented in Terra's UI, tables may contain string, integer, and booleas values.  However, Firecloud API clients
+# As presented in Terra's UI, tables may contain string, integer, and boolean values.  However, Firecloud API clients
 # must transmit tables using TSV formatted data, which is not typed. So, alas, we cannot transmit typed data to Terra
 # data tables, and cannot transform uploaded types via the Firecloud API (as far as I know).
 #
 # It would be preferable if the Firecloud API exposed JSON endpoints for uploading table data (which may already exist
-# on the backedn?)
+# on the backend?)
 
 # It turns out google.auth.transport.requests.AuthorizedSession is not thread safe.
 # Fortunately fiss.fapi._set_session caches the result. Call it once on the main thread.
@@ -37,7 +37,7 @@ class Writer(_AsyncContextManager):
     """
     Distribute row uploads across as few API calls as possible.
     Uploads are performed in the background.
-    Also transparantly handles sequences, which the Firecloud API makes difficult. (These must be uploaded and modified
+    Also transparently handles sequences, which the Firecloud API makes difficult. (These must be uploaded and modified
     via separate API calls.)
     """
     def __init__(self, name: str, **kwargs):
@@ -120,7 +120,7 @@ class Writer(_AsyncContextManager):
                                     request_data).raise_for_status()
         except requests.exceptions.HTTPError as e:
             if 500 == e.response.status_code:
-                # Firecloud occasionally throws 500 errors for succesful update operations.
+                # Firecloud occasionally throws 500 errors for successful update operations.
                 # Check if we get the row we expect, retry otherwise.
                 if 5 > retry:
                     cur_row = get_row(self.name, row.name)
