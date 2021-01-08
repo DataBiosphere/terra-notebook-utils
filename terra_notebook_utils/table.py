@@ -68,7 +68,7 @@ class Writer(_AsyncContextManager):
             os.linesep
             + row.name + "\t"
             + "\t".join(row.attributes[c] if isinstance(row.attributes[c], str)
-                        else "x"
+                        else "x"  # Dummy value to be replaced during row update API calls.
                         for c in column_headers)
         )
         update_request_data = self._get_row_update_request_data(row)
@@ -115,7 +115,7 @@ class Writer(_AsyncContextManager):
                     if row != cur_row:
                         self.submit(self._do_fiss_updates, row, request_data, retry=retry + 1)
                 else:
-                    raise Exception("Ran out of retries updating row {row.name}") from e
+                    raise Exception(f"Ran out of retries updating row {row.name}") from e
             else:
                 raise
 
