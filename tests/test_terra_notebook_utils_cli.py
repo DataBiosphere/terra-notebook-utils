@@ -264,15 +264,7 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
                    f'--workspace={WORKSPACE_NAME}',
                    f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
             with self.assertRaises(subprocess.CalledProcessError):
-                try:
-                    self._run_cmd(cmd)
-                except subprocess.CalledProcessError as e:
-                    self.assertTrue(b'GSBlobInaccessible' in e.stderr)
-                    self.assertTrue(b'DRSResolutionError: Unexpected response while resolving DRS path. Expected '
-                                    b'status 200, got 500. Error: Received error while resolving DRS URL. getaddrinfo '
-                                    b'ENOTFOUND nothing' in e.stderr)
-                    raise
-
+                self._run_cmd(cmd)
 
 @testmode("workspace_access")
 class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
@@ -282,11 +274,11 @@ class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
     def setUpClass(cls):
         cls.table = "simple_germline_variation"
         cls.table_data = list()
-        for e in table._iter_table(cls.table):
-            row = e['attributes'].copy()
-            row['entity_id'] = e['name']
-            cls.table_data.append(row)
-        cls.columns = list(e['attributes'].keys())
+        for row in table.list_rows(cls.table):
+            e = row.attributes.copy()
+            e['entity_id'] = row.name
+            cls.table_data.append(e)
+        cls.columns = list(row.attributes.keys())
 
     def setUp(self):
         self.row_index = randint(0, len(self.table_data) - 1)
