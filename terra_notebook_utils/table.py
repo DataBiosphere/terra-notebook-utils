@@ -42,7 +42,7 @@ class Writer(_AsyncContextManager):
         request_data = list()
         for name, val in row.attributes.items():
             if isinstance(val, str):
-                update_ops = list()
+                update_ops = list()  # No Firecloud update operations needed for string values
             elif isinstance(val, (int, float, bool)):
                 update_ops = [dict(op="AddUpdateAttribute", attributeName=name, addUpdateAttribute=val)]
             elif hasattr(val, "__iter__"):
@@ -52,10 +52,6 @@ class Writer(_AsyncContextManager):
                     update_ops.append(dict(op="AddListMember", attributeListName=name, newMember=m))
                     types.add(type(m))
                 assert 1 == len(types)
-# assert types.pop() in VALUE.__args__, f"Row: {row.name}: List members must be of type {VALUE.__args__}"
-            else:
-                pass
-                # raise TypeError(f"Row {row.name}: data table value must be of type{VALUE.__args__}")
             request_data.extend(update_ops)
         return request_data
 
