@@ -178,16 +178,6 @@ class Deleter(_AsyncContextManager):
         if self._request_data:
             self._delete()
 
-def _iter_table(table: str,
-                workspace_name: Optional[str]=WORKSPACE_NAME,
-                workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    resp = fiss.fapi.get_entities(workspace_google_project, workspace_name, table)
-    if 200 != resp.status_code:
-        print(resp.content)
-        raise Exception(f"Expected status 200, got {resp.status_code}")
-    for item in resp.json():
-        yield item
-
 def _get_item_val(item: dict, key: str):
     if "name" == key:
         return item['name']
@@ -283,7 +273,3 @@ def fetch_drs_url(table: str, file_name: str, **kwargs) -> str:
             pass
     else:
         raise KeyError(f"Unable to fetch DRS URL for table '{table}', file_name '{file_name}'")
-
-def print_column(table: str, column: str):
-    for item in _iter_table(table):
-        print(_get_item_val(item, column))

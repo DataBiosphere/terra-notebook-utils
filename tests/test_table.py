@@ -23,12 +23,6 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
         gs.get_access_token()
 
     @testmode("workspace_access")
-    def test_print_column(self):
-        table_name = "simple_germline_variation"
-        column = "pfb:file_name"
-        table.print_column(table_name, column)
-
-    @testmode("workspace_access")
     def test_table(self):
         table_name = f"test_{uuid4()}"
         number_of_entities = 5
