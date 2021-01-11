@@ -215,14 +215,6 @@ def list_rows(table: str, **kwargs) -> Generator[Row, None, None]:
             yield Row(item['name'], _attributes_from_fiss_response(item['attributes']))
         page_number += 1
 
-def list_entities(ent_type: str,
-                  workspace_name: Optional[str]=WORKSPACE_NAME,
-                  workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    resp = fiss.fapi.get_entities(workspace_google_project, workspace_name, ent_type)
-    resp.raise_for_status()
-    for ent in resp.json():
-        yield ent
-
 def get_row(table: str,
             entity_id: str,
             workspace_name: Optional[str]=WORKSPACE_NAME,

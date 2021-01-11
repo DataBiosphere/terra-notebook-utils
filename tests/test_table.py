@@ -38,20 +38,6 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
                 tsv += "\r" + "\t".join((id_column[i], foo_column[i], bar_column[i]))
             table.upload_entities(tsv)
 
-        with self.subTest("list table entities"):
-            ents = [e for e in table.list_entities(table_name)]
-            self.assertEqual(number_of_entities, len(ents))
-            res_foo_column = list()
-            res_bar_column = list()
-            res_id_column = list()
-            for i, e in enumerate(ents):
-                res_id_column.append(e['name'])
-                res_foo_column.append(e['attributes']['foo'])
-                res_bar_column.append(e['attributes']['bar'])
-            self.assertEqual(sorted(id_column), sorted(res_id_column))
-            self.assertEqual(sorted(foo_column), sorted(res_foo_column))
-            self.assertEqual(sorted(bar_column), sorted(res_bar_column))
-
         with self.subTest("delete table"):
             table.delete(table_name)
 
