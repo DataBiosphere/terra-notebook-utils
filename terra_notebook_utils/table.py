@@ -239,6 +239,15 @@ def put_rows(table: str, items: Iterable[Union[ROW_LIKE, ATTRIBUTES]], **kwargs)
 def put_row(table: str, item: Union[ROW_LIKE, ATTRIBUTES], **kwargs) -> str:
     return put_rows(table, [item], **kwargs)[0]
 
+def del_rows(table: str, items: Iterable[ROW_OR_NAME], **kwargs):
+    with Deleter(table, **kwargs) as td:
+        for row in items:
+            td.del_row(row)
+
+def del_row(table: str, item: ROW_OR_NAME, **kwargs):
+    del_rows(table, [item], **kwargs)
+
+
 def delete(table: str, **kwargs):
     with Deleter(table, **kwargs) as td:
         for row in list_rows(table, **kwargs):
