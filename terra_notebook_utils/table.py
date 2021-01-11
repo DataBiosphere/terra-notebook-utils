@@ -231,20 +231,16 @@ def get_row(table: str,
     resp.raise_for_status()
     return resp.json()
 
-def delete_entities(entities: list):
-    ents = [dict(entityType=e['entityType'], entityName=e['name'])
-            for e in entities]
-    resp = fiss.fapi.delete_entities(WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME, ents)
-    resp.raise_for_status()
-
-def delete_table(ent_type: str):
-    delete_entities([e for e in list_entities(ent_type)])
-
 def upload_entities(tsv_data,
                     workspace_name: Optional[str]=WORKSPACE_NAME,
                     workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     resp = fiss.fapi.upload_entities(workspace_google_project, workspace_name, tsv_data, model="flexible")
     resp.raise_for_status()
+
+def delete(table: str, **kwargs):
+    with Deleter(table, **kwargs) as td:
+        for row in list_rows(table, **kwargs):
+            td.del_row(row)
 
 def fetch_drs_url(table: str, file_name: str, **kwargs) -> str:
     """

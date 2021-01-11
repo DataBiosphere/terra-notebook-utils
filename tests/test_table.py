@@ -26,7 +26,7 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
     def test_table(self):
         table_name = f"test_{uuid4()}"
         number_of_entities = 5
-        table.delete_table(table_name)  # remove cruft from previous failed tests
+        table.delete(table_name)  # remove cruft from previous failed tests
 
         id_column = [f"{uuid4()}" for _ in range(number_of_entities)]
         foo_column = [f"{uuid4()}" for _ in range(number_of_entities)]
@@ -53,7 +53,7 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
             self.assertEqual(sorted(bar_column), sorted(res_bar_column))
 
         with self.subTest("delete table"):
-            table.delete_table(table_name)
+            table.delete(table_name)
 
 if __name__ == '__main__':
     unittest.main()
