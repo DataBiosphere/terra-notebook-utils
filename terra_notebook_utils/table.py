@@ -178,12 +178,6 @@ class Deleter(_AsyncContextManager):
         if self._request_data:
             self._delete()
 
-def _get_item_val(item: dict, key: str):
-    if "name" == key:
-        return item['name']
-    else:
-        return item['attributes'][key]
-
 def list_tables(**kwargs) -> Generator[str, None, None]:
     workspace_name = kwargs.get("workspace_name", WORKSPACE_NAME)
     workspace_google_project = kwargs.get("workspace_google_project", WORKSPACE_GOOGLE_PROJECT)
