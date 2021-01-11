@@ -295,10 +295,11 @@ class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
     def test_get_row(self):
         out = self._test_cmd(terra_notebook_utils.cli.table.get_row,
                              table=self.table,
-                             id=self.entity_id)
-        row = json.loads(out)
-        row['entity_id'] = row.pop(f"{self.table}_id")
-        self.assertEqual(row, self.table_data[self.row_index])
+                             row=self.entity_id)
+        row_name, data = out.split(maxsplit=1)
+        attributes = json.loads(data)
+        attributes['entity_id'] = row_name  # TODO: refactor `entity_id` out of test data
+        self.assertEqual(attributes, self.table_data[self.row_index])
 
 def _crc32c(data: bytes) -> str:
     # Compute Google's wonky base64 encoded crc32c checksum
