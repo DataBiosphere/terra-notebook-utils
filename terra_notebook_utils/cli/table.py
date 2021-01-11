@@ -2,6 +2,7 @@ import os
 import json
 import typing
 import argparse
+from uuid import uuid4
 
 from terra_notebook_utils import table as tnu_table
 from terra_notebook_utils.cli import dispatch, Config
@@ -70,7 +71,7 @@ def fetch_drs_url(args: argparse.Namespace):
 
 @table_cli.command("put-row", arguments={
     "--table": dict(type=str, required=True, help="table name"),
-    "--id": dict(type=str, required=True, help="Row id. This should be unique for the table"),
+    "--row": dict(type=str, required=False, default=None, help="row name"),
     "data": dict(type=str, nargs="+", help="list of key-value pairs")
 })
 def put_row(args: argparse.Namespace):
@@ -85,11 +86,10 @@ def put_row(args: argparse.Namespace):
     output_key=foo.vcf.gz
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    headers = [f"{args.table}_id"]
-    values = [args.id]
+    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
+    attributes = dict()
     for pair in args.data:
         key, val = pair.split("=")
-        headers.append(key)
-        values.append(val)
-    tsv = "\t".join(headers) + os.linesep + "\t".join(values)
-    tnu_table.upload_entities(tsv, args.workspace, args.workspace_namespace)
+        attributes[key] = val
+    row = tnu_table.Row(name=args.row or f"{uuid4()}", attributes=attributes)
+    tnu_table.put_row(args.table, row, **kwargs)

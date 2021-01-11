@@ -232,11 +232,12 @@ def get_row(table: str, item: ROW_OR_NAME, **kwargs) -> Optional[Row]:
     data = resp.json()
     return Row(data['name'], _attributes_from_fiss_response(data['attributes']))
 
-def upload_entities(tsv_data,
-                    workspace_name: Optional[str]=WORKSPACE_NAME,
-                    workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    resp = fiss.fapi.upload_entities(workspace_google_project, workspace_name, tsv_data, model="flexible")
-    resp.raise_for_status()
+def put_rows(table: str, items: Iterable[Union[ROW_LIKE, ATTRIBUTES]], **kwargs) -> List[str]:
+    with Writer(table, **kwargs) as tw:
+        return [tw.put_row(item) for item in items]
+
+def put_row(table: str, item: Union[ROW_LIKE, ATTRIBUTES], **kwargs) -> str:
+    return put_rows(table, [item], **kwargs)[0]
 
 def delete(table: str, **kwargs):
     with Deleter(table, **kwargs) as td:
