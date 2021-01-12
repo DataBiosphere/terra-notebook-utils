@@ -41,11 +41,14 @@ class Writer(_AsyncContextManager):
     Also transparently handles sequences, which the Firecloud API makes difficult. (These must be uploaded and modified
     via separate API calls.)
     """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self,
+                 name: str,
+                 workspace: Optional[str]=WORKSPACE_NAME,
+                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
         self.name = name
         self._init_request_data()
-        self._workspace_name = kwargs.get("workspace_name", WORKSPACE_NAME)
-        self._workspace_google_project = kwargs.get("workspace_google_project", WORKSPACE_GOOGLE_PROJECT)
+        self._workspace = workspace
+        self._workspace_google_project = workspace_namespace
 
     def _init_request_data(self):
         self._tsvs: Dict[COLUMN_HEADERS, str] = defaultdict(list)
@@ -105,7 +108,7 @@ class Writer(_AsyncContextManager):
 
     def _do_fiss_upload(self, tsv: str, row_update_request_data: List[Tuple[Row, List[Dict[str, Any]]]]):
         fiss.fapi.upload_entities(self._workspace_google_project,
-                                  self._workspace_name,
+                                  self._workspace,
                                   tsv,
                                   model="flexible").raise_for_status()
         for row, request_data in row_update_request_data:
@@ -115,7 +118,7 @@ class Writer(_AsyncContextManager):
     def _do_fiss_updates(self, row: Row, request_data: UPDATE_OPS, retry: int=0):
         try:
             fiss.fapi.update_entity(self._workspace_google_project,
-                                    self._workspace_name,
+                                    self._workspace,
                                     self.name,
                                     row.name,
                                     request_data).raise_for_status()
@@ -140,10 +143,13 @@ class Deleter(_AsyncContextManager):
     """
     Distribute row deletes across as few API calls as possible.
     """
-    def __init__(self, name: str, **kwargs):
+    def __init__(self,
+                 name: str,
+                 workspace: Optional[str]=WORKSPACE_NAME,
+                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
         self.name = name
-        self._workspace_name = kwargs.get("workspace_name", WORKSPACE_NAME)
-        self._workspace_google_project = kwargs.get("workspace_google_project", WORKSPACE_GOOGLE_PROJECT)
+        self._workspace = workspace
+        self._workspace_google_project = workspace_namespace
         self._init_request_data()
 
     def _init_request_data(self):
@@ -167,7 +173,7 @@ class Deleter(_AsyncContextManager):
     def _do_fiss_delete(self, ents: List[Dict[str, str]]):
         try:
             fiss.fapi.delete_entities(self._workspace_google_project,
-                                      self._workspace_name,
+                                      self._workspace,
                                       ents).raise_for_status()
         except requests.exceptions.HTTPError as e:
             if 400 == e.response.status_code:
@@ -179,10 +185,9 @@ class Deleter(_AsyncContextManager):
         if self._request_data:
             self._delete()
 
-def list_tables(**kwargs) -> Generator[str, None, None]:
-    workspace_name = kwargs.get("workspace_name", WORKSPACE_NAME)
-    workspace_google_project = kwargs.get("workspace_google_project", WORKSPACE_GOOGLE_PROJECT)
-    resp = fiss.fapi.list_entity_types(workspace_google_project, workspace_name)
+def list_tables(workspace: Optional[str]=WORKSPACE_NAME,
+                workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Generator[str, None, None]:
+    resp = fiss.fapi.list_entity_types(workspace_namespace, workspace)
     resp.raise_for_status()
     for table_name in resp.json():
         yield table_name
@@ -192,9 +197,10 @@ def _get_rows_page(table: str,
                    page_size: int=500,
                    sort_direction: str="asc",
                    filter_terms: Any=None,
-                   **kwargs) -> Tuple[int, dict]:
-    resp = fiss.fapi.get_entities_query(kwargs.get("workspace_google_project", WORKSPACE_GOOGLE_PROJECT),
-                                        kwargs.get("workspace_name", WORKSPACE_NAME),
+                   workspace: Optional[str]=WORKSPACE_NAME,
+                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Tuple[int, dict]:
+    resp = fiss.fapi.get_entities_query(workspace_namespace,
+                                        workspace,
                                         table,
                                         page=page_number,
                                         page_size=page_size,
@@ -208,20 +214,25 @@ def _attributes_from_fiss_response(attributes: Dict[str, Any]) -> ATTRIBUTES:
     return {key: val['items'] if isinstance(val, dict) and "items" in val else val
             for key, val in attributes.items()}
 
-def list_rows(table: str, **kwargs) -> Generator[Row, None, None]:
+def list_rows(table: str,
+              workspace: Optional[str]=WORKSPACE_NAME,
+              workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Generator[Row, None, None]:
     page_number = total_pages = 1
     while total_pages >= page_number:
-        total_pages, rows = _get_rows_page(table, page_number, **kwargs)
+        total_pages, rows = _get_rows_page(table,
+                                           page_number,
+                                           workspace=workspace,
+                                           workspace_namespace=workspace_namespace)
         for item in rows:
             yield Row(item['name'], _attributes_from_fiss_response(item['attributes']))
         page_number += 1
 
-def get_row(table: str, item: ROW_OR_NAME, **kwargs) -> Optional[Row]:
+def get_row(table: str,
+            item: ROW_OR_NAME,
+            workspace: Optional[str]=WORKSPACE_NAME,
+            workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Optional[Row]:
     row_name = item.name if isinstance(item, Row) else item
-    resp = fiss.fapi.get_entity(kwargs.get("workspace_google_project", WORKSPACE_GOOGLE_PROJECT),
-                                kwargs.get("workspace_name", WORKSPACE_NAME),
-                                table,
-                                row_name)
+    resp = fiss.fapi.get_entity(workspace_namespace, workspace, table, row_name)
     try:
         resp.raise_for_status()
     except requests.exceptions.HTTPError as e:
@@ -232,28 +243,45 @@ def get_row(table: str, item: ROW_OR_NAME, **kwargs) -> Optional[Row]:
     data = resp.json()
     return Row(data['name'], _attributes_from_fiss_response(data['attributes']))
 
-def put_rows(table: str, items: Iterable[Union[ROW_LIKE, ATTRIBUTES]], **kwargs) -> List[str]:
-    with Writer(table, **kwargs) as tw:
+def put_rows(table: str,
+             items: Iterable[Union[ROW_LIKE, ATTRIBUTES]],
+             workspace: Optional[str]=WORKSPACE_NAME,
+             workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> List[str]:
+    with Writer(table, workspace, workspace_namespace) as tw:
         return [tw.put_row(item) for item in items]
 
-def put_row(table: str, item: Union[ROW_LIKE, ATTRIBUTES], **kwargs) -> str:
-    return put_rows(table, [item], **kwargs)[0]
+def put_row(table: str,
+            item: Union[ROW_LIKE, ATTRIBUTES],
+            workspace: Optional[str]=WORKSPACE_NAME,
+            workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> str:
+    return put_rows(table, [item], workspace, workspace_namespace)[0]
 
-def del_rows(table: str, items: Iterable[ROW_OR_NAME], **kwargs):
-    with Deleter(table, **kwargs) as td:
+def del_rows(table: str,
+             items: Iterable[ROW_OR_NAME],
+             workspace: Optional[str]=WORKSPACE_NAME,
+             workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    with Deleter(table, workspace, workspace_namespace) as td:
         for row in items:
             td.del_row(row)
 
-def del_row(table: str, item: ROW_OR_NAME, **kwargs):
-    del_rows(table, [item], **kwargs)
+def del_row(table: str,
+            item: ROW_OR_NAME,
+            workspace: Optional[str]=WORKSPACE_NAME,
+            workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    del_rows(table, [item], workspace, workspace_namespace)
 
 
-def delete(table: str, **kwargs):
-    with Deleter(table, **kwargs) as td:
-        for row in list_rows(table, **kwargs):
+def delete(table: str,
+           workspace: Optional[str]=WORKSPACE_NAME,
+           workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    with Deleter(table, workspace, workspace_namespace) as td:
+        for row in list_rows(table, workspace, workspace_namespace):
             td.del_row(row)
 
-def fetch_drs_url(table: str, file_name: str, **kwargs) -> str:
+def fetch_drs_url(table: str,
+                  file_name: str,
+                  workspace: Optional[str]=WORKSPACE_NAME,
+                  workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> str:
     """
     Fetch the first `object_id` associated with `pfb:file_name` from `table`.
     DRS urls, when available, are stored in `pfb:object_id`.
@@ -262,7 +290,7 @@ def fetch_drs_url(table: str, file_name: str, **kwargs) -> str:
     """
     for pfx in ("pfb:", ""):
         try:
-            for row in list_rows(table, **kwargs):
+            for row in list_rows(table, workspace, workspace_namespace):
                 if file_name == row.attributes[f"{pfx}file_name"]:
                     val = row.attributes[f"{pfx}object_id"]
                     if isinstance(val, str) and val.startswith("drs://"):
