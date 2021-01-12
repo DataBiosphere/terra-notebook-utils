@@ -45,17 +45,17 @@ def list_rows(args: argparse.Namespace):
 
 @table_cli.command("get-row", arguments={
     "--table": dict(type=str, required=True, help="table name"),
-    "--id": dict(type=str, required=True, help="table name"),
+    "--row": dict(type=str, required=True, help="row name"),
 })
 def get_row(args: argparse.Namespace):
     """
     Get one row
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    e = tnu_table.get_row(args.table, args.id, args.workspace, args.workspace_namespace)
-    data = e['attributes']
-    data[f'{args.table}_id'] = e['name']
-    print(json.dumps(data, indent=2))
+    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
+    row = tnu_table.get_row(args.table, args.row, **kwargs)
+    if row is not None:
+        print(row.name, json.dumps(row.attributes))
 
 @table_cli.command("fetch-drs-url", arguments={
     "--table": dict(type=str, required=True, help="table name"),

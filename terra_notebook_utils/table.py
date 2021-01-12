@@ -20,6 +20,7 @@ ATTRIBUTES = Dict[str, Union[VALUE, Iterable[VALUE]]]
 UPDATE_OPS = List[Dict[str, Any]]
 COLUMN_HEADERS = Tuple[str, ...]
 ROW_LIKE = Tuple[str, ATTRIBUTES]
+ROW_OR_NAME = Union[Row, str]
 
 # A note on types:
 # As presented in Terra's UI, tables may contain string, integer, and boolean values.  However, Firecloud API clients
@@ -215,13 +216,21 @@ def list_rows(table: str, **kwargs) -> Generator[Row, None, None]:
             yield Row(item['name'], _attributes_from_fiss_response(item['attributes']))
         page_number += 1
 
-def get_row(table: str,
-            entity_id: str,
-            workspace_name: Optional[str]=WORKSPACE_NAME,
-            workspace_google_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    resp = fiss.fapi.get_entity(workspace_google_project, workspace_name, table, entity_id)
-    resp.raise_for_status()
-    return resp.json()
+def get_row(table: str, item: ROW_OR_NAME, **kwargs) -> Optional[Row]:
+    row_name = item.name if isinstance(item, Row) else item
+    resp = fiss.fapi.get_entity(kwargs.get("workspace_google_project", WORKSPACE_GOOGLE_PROJECT),
+                                kwargs.get("workspace_name", WORKSPACE_NAME),
+                                table,
+                                row_name)
+    try:
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        if 404 == e.response.status_code:
+            return None
+        else:
+            raise
+    data = resp.json()
+    return Row(data['name'], _attributes_from_fiss_response(data['attributes']))
 
 def upload_entities(tsv_data,
                     workspace_name: Optional[str]=WORKSPACE_NAME,
