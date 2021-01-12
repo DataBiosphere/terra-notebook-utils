@@ -26,8 +26,7 @@ def list_tables(args: argparse.Namespace):
     List all tables in the workspace
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
-    for table in tnu_table.list_tables(**kwargs):
+    for table in tnu_table.list_tables(args.workspace, args.workspace_namespace):
         print(table)
 
 @table_cli.command("list-rows", arguments={
@@ -38,8 +37,7 @@ def list_rows(args: argparse.Namespace):
     Get all rows
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
-    for row in tnu_table.list_rows(args.table, **kwargs):
+    for row in tnu_table.list_rows(args.table, args.workspace, args.workspace_namespace):
         print(row.name, row.attributes)
 
 @table_cli.command("get-row", arguments={
@@ -51,8 +49,7 @@ def get_row(args: argparse.Namespace):
     Get one row
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
-    row = tnu_table.get_row(args.table, args.row, **kwargs)
+    row = tnu_table.get_row(args.table, args.row, args.workspace, args.workspace_namespace)
     if row is not None:
         print(row.name, json.dumps(row.attributes))
 
@@ -64,8 +61,7 @@ def delete_table(args: argparse.Namespace):
     Get one row
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
-    tnu_table.delete(args.table, **kwargs)
+    tnu_table.delete(args.table, args.workspace, args.workspace_namespace)
 
 @table_cli.command("delete-row", arguments={
     "--table": dict(type=str, required=True, help="table name"),
@@ -76,8 +72,7 @@ def delete_row(args: argparse.Namespace):
     Delete a row
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
-    tnu_table.del_row(args.table, args.row, **kwargs)
+    tnu_table.del_row(args.table, args.row, args.workspace, args.workspace_namespace)
 
 @table_cli.command("fetch-drs-url", arguments={
     "--table": dict(type=str, required=True, help="table name"),
@@ -88,8 +83,7 @@ def fetch_drs_url(args: argparse.Namespace):
     Fetch the DRS URL associated with `--file-name` in `--table`.
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
-    print(tnu_table.fetch_drs_url(args.table, args.file_name, **kwargs))
+    print(tnu_table.fetch_drs_url(args.table, args.file_name, args.workspace, args.workspace_namespace))
 
 @table_cli.command("put-row", arguments={
     "--table": dict(type=str, required=True, help="table name"),
@@ -108,10 +102,9 @@ def put_row(args: argparse.Namespace):
     output_key=foo.vcf.gz
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
     attributes = dict()
     for pair in args.data:
         key, val = pair.split("=")
         attributes[key] = val
     row = tnu_table.Row(name=args.row or f"{uuid4()}", attributes=attributes)
-    tnu_table.put_row(args.table, row, **kwargs)
+    tnu_table.put_row(args.table, row, args.workspace, args.workspace_namespace)
