@@ -58,6 +58,29 @@ def get_row(args: argparse.Namespace):
     if row is not None:
         print(row.name, json.dumps(row.attributes))
 
+@table_cli.command("delete-table", arguments={
+    "--table": dict(type=str, required=True, help="table name"),
+})
+def delete_table(args: argparse.Namespace):
+    """
+    Get one row
+    """
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
+    tnu_table.delete(args.table, **kwargs)
+
+@table_cli.command("delete-row", arguments={
+    "--table": dict(type=str, required=True, help="table name"),
+    "--row": dict(type=str, required=True, help="row name"),
+})
+def delete_row(args: argparse.Namespace):
+    """
+    Delete a row
+    """
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
+    tnu_table.del_row(args.table, args.row, **kwargs)
+
 @table_cli.command("fetch-drs-url", arguments={
     "--table": dict(type=str, required=True, help="table name"),
     "--file-name": dict(type=str, required=True, help="file name"),
