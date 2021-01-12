@@ -71,7 +71,7 @@ def fetch_drs_url(args: argparse.Namespace):
 
 @table_cli.command("put-row", arguments={
     "--table": dict(type=str, required=True, help="table name"),
-    "--row": dict(type=str, required=False, default=None, help="row name"),
+    "--row": dict(type=str, required=False, default=None, help="row name. This should be unique for the table"),
     "data": dict(type=str, nargs="+", help="list of key-value pairs")
 })
 def put_row(args: argparse.Namespace):
