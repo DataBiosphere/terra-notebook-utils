@@ -1,6 +1,4 @@
-import os
 import json
-import typing
 import argparse
 from uuid import uuid4
 
@@ -89,6 +87,7 @@ def fetch_drs_url(args: argparse.Namespace):
     """
     Fetch the DRS URL associated with `--file-name` in `--table`.
     """
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
     print(tnu_table.fetch_drs_url(args.table, args.file_name, **kwargs))
 
