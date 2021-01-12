@@ -300,15 +300,6 @@ class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
         row['entity_id'] = row.pop(f"{self.table}_id")
         self.assertEqual(row, self.table_data[self.row_index])
 
-    def test_get_cell(self):
-        column_index = randint(0, len(self.columns) - 1)
-        column = self.columns[column_index]
-        out = self._test_cmd(terra_notebook_utils.cli.table.get_cell,
-                             table=self.table,
-                             id=self.entity_id,
-                             column=column)
-        self.assertEqual(self.table_data[self.row_index][column], out)
-
 def _crc32c(data: bytes) -> str:
     # Compute Google's wonky base64 encoded crc32c checksum
     return base64.b64encode(google_crc32c.Checksum(data).digest()).decode("utf-8")

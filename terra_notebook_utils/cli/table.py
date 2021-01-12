@@ -68,20 +68,6 @@ def fetch_drs_url(args: argparse.Namespace):
     kwargs = dict(workspace_name=args.workspace, workspace_google_project=args.workspace_namespace)
     print(tnu_table.fetch_drs_url(args.table, args.file_name, **kwargs))
 
-@table_cli.command("get-cell", arguments={
-    "--table": dict(type=str, required=True, help="table name"),
-    "--id": dict(type=str, required=True, help="id of entity"),
-    "--column": dict(type=str, required=True, help="column name"),
-})
-def get_cell(args: argparse.Namespace):
-    """
-    Get cell value
-    """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    for e in tnu_table.list_entities(args.table, args.workspace, args.workspace_namespace):
-        if args.id == e['name']:
-            print(e['attributes'][args.column])
-
 @table_cli.command("put-row", arguments={
     "--table": dict(type=str, required=True, help="table name"),
     "--id": dict(type=str, required=True, help="Row id. This should be unique for the table"),
