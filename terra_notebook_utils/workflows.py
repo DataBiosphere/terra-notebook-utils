@@ -57,6 +57,26 @@ def _get(path: str, data: Dict[str, Any]) -> Any:
         raise TNUCostException(f"'{path}' not found in {json.dumps(data, indent=2)}")
     return res
 
+def get_all_workflows(submission_id: str,
+                      workspace: Optional[str]=WORKSPACE_NAME,
+                      workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Dict[str, dict]:
+    """
+    Retrieve all workflows and workflow metadata for `submission_id`, including sub-workflows.
+    """
+    submission = get_submission(submission_id, workspace, workspace_namespace)
+    workflows_to_lookup = {wf['workflowId'] for wf in submission['workflows']}
+    workflows_metadata = dict()
+    while workflows_to_lookup:
+        for workflow_id in workflows_to_lookup.copy():
+            workflows_to_lookup.remove(workflow_id)
+            wf_medadata = get_workflow(submission_id, workflow_id, workspace, workspace_namespace)
+            for call_name, call_metadata_list in wf_medadata['calls'].items():
+                for call_metadata in call_metadata_list:
+                    if "subWorkflowId" in call_metadata:
+                        workflows_to_lookup.add(call_metadata['subWorkflowId'])
+            workflows_metadata[workflow_id] = wf_medadata
+    return workflows_metadata
+
 def estimate_workflow_cost(submission_id: str,
                            workflow_id: str,
                            workspace_name: Optional[str]=WORKSPACE_NAME,
