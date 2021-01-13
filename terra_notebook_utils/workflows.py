@@ -64,6 +64,9 @@ def estimate_workflow_cost(submission_id: str,
     workflow_metadata = get_workflow(submission_id, workflow_id, workspace_name, workspace_namespace)
     for call_name, call_metadata_list in workflow_metadata['calls'].items():
         for call_metadata in call_metadata_list:
+            if "subWorkflowId" in call_metadata:
+                # subworkflows need to be looked up and estimated separately
+                continue
             try:
                 task_name = call_name.split(".")[1]
                 call_cached = bool(int(_get("callCaching.hit", call_metadata)))
