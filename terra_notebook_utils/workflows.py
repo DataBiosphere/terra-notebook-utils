@@ -81,11 +81,7 @@ def get_all_workflows(submission_id: str,
 
     return workflows_metadata
 
-def estimate_workflow_cost(submission_id: str,
-                           workflow_id: str,
-                           workspace_name: Optional[str]=WORKSPACE_NAME,
-                           workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    workflow_metadata = get_workflow(submission_id, workflow_id, workspace_name, workspace_namespace)
+def estimate_workflow_cost(workflow_id: str, workflow_metadata: dict) -> Generator[dict, None, None]:
     for call_name, call_metadata_list in workflow_metadata['calls'].items():
         for call_metadata in call_metadata_list:
             if "subWorkflowId" in call_metadata:

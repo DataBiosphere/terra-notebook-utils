@@ -73,7 +73,7 @@ def estimate_submission_cost(args: argparse.Namespace):
     Estimate costs for all workflows in a submission
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    submission = workflows.get_submission(args.submission_id, args.workspace, args.workspace_namespace)
+    workflows_metadata = workflows.get_all_workflows(args.submission_id, args.workspace, args.workspace_namespace)
     reporter = TXTReport([("workflow_id", 37),
                           ("shard", 6),
                           ("cpus", 5),
@@ -83,13 +83,9 @@ def estimate_submission_cost(args: argparse.Namespace):
                           ("cost", 5)])
     reporter.print_headers()
     total = 0
-    for wf in submission['workflows']:
-        workflow_id = wf['workflowId']
+    for workflow_id, workflow_metadata in workflows_metadata.items():
         shard = 1
-        for item in workflows.estimate_workflow_cost(args.submission_id,
-                                                     workflow_id,
-                                                     args.workspace,
-                                                     args.workspace_namespace):
+        for item in workflows.estimate_workflow_cost(workflow_id, workflow_metadata):
             cost, cpus, mem, duration, call_cached = (item[k] for k in ('cost',
                                                                         'number_of_cpus',
                                                                         'memory',
