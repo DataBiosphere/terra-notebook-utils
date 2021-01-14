@@ -33,13 +33,13 @@ class _AsyncContextManager:
             self.prune_futures()
         self._executor.shutdown()
 
-def concurrent_recursion(process_item: Callable[[Any], Iterable[Any]], items: Iterable[Any], concurrency: int=8):
+def concurrent_recursion(recurse: Callable[[Any], Iterable[Any]], initial_data: Iterable[Any], concurrency: int=8):
     """
-    Call `process_item` on each item in `items`, and on each item returned by `process_item`, concurrently.
+    Call `recurse` on each item in `initial_data`, and on each item returned by `recurse`, concurrently.
     """
     with ThreadPoolExecutor(max_workers=concurrency) as e:
-        futures = {e.submit(process_item, item) for item in items}
+        futures = {e.submit(recurse, item) for item in initial_data}
         while futures:
             for f in as_completed(futures):
                 futures.remove(f)
-                futures.update({e.submit(process_item, item) for item in f.result()})
+                futures.update({e.submit(recurse, item) for item in f.result()})
