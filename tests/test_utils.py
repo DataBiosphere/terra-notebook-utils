@@ -30,6 +30,7 @@ class TestUtils(unittest.TestCase):
         # 3             One call with arument `3`
         # 2 2 2         Three calls with argument `2`
         # 1 1 1 1 1 1   Six calls with argument `1`
+
         utils.concurrent_recursion(gen_items, {3})
         self.assertEqual(10, len(counter))
 

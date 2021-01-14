@@ -12,6 +12,7 @@ import jmespath
 from firecloud import fiss
 
 from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, costs
+from terra_notebook_utils import utils
 
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,29 @@ def _get(path: str, data: Dict[str, Any]) -> Any:
     if res is None:
         raise TNUCostException(f"'{path}' not found in {json.dumps(data, indent=2)}")
     return res
+
+def get_all_workflows(submission_id: str,
+                      workspace: Optional[str]=WORKSPACE_NAME,
+                      workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Dict[str, dict]:
+    """
+    Retrieve all workflows, and workflow metadata, for `submission_id`, including sub-workflows.
+    """
+    workflows_metadata = dict()
+
+    def get_metadata_and_subworkflows(workflow_id: str):
+        wf_medadata = get_workflow(submission_id, workflow_id, workspace, workspace_namespace)
+        workflows_metadata[workflow_id] = wf_medadata
+        subworkflows = {call_metadata['subWorkflowId']
+                        for call_metadata_list in wf_medadata['calls'].values()
+                        for call_metadata in call_metadata_list
+                        if "subWorkflowId" in call_metadata}
+        return subworkflows
+
+    submission = get_submission(submission_id, workspace, workspace_namespace)
+    initial_workflow_ids = {wf['workflowId'] for wf in submission['workflows']}
+    utils.concurrent_recursion(get_metadata_and_subworkflows, initial_workflow_ids)
+
+    return workflows_metadata
 
 def estimate_workflow_cost(submission_id: str,
                            workflow_id: str,
