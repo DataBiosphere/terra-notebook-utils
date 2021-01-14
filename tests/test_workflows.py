@@ -37,6 +37,9 @@ class TestTerraNotebookUtilsWorkflows(unittest.TestCase):
         workflow_id = workflows.get_submission(self.submission_id)['workflows'][0]['workflowId']
         workflows.estimate_workflow_cost(self.submission_id, workflow_id)
 
+    def test_get_all_workflows(self):
+        workflows.get_all_workflows(self.submission_id)
+
     def test_get_utility(self):
         with self.assertRaises(workflows.TNUCostException):
             workflows._get("not.a.valid.path", dict(foo="bar"))
