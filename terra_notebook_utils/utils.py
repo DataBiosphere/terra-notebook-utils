@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, Future, as_completed
-from typing import Any, Callable, Set
+from typing import Any, Callable, Iterable, Set
 
 
 class _AsyncContextManager:
@@ -32,3 +32,14 @@ class _AsyncContextManager:
                 pass
             self.prune_futures()
         self._executor.shutdown()
+
+def concurrent_recursion(process_item: Callable[[Any], Iterable[Any]], items: Iterable[Any], concurrency: int=8):
+    """
+    Call `process_item` on each item in `items`, and on each item returned by `process_item`, concurrently.
+    """
+    with ThreadPoolExecutor(max_workers=concurrency) as e:
+        futures = {e.submit(process_item, item) for item in items}
+        while futures:
+            for f in as_completed(futures):
+                futures.remove(f)
+                futures.update({e.submit(process_item, item) for item in f.result()})
