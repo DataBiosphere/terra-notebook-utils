@@ -83,7 +83,7 @@ def estimate_workflow_cost(workflow_id: str, workflow_metadata: dict) -> Generat
                 task_name = call_name.split(".")[1]
                 call_cached = bool(int(js_get("callCaching.hit", call_metadata)))
                 if call_cached:
-                    cost, cpus, memory_gb, runtime = 0.0, 0, 0.0, 0.0
+                    cost, cpus, memory_gb, runtime, disk_size_gb = 0.0, 0, 0.0, 0.0, 0.0
                 else:
                     cpus, memory_gb = _parse_machine_type(js_get("jes.machineType", call_metadata))
                     # Assume that Google Lifesciences Pipelines API uses N1 custome machine type
@@ -91,11 +91,19 @@ def estimate_workflow_cost(workflow_id: str, workflow_metadata: dict) -> Generat
                     end = datetime.strptime(js_get("end", call_metadata), date_format)
                     runtime = (end - start).total_seconds()
                     preemptible = bool(int(js_get("runtimeAttributes.preemptible", call_metadata)))
-                    cost = costs.GCPCustomN1Cost.estimate(cpus, memory_gb, runtime, preemptible)
+                    disk_description = js_get("runtimeAttributes.disks", call_metadata, default="")
+                    if disk_description.startswith("local-disk"):
+                        _, size_gb, _ = disk_description.split()
+                        disk_size_gb = float(size_gb)
+                    else:
+                        disk_size_gb = 1.0
+                    cost = (costs.GCPCustomN1Cost.estimate(cpus, memory_gb, runtime, preemptible)
+                            + costs.PersistentDisk.estimate(disk_size_gb, runtime))
                 yield dict(task_name=task_name,
                            cost=cost,
                            number_of_cpus=cpus,
                            memory=memory_gb,
+                           disk=disk_size_gb,
                            duration=runtime,
                            call_cached=call_cached)
             except (KeyError, TNUCostException) as exc:
