@@ -7,6 +7,17 @@ HOUR = MINUTE * 60
 DAY = HOUR * 24
 MONTH = DAY * 30.437  # Not critical to be exact
 
+class PersistentDisk:
+    """
+    GCP persistent disk costs:
+    https://cloud.google.com/compute/disks-image-pricing#persistentdisk
+    """
+    standard = 0.04 / MONTH  # GCP disk prices are quoted per month :(
+
+    @classmethod
+    def estimate(cls, size_gb: float, runtime_seconds: float) -> float:
+        return cls.standard * size_gb * runtime_seconds
+
 class GCPCustomN1Cost:
     # Pricing information: https://cloud.google.com/compute/vm-instance-pricing#n1_custommachinetypepricing
     on_demand_per_cpu = 0.033174 / HOUR
