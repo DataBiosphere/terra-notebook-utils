@@ -61,21 +61,21 @@ def estimate_workflow_cost(submission_id: str,
                            workflow_id: str,
                            workspace_name: Optional[str]=WORKSPACE_NAME,
                            workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    all_metadata = get_workflow(submission_id, workflow_id, workspace_name, workspace_namespace)
-    for workflow_name, workflow_metadata in all_metadata['calls'].items():
-        for execution_metadata in workflow_metadata:
+    workflow_metadata = get_workflow(submission_id, workflow_id, workspace_name, workspace_namespace)
+    for call_name, call_metadata_list in workflow_metadata['calls'].items():
+        for call_metadata in call_metadata_list:
             try:
-                task_name = workflow_name.split(".")[1]
-                call_cached = bool(int(_get("callCaching.hit", execution_metadata)))
+                task_name = call_name.split(".")[1]
+                call_cached = bool(int(_get("callCaching.hit", call_metadata)))
                 if call_cached:
                     cost, cpus, memory_gb, runtime = 0.0, 0, 0.0, 0.0
                 else:
-                    cpus, memory_gb = _parse_machine_type(_get("jes.machineType", execution_metadata))
+                    cpus, memory_gb = _parse_machine_type(_get("jes.machineType", call_metadata))
                     # Assume that Google Lifesciences Pipelines API uses N1 custome machine type
-                    start = datetime.strptime(_get("start", execution_metadata), date_format)
-                    end = datetime.strptime(_get("end", execution_metadata), date_format)
+                    start = datetime.strptime(_get("start", call_metadata), date_format)
+                    end = datetime.strptime(_get("end", call_metadata), date_format)
                     runtime = (end - start).total_seconds()
-                    preemptible = bool(int(_get("runtimeAttributes.preemptible", execution_metadata)))
+                    preemptible = bool(int(_get("runtimeAttributes.preemptible", call_metadata)))
                     cost = costs.GCPCustomN1Cost.estimate(cpus, memory_gb, runtime, preemptible)
                 yield dict(task_name=task_name,
                            cost=cost,
