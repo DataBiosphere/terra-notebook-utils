@@ -96,7 +96,7 @@ def estimate_workflow_cost(workflow_id: str, workflow_metadata: dict) -> Generat
                         _, size_gb, _ = disk_description.split()
                         disk_size_gb = float(size_gb)
                     else:
-                        disk_size_gb = 1.0
+                        disk_size_gb = 1.0  # Guess 1GB when disk information is unavailable
                     cost = (costs.GCPCustomN1Cost.estimate(cpus, memory_gb, runtime, preemptible)
                             + costs.PersistentDisk.estimate(disk_size_gb, runtime))
                 yield dict(task_name=task_name,
