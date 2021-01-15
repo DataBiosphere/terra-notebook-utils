@@ -40,10 +40,6 @@ class TestTerraNotebookUtilsWorkflows(unittest.TestCase):
     def test_get_all_workflows(self):
         workflows.get_all_workflows(self.submission_id)
 
-    def test_get_utility(self):
-        with self.assertRaises(workflows.TNUCostException):
-            workflows._get("not.a.valid.path", dict(foo="bar"))
-
 @testmode("workspace_access")
 class TestTerraNotebookUtilsWorkflowsCLI(CLITestMixin, unittest.TestCase):
     common_kwargs = dict(workspace=WORKSPACE_NAME, workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
