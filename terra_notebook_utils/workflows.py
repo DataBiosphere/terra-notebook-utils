@@ -1,18 +1,16 @@
 """
 Workflow information
 """
-import os
 import json
 import logging
 from datetime import datetime
 from functools import lru_cache
-from typing import Any, Dict, Generator, Optional, Tuple
+from typing import Dict, Generator, Optional, Tuple
 
-import jmespath
 from firecloud import fiss
 
 from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, costs
-from terra_notebook_utils import utils
+from terra_notebook_utils.utils import concurrent_recursion, js_get
 
 
 logger = logging.getLogger(__name__)
@@ -52,12 +50,6 @@ def get_workflow(submission_id: str,
     resp.raise_for_status()
     return resp.json()
 
-def _get(path: str, data: Dict[str, Any]) -> Any:
-    res = jmespath.search(path, data)
-    if res is None:
-        raise TNUCostException(f"'{path}' not found in {json.dumps(data, indent=2)}")
-    return res
-
 def get_all_workflows(submission_id: str,
                       workspace: Optional[str]=WORKSPACE_NAME,
                       workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Dict[str, dict]:
@@ -77,7 +69,7 @@ def get_all_workflows(submission_id: str,
 
     submission = get_submission(submission_id, workspace, workspace_namespace)
     initial_workflow_ids = {wf['workflowId'] for wf in submission['workflows']}
-    utils.concurrent_recursion(get_metadata_and_subworkflows, initial_workflow_ids)
+    concurrent_recursion(get_metadata_and_subworkflows, initial_workflow_ids)
 
     return workflows_metadata
 
@@ -89,16 +81,16 @@ def estimate_workflow_cost(workflow_id: str, workflow_metadata: dict) -> Generat
                 continue
             try:
                 task_name = call_name.split(".")[1]
-                call_cached = bool(int(_get("callCaching.hit", call_metadata)))
+                call_cached = bool(int(js_get("callCaching.hit", call_metadata)))
                 if call_cached:
                     cost, cpus, memory_gb, runtime = 0.0, 0, 0.0, 0.0
                 else:
-                    cpus, memory_gb = _parse_machine_type(_get("jes.machineType", call_metadata))
+                    cpus, memory_gb = _parse_machine_type(js_get("jes.machineType", call_metadata))
                     # Assume that Google Lifesciences Pipelines API uses N1 custome machine type
-                    start = datetime.strptime(_get("start", call_metadata), date_format)
-                    end = datetime.strptime(_get("end", call_metadata), date_format)
+                    start = datetime.strptime(js_get("start", call_metadata), date_format)
+                    end = datetime.strptime(js_get("end", call_metadata), date_format)
                     runtime = (end - start).total_seconds()
-                    preemptible = bool(int(_get("runtimeAttributes.preemptible", call_metadata)))
+                    preemptible = bool(int(js_get("runtimeAttributes.preemptible", call_metadata)))
                     cost = costs.GCPCustomN1Cost.estimate(cpus, memory_gb, runtime, preemptible)
                 yield dict(task_name=task_name,
                            cost=cost,
@@ -106,7 +98,7 @@ def estimate_workflow_cost(workflow_id: str, workflow_metadata: dict) -> Generat
                            memory=memory_gb,
                            duration=runtime,
                            call_cached=call_cached)
-            except TNUCostException as exc:
+            except (KeyError, TNUCostException) as exc:
                 logger.warning(f"Unable to estimate costs for workflow {workflow_id}: "
                                f"{exc.args[0]}")
 

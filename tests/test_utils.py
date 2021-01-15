@@ -34,5 +34,12 @@ class TestUtils(unittest.TestCase):
         utils.concurrent_recursion(gen_items, {3})
         self.assertEqual(10, len(counter))
 
+    def test_js_get(self):
+        data = dict(foo=dict(bar=3))
+        self.assertEqual(data['foo'], utils.js_get("foo", data))
+        self.assertEqual(data['foo']['bar'], utils.js_get("foo.bar", data))
+        with self.assertRaises(KeyError):
+            utils.js_get("foo.not.in.dict", data)
+
 if __name__ == '__main__':
     unittest.main()

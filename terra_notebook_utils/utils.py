@@ -1,5 +1,8 @@
+import json
 from concurrent.futures import ThreadPoolExecutor, Future, as_completed
-from typing import Any, Callable, Iterable, Set
+from typing import Any, Callable, Dict, Optional, Iterable, Set
+
+import jmespath
 
 
 class _AsyncContextManager:
@@ -43,3 +46,12 @@ def concurrent_recursion(recurse: Callable[[Any], Iterable[Any]], initial_data: 
             for f in as_completed(futures):
                 futures.remove(f)
                 futures.update({e.submit(recurse, item) for item in f.result()})
+
+def js_get(path: str, data: Dict[str, Any], default: Optional[Any]=None) -> Any:
+    res = jmespath.search(path, data)
+    if res is not None:
+        return res
+    elif default is not None:
+        return default
+    else:
+        raise KeyError(f"'{path}' not found in {json.dumps(data, indent=2)}")
