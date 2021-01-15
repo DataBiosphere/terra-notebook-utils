@@ -38,6 +38,7 @@ class TestUtils(unittest.TestCase):
         data = dict(foo=dict(bar=3))
         self.assertEqual(data['foo'], utils.js_get("foo", data))
         self.assertEqual(data['foo']['bar'], utils.js_get("foo.bar", data))
+        self.assertEqual(123, utils.js_get("path.does.not.exist", data, default=123))
         with self.assertRaises(KeyError):
             utils.js_get("foo.not.in.dict", data)
 
