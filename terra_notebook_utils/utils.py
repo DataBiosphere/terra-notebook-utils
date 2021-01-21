@@ -1,4 +1,5 @@
 import json
+import threading
 from concurrent.futures import ThreadPoolExecutor, Future, as_completed
 from typing import Any, Callable, Dict, Optional, Iterable, Set
 
@@ -12,9 +13,11 @@ class _AsyncContextManager:
     def submit(self, func: Callable[..., Any], *args, **kwargs):
         f = self._executor.submit(func, *args, **kwargs)
         self._futures.add(f)
-        self.prune_futures()
+        if threading.current_thread() is threading.main_thread():
+            self.prune_futures()
 
     def prune_futures(self):
+        assert threading.current_thread() is threading.main_thread()
         for f in self._futures.copy():
             if f.done():
                 f.result()
