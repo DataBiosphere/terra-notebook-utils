@@ -44,11 +44,13 @@ class Writer(_AsyncContextManager):
     def __init__(self,
                  name: str,
                  workspace: Optional[str]=WORKSPACE_NAME,
-                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT,
+                 tsv_upload_size: int=1024):
         self.name = name
         self._init_request_data()
         self._workspace = workspace
         self._workspace_google_project = workspace_namespace
+        self._tsv_upload_size = tsv_upload_size
 
     def _init_request_data(self):
         self._tsvs: Dict[COLUMN_HEADERS, str] = defaultdict(list)
@@ -90,16 +92,16 @@ class Writer(_AsyncContextManager):
         update_request_data = self._get_row_update_request_data(row)
         if update_request_data:
             self._row_update_request_data[column_headers].append((row, update_request_data))
-        self._upload(1024 * 20)
+        self._upload()
         return row.name
 
-    def _upload(self, threshold: Optional[int]=None):
+    def _upload(self, force: bool=False):
         """
-        Schedule uploads for all TSVs of size equal to or greater than `threshold`.
-        If `threshold` is None, schedule uploads for all TSVs.
+        Schedule uploads for all TSVs of size equal to or greater than `self._tsv_upload_size`.
+        If `force` is None, schedule uploads for all TSVs.
         """
         for column_headers, tsv in self._tsvs.copy().items():
-            if threshold is None or len(tsv) >= threshold:
+            if force or len(tsv) >= self._tsv_upload_size:
                 row_updates = self._row_update_request_data.get(column_headers, list())
                 self.submit(self._do_fiss_upload, tsv, row_updates)
                 del self._tsvs[column_headers]
@@ -137,7 +139,7 @@ class Writer(_AsyncContextManager):
 
     def _prepare_for_exit(self):
         if self._tsvs:
-            self._upload()
+            self._upload(force=True)
 
 class Deleter(_AsyncContextManager):
     """
@@ -146,11 +148,13 @@ class Deleter(_AsyncContextManager):
     def __init__(self,
                  name: str,
                  workspace: Optional[str]=WORKSPACE_NAME,
-                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT,
+                 rows_per_api_call: int=2000):
         self.name = name
         self._workspace = workspace
         self._workspace_google_project = workspace_namespace
         self._init_request_data()
+        self._rows_per_api_call = rows_per_api_call
 
     def _init_request_data(self):
         self._request_data: List[Dict[str, str]] = list()
@@ -163,7 +167,7 @@ class Deleter(_AsyncContextManager):
         else:
             name = item[0]
         self._request_data.append(dict(entityType=self.name, entityName=name))
-        if 500 <= len(self._request_data):
+        if self._rows_per_api_call <= len(self._request_data):
             self._delete()
 
     def _delete(self):
