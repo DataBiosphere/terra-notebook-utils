@@ -98,7 +98,7 @@ class Writer(_AsyncContextManager):
     def _upload(self, force: bool=False):
         """
         Schedule uploads for all TSVs of size equal to or greater than `self._tsv_upload_size`.
-        If `force` is None, schedule uploads for all TSVs.
+        If `force` is True, schedule uploads for all TSVs.
         """
         for column_headers, tsv in self._tsvs.copy().items():
             if force or len(tsv) >= self._tsv_upload_size:
