@@ -81,7 +81,7 @@ def estimate_workflow_cost(workflow_id: str, workflow_metadata: dict) -> Generat
                 continue
             try:
                 task_name = call_name.split(".")[1]
-                call_cached = bool(int(js_get("callCaching.hit", call_metadata)))
+                call_cached = bool(int(js_get("callCaching.hit", call_metadata, default=0)))
                 if call_cached:
                     cost, cpus, memory_gb, runtime, disk_size_gb = 0.0, 0, 0.0, 0.0, 0.0
                 else:
