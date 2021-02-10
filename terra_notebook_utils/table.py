@@ -62,14 +62,19 @@ class Writer(_AsyncContextManager):
 
     def _get_row_update_request_data(self, row: Row) -> List[Dict[str, Any]]:
         request_data = list()
+        types: Set[type]
         for name, val in row.attributes.items():
             if isinstance(val, str):
                 update_ops = list()  # No Firecloud update operations needed for string values
             elif isinstance(val, (int, float, bool)):
                 update_ops = [dict(op="AddUpdateAttribute", attributeName=name, addUpdateAttribute=val)]
+            elif hasattr(val, "keys") and hasattr(val, "items"):  # TODO: better way to detect dict-like objects?
+                types = {type(k) for k in val.keys()}
+                assert 1 == len(types) and str == types.pop()
+                update_ops = [dict(op="AddUpdateAttribute", attributeName=name, addUpdateAttribute=val)]
             elif hasattr(val, "__iter__"):
                 update_ops = [dict(op="RemoveAttribute", attributeName=name)]
-                types: Set[type] = set()
+                types = set()
                 for m in val:
                     update_ops.append(dict(op="AddListMember", attributeListName=name, newMember=m))
                     types.add(type(m))
