@@ -1,3 +1,8 @@
+# Changes for v0.8.1 (2021-02-10)
+Raise TypeError if table object is forbidden (#275)
+Support table cells with dict values (#274)
+Force string type names for Terra table entities (#273)
+
 # Changes for v0.8.0 (2021-02-01)
 Assume False if callCaching not in workflow data (#272)
 Make table API call chunk size configurable (#271)
