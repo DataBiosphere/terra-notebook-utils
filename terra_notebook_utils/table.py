@@ -4,7 +4,7 @@ Terra data table commands
 import os
 from uuid import uuid4
 from collections import defaultdict, namedtuple
-from typing import Any, Dict, Generator, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 import requests
 from firecloud import fiss
@@ -68,9 +68,9 @@ class Writer(_AsyncContextManager):
                 update_ops = list()  # No Firecloud update operations needed for string values
             elif isinstance(val, (int, float, bool)):
                 update_ops = [dict(op="AddUpdateAttribute", attributeName=name, addUpdateAttribute=val)]
-            elif hasattr(val, "keys") and hasattr(val, "items"):  # TODO: better way to detect dict-like objects?
+            elif isinstance(val, Mapping):
                 types = {type(k) for k in val.keys()}
-                assert 1 == len(types) and str == types.pop()
+                assert 1 == len(types) and {str} == types
                 update_ops = [dict(op="AddUpdateAttribute", attributeName=name, addUpdateAttribute=val)]
             elif hasattr(val, "__iter__"):
                 update_ops = [dict(op="RemoveAttribute", attributeName=name)]
