@@ -96,6 +96,8 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
         with self.subTest("put", type="dict"):
             name = tnu_table.put_row(table, attributes)
             self.assertEqual(attributes, tnu_table.get_row(table, name).attributes)
+            with self.assertRaises(TypeError):
+                tnu_table.put_row(table, dict(foo=time))
         with self.subTest("del", type="dict"):
             tnu_table.del_row(table, name)
             self.assertIsNone(tnu_table.get_row(table, name))

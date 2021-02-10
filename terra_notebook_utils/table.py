@@ -79,6 +79,8 @@ class Writer(_AsyncContextManager):
                     update_ops.append(dict(op="AddListMember", attributeListName=name, newMember=m))
                     types.add(type(m))
                 assert 1 == len(types)
+            else:
+                raise TypeError(f"Object '{val}' of type '{type(val)}' cannot be inserted into Terra data tables")
             request_data.extend(update_ops)
         return request_data
 
