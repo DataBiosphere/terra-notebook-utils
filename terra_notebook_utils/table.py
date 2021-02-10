@@ -13,7 +13,11 @@ from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME
 from terra_notebook_utils.utils import _AsyncContextManager
 
 
-Row = namedtuple("Row", "name attributes")
+class Row(namedtuple("Row", "name attributes")):
+    def __init__(self, *args, **kwargs):
+        # It seems entity names are supplied as strings from the firecloud API.
+        # Force strings upon upload to preserve round trip name types.
+        assert isinstance(self.name, str), "Row names must be strings!"
 
 VALUE = Union[str, int, float, bool]
 ATTRIBUTES = Dict[str, Union[VALUE, Iterable[VALUE]]]

@@ -116,5 +116,11 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
             val = tnu_table.fetch_drs_url(table, file_name)
             self.assertEqual(val, drs_uri)
 
+    @testmode("workspace_access")
+    def test_row_name_types(self):
+        tnu_table.Row(name="foo", attributes=dict())
+        with self.assertRaises(AssertionError):
+            tnu_table.Row(name=1, attributes=dict())
+
 if __name__ == '__main__':
     unittest.main()
