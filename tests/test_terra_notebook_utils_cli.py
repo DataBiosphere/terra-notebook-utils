@@ -272,13 +272,20 @@ class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.table = "simple_germline_variation"
+        cls.table = f"test-{uuid4()}"
         cls.table_data = list()
-        for row in table.list_rows(cls.table):
-            e = row.attributes.copy()
-            e['entity_id'] = row.name
-            cls.table_data.append(e)
+        with table.Writer(cls.table) as writer:
+            for _ in range(11):
+                row = table.Row(f"{uuid4()}", dict(a=f"{uuid4()}", b=f"{uuid4()}"))
+                writer.put_row(row)
+                e = row.attributes.copy()
+                e['entity_id'] = row.name
+                cls.table_data.append(e)
         cls.columns = list(row.attributes.keys())
+
+    @classmethod
+    def tearDownClass(cls):
+        table.delete(cls.table)
 
     def setUp(self):
         self.row_index = randint(0, len(self.table_data) - 1)
