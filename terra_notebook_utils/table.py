@@ -84,11 +84,19 @@ class Writer(_AsyncContextManager):
             request_data.extend(update_ops)
         return request_data
 
-    def put_row(self, item: Union[ROW_LIKE, ATTRIBUTES]) -> str:
+    def put_row(self, item: Union[ROW_LIKE, ATTRIBUTES]) -> Optional[str]:
         if isinstance(item, dict):
             row = Row(f"{uuid4()}", item)
         else:
             row = Row(*item)
+
+        for k in row.attributes.copy():
+            if None is row.attributes[k]:
+                del row.attributes[k]
+
+        if not row.attributes:
+            return None
+
         column_headers = tuple(sorted(row.attributes.keys()))
         if column_headers not in self._tsvs:
             self._tsvs[column_headers] = "\t".join([f"{self.name}_id", *column_headers])

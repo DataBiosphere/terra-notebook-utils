@@ -25,7 +25,8 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
     @testmode("workspace_access")
     def test_table(self):
         table = f"test-table-{uuid4()}"
-        expected_rows = self._gen_rows(997)
+        expected_rows = {row.name: row for row in self._gen_rows(997)
+                         if any(row.attributes.values())}
 
         with self.subTest("build table"):
             start_time = time.time()
@@ -51,7 +52,7 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
             self.assertEqual(0, len(fetched_rows))
 
     def _gen_rows(self, number_of_rows: int):
-        def _rand_value(types={str, int, float, bool, list, dict}):
+        def _rand_value(types={str, int, float, bool, list, dict, None}):
             t = random.choice(list(types))
             if str == t:
                 val = f"{uuid4()}"
@@ -63,19 +64,21 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
             elif bool == t:
                 val = bool(random.randint(0, 1))
             elif list == t:
-                list_member_type = random.choice(list(types - {list}))
+                list_member_type = random.choice(list(types - {list} - {None}))
                 val = [_rand_value([list_member_type]) for _ in range(random.randint(1, 4))]
             elif dict == t:
                 val = dict(foo="a", bar=3)
+            elif None is t:
+                val = None
             return val
 
         all_column_headers = [["foo", "bar", "fubar", "snafu"], ["foo", "bar"], ["bar"]]
-        rows = dict()
+        rows = list()
         for _ in range(number_of_rows):
             column_headers = random.choice(all_column_headers)
             attributes = {c: _rand_value() for c in column_headers}
             row_name = f"{uuid4()}"
-            rows[row_name] = tnu_table.Row(row_name, attributes)
+            rows.append(tnu_table.Row(row_name, attributes))
         return rows
 
     @testmode("workspace_access")
