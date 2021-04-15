@@ -14,7 +14,7 @@ vcf_cli = dispatch.group("vcf", help=vcf.__doc__, arguments={
     "--workspace": dict(
         type=str,
         default=None,
-        help="workspace name. If not provided, the configured CLI workspace will be used"
+        help="Workspace name. If not provided, the configured CLI workspace will be used."
     ),
     "--workspace-namespace": dict(
         type=str,
