@@ -97,7 +97,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
                                             workspace_namespace=new_workspace_namespace))
 
 class TestTerraNotebookUtilsCLI_VCF(SuppressWarningsMixin, CLITestMixin, unittest.TestCase):
-    common_kwargs = dict(workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+    common_kwargs = dict(workspace=WORKSPACE_NAME, workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
     vcf_drs_url = "drs://dg.4503/57f58130-2d66-4d46-9b2b-539f7e6c2080"
 
     @classmethod

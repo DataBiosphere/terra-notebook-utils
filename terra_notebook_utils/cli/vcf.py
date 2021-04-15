@@ -11,6 +11,11 @@ vcf_cli = dispatch.group("vcf", help=vcf.__doc__, arguments={
     "path": dict(
         help="local path, gs://, or drs://"
     ),
+    "--workspace": dict(
+        type=str,
+        default=None,
+        help="Workspace name. If not provided, the configured CLI workspace will be used."
+    ),
     "--workspace-namespace": dict(
         type=str,
         required=False,
@@ -27,7 +32,7 @@ def head(args: argparse.Namespace):
     """
     Output VCF header.
     """
-    _, args.workspace_namespace = Config.resolve(None, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     blob = _get_blob(args.path, args.workspace_namespace)
     if blob:
         info = vcf.VCFInfo.with_blob(blob)
@@ -40,7 +45,7 @@ def samples(args: argparse.Namespace):
     """
     Output VCF samples.
     """
-    _, args.workspace_namespace = Config.resolve(None, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     blob = _get_blob(args.path, args.workspace_namespace)
     if blob:
         info = vcf.VCFInfo.with_blob(blob)
@@ -53,7 +58,7 @@ def stats(args: argparse.Namespace):
     """
     Output VCF stats.
     """
-    _, args.workspace_namespace = Config.resolve(None, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     blob = _get_blob(args.path, args.workspace_namespace)
     if blob:
         info = vcf.VCFInfo.with_blob(blob)
