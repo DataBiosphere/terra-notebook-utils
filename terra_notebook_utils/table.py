@@ -9,8 +9,9 @@ from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Set,
 import requests
 from firecloud import fiss
 
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME
+from terra_notebook_utils.http import Retry, http_session
 from terra_notebook_utils.utils import _AsyncContextManager
+from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME
 
 
 class Row(namedtuple("Row", "name attributes")):
@@ -37,6 +38,13 @@ ROW_OR_NAME = Union[Row, str]
 # It turns out google.auth.transport.requests.AuthorizedSession is not thread safe.
 # Fortunately fiss.fapi._set_session caches the result. Call it once on the main thread.
 fiss.fapi._set_session()
+
+# Overrde retry behaviour from google.auth.transport.requests.AuthorizedSession
+# This is especially useful for fiss.fapi.update_entity, which enjoys throwing spurious PATCH 500 errors.
+retry = Retry(total=10,
+              status_forcelist=[429, 500, 502, 503, 504],
+              method_whitelist=['GET', 'HEAD', 'DELETE', 'PATCH', 'PUT'])
+http_session(fiss.fapi.__SESSION, retry)
 
 class Writer(_AsyncContextManager):
     """
@@ -136,25 +144,12 @@ class Writer(_AsyncContextManager):
             if request_data:
                 self.submit(self._do_fiss_updates, row, request_data)
 
-    def _do_fiss_updates(self, row: Row, request_data: UPDATE_OPS, retry: int=0):
-        try:
-            fiss.fapi.update_entity(self._workspace_google_project,
-                                    self._workspace,
-                                    self.name,
-                                    row.name,
-                                    request_data).raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            if 500 == e.response.status_code:
-                # Firecloud occasionally throws 500 errors for successful update operations.
-                # Check if we get the row we expect, retry otherwise.
-                if 5 > retry:
-                    cur_row = get_row(self.name, row.name)
-                    if row != cur_row:
-                        self.submit(self._do_fiss_updates, row, request_data, retry=retry + 1)
-                else:
-                    raise Exception(f"Ran out of retries updating row {row.name}") from e
-            else:
-                raise
+    def _do_fiss_updates(self, row: Row, request_data: UPDATE_OPS):
+        fiss.fapi.update_entity(self._workspace_google_project,
+                                self._workspace,
+                                self.name,
+                                row.name,
+                                request_data).raise_for_status()
 
     def _prepare_for_exit(self):
         if self._tsvs:
