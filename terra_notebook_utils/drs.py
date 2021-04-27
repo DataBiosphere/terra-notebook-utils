@@ -69,7 +69,6 @@ def fetch_drs_info(drs_url: str) -> dict:
         'authorization': f"Bearer {access_token}",
         'content-type': "application/json"
     }
-    # drs://dg.712C/57a6f0bb-bc4b-4530-a95e-9c2c3398b618
 
     logger.info(f"Resolving DRS uri '{drs_url}' through '{MARTHA_URL}'.")
 
