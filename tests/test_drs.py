@@ -333,7 +333,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.copy"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.gscio"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.tar_gz"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.requests", post=requests_post))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with mock.patch("terra_notebook_utils.drs.enable_requester_pays") as enable_requester_pays:
                 with self.subTest("Copy to local"):
                     with tempfile.NamedTemporaryFile() as tf:
@@ -354,7 +354,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.requests", post=requests_post))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             _, actual_info = drs.resolve_drs_for_gs_storage(self.jade_dev_url)
             self.assertEqual(None, actual_info.credentials)
             self.assertEqual('broad-jade-dev-data-bucket', actual_info.bucket_name)
@@ -370,7 +370,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.requests", post=requests_post))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             _, actual_info = drs.resolve_drs_for_gs_storage(self.drs_url)
             self.assertEqual({'project_id': "foo"}, actual_info.credentials)
             self.assertEqual('bogus', actual_info.bucket_name)
@@ -385,7 +385,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.requests", post=requests_post))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             _, actual_info = drs.resolve_drs_for_gs_storage(self.jade_dev_url)
             self.assertEqual({'project_id': "foo"}, actual_info.credentials)
             self.assertEqual('broad-jade-dev-data-bucket', actual_info.bucket_name)
@@ -401,7 +401,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.requests", post=requests_post))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             _, actual_info = drs.resolve_drs_for_gs_storage(self.drs_url)
             self.assertEqual(None, actual_info.credentials)
             self.assertEqual('bogus', actual_info.bucket_name)
@@ -416,7 +416,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.requests", post=requests_post))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with self.assertRaisesRegex(DRSResolutionError, f"No GS url found for DRS uri '{self.jade_dev_url}'"):
                 drs.resolve_drs_for_gs_storage(self.jade_dev_url)
 
@@ -426,7 +426,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.requests", post=requests_post))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with self.assertRaisesRegex(Exception, f"No GS url found for DRS uri '{self.drs_url}'"):
                 drs.resolve_drs_for_gs_storage(self.drs_url)
 
@@ -436,7 +436,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=500, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.requests", post=requests_post))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with self.assertRaisesRegex(
                     DRSResolutionError,
                     "Unexpected response while resolving DRS path. Expected status 200, got 500. "
@@ -450,7 +450,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=500, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.requests", post=requests_post))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with self.assertRaisesRegex(
                     DRSResolutionError,
                     "Unexpected response while resolving DRS path. Expected status 200, got 500. "

@@ -4,9 +4,7 @@ Utilities for working with DRS objects
 import os
 import sys
 import re
-import json
 import logging
-import requests
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
@@ -20,6 +18,7 @@ from gs_chunked_io import async_collections
 from terra_notebook_utils import (WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD,
                                   IO_CONCURRENCY, MARTHA_URL)
 from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
+from terra_notebook_utils.http import http
 
 
 logger = logging.getLogger(__name__)
@@ -54,7 +53,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
         'authorization': f"Bearer {access_token}",
         'content-type': "application/json"
     }
-    resp = requests.put(rawls_url, headers=headers)
+    resp = http.put(rawls_url, headers=headers)
 
     if resp.status_code != 204:
         logger.warning(f"Failed to init requester pays for workspace {WORKSPACE_GOOGLE_PROJECT}/{WORKSPACE_NAME}.")
@@ -70,10 +69,12 @@ def fetch_drs_info(drs_url: str) -> dict:
         'authorization': f"Bearer {access_token}",
         'content-type': "application/json"
     }
+    # drs://dg.712C/57a6f0bb-bc4b-4530-a95e-9c2c3398b618
 
     logger.info(f"Resolving DRS uri '{drs_url}' through '{MARTHA_URL}'.")
 
-    resp = requests.post(MARTHA_URL, headers=headers, data=json.dumps(dict(url=drs_url)))
+    json_body = dict(url=drs_url)
+    resp = http.post(MARTHA_URL, headers=headers, json=json_body)
 
     if 200 == resp.status_code:
         resp_data = resp.json()

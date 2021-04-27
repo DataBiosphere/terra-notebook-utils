@@ -1,5 +1,4 @@
 from typing import BinaryIO
-from functools import lru_cache
 
 import requests
 from requests.adapters import HTTPAdapter
