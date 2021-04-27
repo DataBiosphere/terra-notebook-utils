@@ -1,7 +1,7 @@
-import requests
 from typing import BinaryIO
 from functools import lru_cache
 
+import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
