@@ -17,3 +17,10 @@ def http_session(session: requests.Session=None, retry: Retry=None) -> requests.
     session.mount("https://", adapter)
     session.mount("http://", adapter)
     return session
+
+# Instantiate a default session. It's useful to have a common session to take advantage of connection pooling.
+# Users can modify stuff by replacing this session or insantiation a new one. Note that sessions can be used
+# as context managers:
+# with http_session(...) as http:
+#    http.get(...)
+http = http_session()
