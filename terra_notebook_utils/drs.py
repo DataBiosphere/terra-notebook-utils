@@ -116,7 +116,6 @@ def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
     Convert response from martha_v2 to DRSInfo
     """
     if 'data_object' in drs_response['dos']:
-        credentials_data = extract_credentials_from_drs_response(drs_response)
         data_object = drs_response['dos']['data_object']
 
         if 'urls' not in data_object:
@@ -131,7 +130,7 @@ def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
                 raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
 
         bucket_name, key = _parse_gs_url(data_url)
-        return DRSInfo(credentials=credentials_data,
+        return DRSInfo(credentials=extract_credentials_from_drs_response(drs_response),
                        bucket_name=bucket_name,
                        key=key,
                        name=data_object.get('name'),
@@ -147,9 +146,7 @@ def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
     if 'gsUri' not in drs_response:
         raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
 
-    credentials_data = extract_credentials_from_drs_response(drs_response)
-
-    return DRSInfo(credentials=credentials_data,
+    return DRSInfo(credentials=extract_credentials_from_drs_response(drs_response),
                    bucket_name=drs_response.get('bucket'),
                    key=drs_response.get('name'),
                    name=drs_response.get('fileName'),
