@@ -159,12 +159,7 @@ def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     """
     assert drs_url.startswith("drs://")
 
-    try:
-        info = get_drs_info(drs_url)
-    except DRSResolutionError:
-        raise
-    except Exception:
-        raise
+    info = get_drs_info(drs_url)
 
     if info.credentials is not None:
         project_id = info.credentials['project_id']
