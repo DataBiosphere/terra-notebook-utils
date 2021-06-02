@@ -91,7 +91,7 @@ def get_drs(drs_url: str) -> Response:
 
 def info(drs_url: str) -> dict:
     """Return a curated subset of data from `get_drs`."""
-    info = resolve_drs_info_for_gs_storage(drs_url)
+    info = get_drs_info(drs_url)
     out = dict(name=info.name, size=info.size, updated=info.updated)
     out['url'] = f"gs://{info.bucket_name}/{info.key}"
     return out
@@ -142,7 +142,7 @@ def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
                    size=drs_response.get('size'),
                    updated=drs_response.get('timeUpdated'))
 
-def resolve_drs_info_for_gs_storage(drs_url: str) -> DRSInfo:
+def get_drs_info(drs_url: str) -> DRSInfo:
     """Attempt to resolve gs:// url and credentials for a DRS object."""
     assert drs_url.startswith("drs://")
     drs_response = get_drs(drs_url)
@@ -160,7 +160,7 @@ def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     assert drs_url.startswith("drs://")
 
     try:
-        info = resolve_drs_info_for_gs_storage(drs_url)
+        info = get_drs_info(drs_url)
     except DRSResolutionError:
         raise
     except Exception:
