@@ -96,18 +96,17 @@ def info(drs_url: str) -> dict:
     out['url'] = f"gs://{info.bucket_name}/{info.key}"
     return out
 
-def extract_credentials_from_drs_response(response: dict) -> Optional[dict]:
-    if 'googleServiceAccount' not in response or response['googleServiceAccount'] is None:
-        credentials_data = None
+def _get_drs_gs_creds(response: dict) -> Optional[dict]:
+    service_account_info = response.get('googleServiceAccount')
+    if service_account_info is not None:
+        return service_account_info['data']
     else:
-        credentials_data = response['googleServiceAccount']['data']
+        return None
 
-    return credentials_data
-
-def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> DRSInfo:
+def _drs_info_from_martha_v2(drs_url: str, drs_data: dict) -> DRSInfo:
     """Convert response from martha_v2 to DRSInfo."""
-    if 'data_object' in drs_response['dos']:
-        data_object = drs_response['dos']['data_object']
+    if 'data_object' in drs_data['dos']:
+        data_object = drs_data['dos']['data_object']
 
         if 'urls' not in data_object:
             raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
@@ -121,7 +120,7 @@ def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
                 raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
 
         bucket_name, key = _parse_gs_url(data_url)
-        return DRSInfo(credentials=extract_credentials_from_drs_response(drs_response),
+        return DRSInfo(credentials=_get_drs_gs_creds(drs_data),
                        bucket_name=bucket_name,
                        key=key,
                        name=data_object.get('name'),
@@ -130,17 +129,17 @@ def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
     else:
         raise DRSResolutionError(f"No metadata was returned for DRS uri '{drs_url}'")
 
-def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> DRSInfo:
+def _drs_info_from_martha_v3(drs_url: str, drs_data: dict) -> DRSInfo:
     """Convert response from martha_v3 to DRSInfo."""
-    if 'gsUri' not in drs_response:
+    if 'gsUri' not in drs_data:
         raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
 
-    return DRSInfo(credentials=extract_credentials_from_drs_response(drs_response),
-                   bucket_name=drs_response.get('bucket'),
-                   key=drs_response.get('name'),
-                   name=drs_response.get('fileName'),
-                   size=drs_response.get('size'),
-                   updated=drs_response.get('timeUpdated'))
+    return DRSInfo(credentials=_get_drs_gs_creds(drs_data),
+                   bucket_name=drs_data.get('bucket'),
+                   key=drs_data.get('name'),
+                   name=drs_data.get('fileName'),
+                   size=drs_data.get('size'),
+                   updated=drs_data.get('timeUpdated'))
 
 def get_drs_info(drs_url: str) -> DRSInfo:
     """Attempt to resolve gs:// url and credentials for a DRS object."""
@@ -149,9 +148,9 @@ def get_drs_info(drs_url: str) -> DRSInfo:
     drs_data = drs_response.json()
 
     if 'dos' in drs_data:
-        return convert_martha_v2_response_to_DRSInfo(drs_url, drs_data)
+        return _drs_info_from_martha_v2(drs_url, drs_data)
     else:
-        return convert_martha_v3_response_to_DRSInfo(drs_url, drs_data)
+        return _drs_info_from_martha_v3(drs_url, drs_data)
 
 def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     """Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage
