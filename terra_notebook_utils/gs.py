@@ -28,9 +28,8 @@ warnings.filterwarnings("ignore", "Your application has authenticated using end 
 
 
 def get_access_token():
-    """
-    Retrieve the access token using the default GCP account
-    returns the same result as `gcloud auth print-access-token`
+    """Retrieve the access token using the default GCP account returns the same result as
+    `gcloud auth print-access-token`.
     """
     if os.environ.get("TERRA_NOTEBOOK_GOOGLE_ACCESS_TOKEN"):
         token = os.environ['TERRA_NOTEBOOK_GOOGLE_ACCESS_TOKEN']
@@ -70,9 +69,7 @@ def get_client(credentials_data: dict=None, project: str=None):
     return client
 
 def oneshot_copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst_key: str):
-    """
-    Download an object into memory from `src_bucket` and upload it to `dst_bucket`
-    """
+    """Download an object into memory from `src_bucket` and upload it to `dst_bucket`."""
     logger.info(f"Copying gs://{src_bucket.name}/{src_key} to gs://{dst_bucket.name}/{dst_key}")
     fh = io.BytesIO()
     src_bucket.blob(src_key).download_to_file(fh)
@@ -81,9 +78,7 @@ def oneshot_copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst_k
     assert src_bucket.get_blob(src_key).crc32c == dst_bucket.get_blob(dst_key).crc32c
 
 def multipart_copy(src_bucket: GSBucket, dst_bucket: GSBucket, src_key: str, dst_key: str):
-    """
-    Download/upload an object in parts from `src_bucket` to `dst_bucket`
-    """
+    """Download/upload an object in parts from `src_bucket` to `dst_bucket`."""
     src_blob = src_bucket.get_blob(src_key)
     print(f"Copying gs://{src_bucket.name}/{src_key} to gs://{dst_bucket.name}/{dst_key}")
     number_of_chunks = ceil(src_blob.size / gscio.reader.default_chunk_size)

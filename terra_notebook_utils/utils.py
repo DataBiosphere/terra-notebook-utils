@@ -7,9 +7,7 @@ import jmespath
 
 
 class _AsyncContextManager:
-    """
-    Context manager for asynchronous execution. Wait on exit for all jobs to complete.
-    """
+    """Context manager for asynchronous execution. Wait on exit for all jobs to complete."""
     def submit(self, func: Callable[..., Any], *args, **kwargs):
         f = self._executor.submit(func, *args, **kwargs)
         self._futures.add(f)
@@ -40,9 +38,7 @@ class _AsyncContextManager:
         self._executor.shutdown()
 
 def concurrent_recursion(recurse: Callable[[Any], Iterable[Any]], initial_data: Iterable[Any], concurrency: int=8):
-    """
-    Call `recurse` on each item in `initial_data`, and on each item returned by `recurse`, concurrently.
-    """
+    """Call `recurse` on each item in `initial_data`, and on each item returned by `recurse`, concurrently."""
     with ThreadPoolExecutor(max_workers=concurrency) as e:
         futures = {e.submit(recurse, item) for item in initial_data}
         while futures:

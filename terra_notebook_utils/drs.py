@@ -1,6 +1,4 @@
-"""
-Utilities for working with DRS objects
-"""
+"""Utilities for working with DRS objects."""
 import os
 import sys
 import re
@@ -60,9 +58,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
         logger.warning("You will not be able to access drs urls that interact with requester pays buckets.")
 
 def fetch_drs_info(drs_url: str) -> dict:
-    """
-    Request DRS infromation from martha.
-    """
+    """Request DRS infromation from martha."""
     access_token = gs.get_access_token()
 
     headers = {
@@ -95,9 +91,7 @@ def fetch_drs_info(drs_url: str) -> dict:
     return resp_data
 
 def info(drs_url: str) -> dict:
-    """
-    Return a curated subset of data from `fetch_drs_info`.
-    """
+    """Return a curated subset of data from `fetch_drs_info`."""
     info = resolve_drs_info_for_gs_storage(drs_url)
     out = dict(name=info.name, size=info.size, updated=info.updated)
     out['url'] = f"gs://{info.bucket_name}/{info.key}"
@@ -112,9 +106,7 @@ def extract_credentials_from_drs_response(response: dict) -> Optional[dict]:
     return credentials_data
 
 def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> DRSInfo:
-    """
-    Convert response from martha_v2 to DRSInfo
-    """
+    """Convert response from martha_v2 to DRSInfo."""
     if 'data_object' in drs_response['dos']:
         data_object = drs_response['dos']['data_object']
 
@@ -140,9 +132,7 @@ def convert_martha_v2_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
         raise DRSResolutionError(f"No metadata was returned for DRS uri '{drs_url}'")
 
 def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> DRSInfo:
-    """
-    Convert response from martha_v3 to DRSInfo
-    """
+    """Convert response from martha_v3 to DRSInfo."""
     if 'gsUri' not in drs_response:
         raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
 
@@ -154,9 +144,7 @@ def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
                    updated=drs_response.get('timeUpdated'))
 
 def resolve_drs_info_for_gs_storage(drs_url: str) -> DRSInfo:
-    """
-    Attempt to resolve gs:// url and credentials for a DRS object.
-    """
+    """Attempt to resolve gs:// url and credentials for a DRS object."""
     assert drs_url.startswith("drs://")
     drs_response: dict = fetch_drs_info(drs_url)
 
@@ -166,8 +154,8 @@ def resolve_drs_info_for_gs_storage(drs_url: str) -> DRSInfo:
         return convert_martha_v3_response_to_DRSInfo(drs_url, drs_response)
 
 def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
-    """
-    Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage client.
+    """Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage
+    client.
     """
     assert drs_url.startswith("drs://")
 
@@ -190,9 +178,7 @@ def copy_to_local(drs_url: str,
                   filepath: str,
                   workspace_name: Optional[str]=WORKSPACE_NAME,
                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    """
-    Copy a DRS object to the local filesystem.
-    """
+    """Copy a DRS object to the local filesystem."""
     assert drs_url.startswith("drs://")
     enable_requester_pays(workspace_name, workspace_namespace)
     client, info = resolve_drs_for_gs_storage(drs_url)
@@ -213,14 +199,7 @@ def head(drs_url: str,
          buffer: int = MULTIPART_THRESHOLD,
          workspace_name: Optional[str] = WORKSPACE_NAME,
          workspace_namespace: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
-    """
-    Head a DRS object by byte.
-
-    :param drs_url: A drs:// schema URL.
-    :param num_bytes: Number of bytes to print from the DRS object.
-    :param workspace_name: The name of the terra workspace.
-    :param workspace_namespace: The name of the terra workspace namespace.
-    """
+    """Head a DRS object by byte."""
     assert drs_url.startswith("drs://"), f'Not a DRS schema: {drs_url}'
     enable_requester_pays(workspace_name, workspace_namespace)
     try:
@@ -240,9 +219,8 @@ def copy_to_bucket(drs_url: str,
                    dst_bucket_name: str=None,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
                    workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    """
-    Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.
-    If `dst_bucket` is None, copy into workspace bucket.
+    """Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.  If `dst_bucket` is None, copy into
+    workspace bucket.
     """
     assert drs_url.startswith("drs://")
     enable_requester_pays(workspace_name, workspace_namespace)
@@ -261,8 +239,8 @@ def copy(drs_url: str,
          dst: str,
          workspace_name: Optional[str]=WORKSPACE_NAME,
          workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    """
-    Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with "gs://".
+    """Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with
+    "gs://".
     """
     assert drs_url.startswith("drs://")
     if dst.startswith("gs://"):
@@ -308,9 +286,7 @@ def extract_tar_gz(drs_url: str,
                    dst_bucket_name: str=None,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
                    workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    """
-    Extract a `.tar.gz` archive resolved by a DRS url into a Google Storage bucket.
-    """
+    """Extract a `.tar.gz` archive resolved by a DRS url into a Google Storage bucket."""
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
     enable_requester_pays(workspace_name, workspace_namespace)

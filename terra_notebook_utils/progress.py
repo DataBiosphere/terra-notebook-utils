@@ -8,9 +8,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class RateLimited:
-    """
-    Decorator to rate limit method calls. Raises `exception` if method is called more quickly than
-    `rate` times per second, or does nothing if exception is None.
+    """Decorator to rate limit method calls. Raises `exception` if method is called more quickly than `rate` times per
+    second, or does nothing if exception is None.
     """
     def __init__(self, rate: float, exception: Exception=None):
         self.period = 1 / rate

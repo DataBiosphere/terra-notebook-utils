@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""
-Upload fixtures into Terra data model
-"""
+"""Upload fixtures into Terra data model."""
 import os
 import sys
 import json

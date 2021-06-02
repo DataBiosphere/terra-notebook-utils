@@ -19,9 +19,7 @@ _chunk_size = 1024 * 1024 * 32
 _extract_single_chunk: bool = False
 
 def extract(src_fh, dst_bucket: typing.Optional[Bucket]=None, root: typing.Optional[str]=None):
-    """
-    Extract a tar.gz archive into the local filesystem, or a GS bucket if `dst_bucket` is provided.
-    """
+    """Extract a tar.gz archive into the local filesystem, or a GS bucket if `dst_bucket` is provided."""
     gzip_reader = gzip.GzipFile(fileobj=src_fh)
     tf = tarfile.TarFile(fileobj=gzip_reader)  # type: ignore
     for tarinfo in tf:
