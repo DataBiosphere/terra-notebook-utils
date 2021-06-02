@@ -121,7 +121,7 @@ def drs_credentials(args: argparse.Namespace):
     Return the credentials needed to access a DRS url.
     """
     try:
-        info = drs.resolve_drs_info_for_gs_storage(args.drs_url)
+        info = drs.get_drs_info(args.drs_url)
     except DRSResolutionError:
         raise
     except Exception:
