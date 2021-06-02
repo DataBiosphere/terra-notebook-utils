@@ -16,7 +16,6 @@ _GS_SCHEMA = 'gs://'
 if WORKSPACE_BUCKET is not None and WORKSPACE_BUCKET.startswith(_GS_SCHEMA):
     WORKSPACE_BUCKET = WORKSPACE_BUCKET[len(_GS_SCHEMA):]  # Chop off the bucket schema
 
-MULTIPART_THRESHOLD = 1024 * 1024 * 32
 IO_CONCURRENCY = 3
 
 MARTHA_URL = f"https://us-central1-broad-dsde-{TERRA_DEPLOYMENT_ENV}.cloudfunctions.net/{MARTHA_URL_VERSION}"

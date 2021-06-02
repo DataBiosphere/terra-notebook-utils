@@ -1,28 +1,25 @@
 """Utilities for working with DRS objects."""
 import os
-import sys
-import re
 import logging
 import traceback
-from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from collections import namedtuple
-from typing import Tuple, Iterable, Optional, Callable, IO
 from google.cloud.exceptions import NotFound, Forbidden
+from typing import Tuple, Iterable, Optional, Union
 
-import gs_chunked_io as gscio
-from gs_chunked_io import async_collections
 from requests import Response
 
-from terra_notebook_utils import (WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD,
-                                  IO_CONCURRENCY, MARTHA_URL)
+from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
 from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 from terra_notebook_utils.http import http
+from terra_notebook_utils.blobstore.gs import GSBlob
+from terra_notebook_utils.blobstore.local import LocalBlob
+from terra_notebook_utils.blobstore.copy_client import CopyClient
 
 
 logger = logging.getLogger(__name__)
 
-DRSInfo = namedtuple("DRSInfo", "credentials bucket_name key name size updated")
+DRSInfo = namedtuple("DRSInfo", "credentials access_url bucket_name key name size updated")
 
 class GSBlobInaccessible(Exception):
     pass
@@ -121,6 +118,7 @@ def _drs_info_from_martha_v2(drs_url: str, drs_data: dict) -> DRSInfo:
 
         bucket_name, key = _parse_gs_url(data_url)
         return DRSInfo(credentials=_get_drs_gs_creds(drs_data),
+                       access_url=None,
                        bucket_name=bucket_name,
                        key=key,
                        name=data_object.get('name'),
@@ -135,6 +133,7 @@ def _drs_info_from_martha_v3(drs_url: str, drs_data: dict) -> DRSInfo:
         raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
 
     return DRSInfo(credentials=_get_drs_gs_creds(drs_data),
+                   access_url=drs_data.get('accessUrl'),
                    bucket_name=drs_data.get('bucket'),
                    key=drs_data.get('name'),
                    name=drs_data.get('fileName'),
@@ -144,13 +143,21 @@ def _drs_info_from_martha_v3(drs_url: str, drs_data: dict) -> DRSInfo:
 def get_drs_info(drs_url: str) -> DRSInfo:
     """Attempt to resolve gs:// url and credentials for a DRS object."""
     assert drs_url.startswith("drs://")
-    drs_response = get_drs(drs_url)
-    drs_data = drs_response.json()
-
+    drs_data = get_drs(drs_url).json()
     if 'dos' in drs_data:
         return _drs_info_from_martha_v2(drs_url, drs_data)
     else:
         return _drs_info_from_martha_v3(drs_url, drs_data)
+
+def get_drs_blob(drs_url_or_info: Union[str, DRSInfo],
+                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> GSBlob:
+    if isinstance(drs_url_or_info, str):
+        info = get_drs_info(drs_url_or_info)
+    elif isinstance(drs_url_or_info, DRSInfo):
+        info = drs_url_or_info
+    else:
+        raise TypeError()
+    return GSBlob(info.bucket_name, info.key, info.credentials, workspace_namespace)
 
 def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     """Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage
@@ -168,6 +175,12 @@ def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     client = gs.get_client(info.credentials, project=project_id)
     return client, info
 
+def _resolve_target(filepath: str, info: DRSInfo) -> str:
+    if os.path.isdir(filepath):
+        filename = info.name or info.key.rsplit("/", 1)[-1]
+        filepath = os.path.join(os.path.abspath(filepath), filename)
+    return filepath
+
 def copy_to_local(drs_url: str,
                   filepath: str,
                   workspace_name: Optional[str]=WORKSPACE_NAME,
@@ -175,33 +188,23 @@ def copy_to_local(drs_url: str,
     """Copy a DRS object to the local filesystem."""
     assert drs_url.startswith("drs://")
     enable_requester_pays(workspace_name, workspace_namespace)
-    client, info = resolve_drs_for_gs_storage(drs_url)
-    blob = client.bucket(info.bucket_name, user_project=workspace_namespace).blob(info.key)
-    if os.path.isdir(filepath):
-        filename = info.name or info.key.rsplit("/", 1)[-1]
-        filepath = os.path.join(os.path.abspath(filepath), filename)
     logger.info(f"Downloading {drs_url} to {filepath}")
-    try:
-        with open(filepath, "wb") as fh:
-            blob.download_to_file(fh)
-    except Exception:
-        os.remove(filepath)
-        raise
+    info = get_drs_info(drs_url)
+    get_drs_blob(info, workspace_namespace).download(_resolve_target(filepath, info))
 
 def head(drs_url: str,
          num_bytes: int = 1,
-         buffer: int = MULTIPART_THRESHOLD,
-         workspace_name: Optional[str] = WORKSPACE_NAME,
-         workspace_namespace: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
+         buffer: Optional[int]=None,
+         workspace_name: Optional[str]=WORKSPACE_NAME,
+         workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Head a DRS object by byte."""
     assert drs_url.startswith("drs://"), f'Not a DRS schema: {drs_url}'
     enable_requester_pays(workspace_name, workspace_namespace)
     try:
-        client, info = resolve_drs_for_gs_storage(drs_url)
-        blob = client.bucket(info.bucket_name, user_project=workspace_namespace).blob(info.key)
-        with gscio.Reader(blob, chunk_size=buffer) as handle:
-            the_bytes = handle.read(num_bytes)
-
+        blob = get_drs_blob(drs_url, workspace_namespace)
+        chunk_size = buffer or 2 * num_bytes
+        with blob.open(chunk_size) as fh:
+            the_bytes = fh.read(num_bytes)
     except (DRSResolutionError, NotFound, Forbidden):
         raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
                                  f'Could not be accessed because of:\n'
@@ -220,14 +223,15 @@ def copy_to_bucket(drs_url: str,
     enable_requester_pays(workspace_name, workspace_namespace)
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
-    src_client, src_info = resolve_drs_for_gs_storage(drs_url)
+    assert dst_bucket_name
+    src_info = get_drs_info(drs_url)
     if not dst_key:
         dst_key = src_info.name or src_info.key.rsplit("/", 1)[-1]
-    dst_client = gs.get_client()
-    src_bucket = src_client.bucket(src_info.bucket_name, user_project=workspace_namespace)
-    dst_bucket = dst_client.bucket(dst_bucket_name)
-    logger.info(f"Beginning to copy from {src_bucket} to {dst_bucket}. This can take a while for large files...")
-    gs.copy(src_bucket, dst_bucket, src_info.key, dst_key)
+    src_blob = get_drs_blob(src_info, workspace_namespace)
+    dst_blob = GSBlob(dst_bucket_name, dst_key)
+    logger.info(f"Beginning to copy from {src_blob.url} to {dst_blob.url}. This can take a while for large files...")
+    with CopyClient() as cc:
+        cc.copy(src_blob, dst_blob)
 
 def copy(drs_url: str,
          dst: str,
@@ -251,29 +255,22 @@ def copy_batch(drs_urls: Iterable[str],
                dst: str,
                workspace_name: Optional[str]=WORKSPACE_NAME,
                workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    dst_blob: Union[GSBlob, LocalBlob]
     enable_requester_pays(workspace_name, workspace_namespace)
-    with ThreadPoolExecutor(max_workers=IO_CONCURRENCY) as oneshot_executor:
-        oneshot_pool = async_collections.AsyncSet(oneshot_executor, concurrency=IO_CONCURRENCY)
+    with CopyClient() as cc:
         for drs_url in drs_urls:
             assert drs_url.startswith("drs://")
-            src_client, src_info = resolve_drs_for_gs_storage(drs_url)
-            src_bucket = src_client.bucket(src_info.bucket_name, user_project=workspace_namespace)
-            src_blob = src_bucket.get_blob(src_info.key)
-            basename = src_info.name or src_info.key.rsplit("/", 1)[-1]
+            src_info = get_drs_info(drs_url)
+            src_blob = get_drs_blob(src_info, workspace_namespace)
             if dst.startswith("gs://"):
                 if dst.endswith("/"):
                     raise ValueError("Bucket destination cannot end with '/'")
                 dst_bucket_name, dst_pfx = _bucket_name_and_key(dst)
-                dst_bucket = gs.get_client().bucket(dst_bucket_name)
-                dst_key = f"{dst_pfx}/{basename}"
-                if MULTIPART_THRESHOLD >= src_blob.size:
-                    oneshot_pool.put(gs.oneshot_copy, src_bucket, dst_bucket, src_info.key, dst_key)
-                else:
-                    gs.multipart_copy(src_bucket, dst_bucket, src_info.key, dst_key)
+                basename = src_info.name or src_info.key.rsplit("/", 1)[-1]
+                dst_blob = GSBlob(dst_bucket_name, f"{dst_pfx}/{basename}")
             else:
-                oneshot_pool.put(copy_to_local, drs_url, dst, workspace_name, workspace_namespace)
-        for _ in oneshot_pool.consume():
-            pass
+                dst_blob = LocalBlob("/", _resolve_target(dst, src_info))
+            cc.copy(src_blob, dst_blob)
 
 def extract_tar_gz(drs_url: str,
                    dst_pfx: str=None,
@@ -284,13 +281,10 @@ def extract_tar_gz(drs_url: str,
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
     enable_requester_pays(workspace_name, workspace_namespace)
-    src_client, src_info = resolve_drs_for_gs_storage(drs_url)
-    src_bucket = src_client.bucket(src_info.bucket_name, user_project=workspace_namespace)
     dst_bucket = gs.get_client().bucket(dst_bucket_name)
-    with ThreadPoolExecutor(max_workers=IO_CONCURRENCY) as e:
-        async_queue = async_collections.AsyncQueue(e, IO_CONCURRENCY)
-        with gscio.Reader(src_bucket.get_blob(src_info.key), async_queue=async_queue) as fh:
-            tar_gz.extract(fh, dst_bucket, root=dst_pfx)
+    blob = get_drs_blob(drs_url, workspace_namespace)
+    with blob.open() as fh:
+        tar_gz.extract(fh, dst_bucket, root=dst_pfx)
 
 def _bucket_name_and_key(gs_url: str) -> Tuple[str, str]:
     assert gs_url.startswith("gs://")

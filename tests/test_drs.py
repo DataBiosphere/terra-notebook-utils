@@ -1,15 +1,12 @@
 #!/usr/bin/env python
-import io
 import os
 import sys
 import unittest
 import tempfile
-import contextlib
 from uuid import uuid4
 from unittest import mock
+from contextlib import ExitStack
 from typing import Generator
-
-import gs_chunked_io as gscio
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
@@ -19,7 +16,6 @@ from tests.infra.testmode import testmode
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
 from terra_notebook_utils import drs, gs, tar_gz, vcf
 from terra_notebook_utils.drs import DRSResolutionError
-from contextlib import ExitStack
 from tests.infra import SuppressWarningsMixin
 
 
@@ -44,17 +40,13 @@ class TestTerraNotebookUtilsDRSInDev(SuppressWarningsMixin, unittest.TestCase):
             fake_drs_url = 'drs://nothing'
             drs.head(fake_drs_url)
 
-    def test_download(self):
+    def test_copy_to_local(self):
         with tempfile.NamedTemporaryFile() as tf:
             drs.copy_to_local(self.jade_dev_url, tf.name)
 
-    def test_copy_to_local(self):
+    def test_download(self):
         with tempfile.NamedTemporaryFile() as tf:
             drs.copy(self.jade_dev_url, tf.name)
-
-    def test_multipart_copy(self):
-        with mock.patch("terra_notebook_utils.MULTIPART_THRESHOLD", 1024 * 1024):
-            drs.copy_to_bucket(self.jade_dev_url, "test_oneshot_object")
 
     def test_copy_to_bucket(self):
         key = f"gs://{WORKSPACE_BUCKET}/test_oneshot_object_{uuid4()}"
@@ -252,15 +244,6 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             drs.head(fake_drs_url)
 
     @testmode("controlled_access")
-    def test_oneshot_copy(self):
-        drs.copy_to_bucket(self.drs_url, "test_oneshot_object")
-
-    @testmode("controlled_access")
-    def test_multipart_copy(self):
-        with mock.patch("terra_notebook_utils.MULTIPART_THRESHOLD", 1024 * 1024):
-            drs.copy_to_bucket(self.drs_url, "test_oneshot_object")
-
-    @testmode("controlled_access")
     def test_copy(self):
         with self.subTest("Test copy to local location"):
             with tempfile.NamedTemporaryFile() as tf:
@@ -294,7 +277,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         pfx = f"test-batch-copy/{uuid4()}"
         bucket = gs.get_client().bucket(WORKSPACE_BUCKET)
         with self.subTest("gs bucket"):
-            with mock.patch("terra_notebook_utils.drs.MULTIPART_THRESHOLD", 400000):
+            with mock.patch("terra_notebook_utils.drs.CopyClient.chunk_size", 400000):
                 drs.copy_batch(list(drs_urls.values()), f"gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10/{pfx}")
                 for name in list(drs_urls.keys()):
                     blob = bucket.get_blob(f"{pfx}/{name}")
@@ -316,7 +299,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             drs_url = "drs://dg.4503/da8cb525-4532-4d0f-90a3-4d327817ec73"  # cohort VCF tarball
             pfx = f"test_cohort_extract_{uuid4()}"
             drs.extract_tar_gz(drs_url, pfx)
-            for key in gs.list_bucket(pfx):
+            for key in list_bucket(pfx):
                 blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
                 data = blob.download_as_bytes()[:len(expected_data)]
                 self.assertEqual(data, expected_data)
@@ -330,9 +313,10 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.gs.copy"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.gscio"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.tar_gz"))
+            es.enter_context(mock.patch("terra_notebook_utils.blobstore.gs.GSBlob.download"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.CopyClient"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.GSBlob.open"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with mock.patch("terra_notebook_utils.drs.enable_requester_pays") as enable_requester_pays:
                 with self.subTest("Copy to local"):
@@ -483,6 +467,10 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
                  "phg001275.v1.TOPMed_WGS_MESA_v2.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz")
         )
         self.assertEqual(drs.info(uri), expected_info)
+
+def list_bucket(prefix="", bucket=WORKSPACE_BUCKET):
+    for blob in gs.get_client().bucket(bucket).list_blobs(prefix=prefix):
+        yield blob.name
 
 def _list_tree(root) -> Generator[str, None, None]:
     for (dirpath, dirnames, filenames) in os.walk(root):
