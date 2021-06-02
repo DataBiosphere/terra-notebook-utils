@@ -1,6 +1,4 @@
-"""
-Workflow information
-"""
+"""Workflow information."""
 import json
 import logging
 from datetime import datetime
@@ -31,9 +29,7 @@ def list_submissions(workspace_name: Optional[str]=WORKSPACE_NAME,
 def get_submission(submission_id: str,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
                    workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> dict:
-    """
-    Get information about a submission, including member workflows
-    """
+    """Get information about a submission, including member workflows."""
     resp = fiss.fapi.get_submission(workspace_namespace, workspace_name, submission_id)
     resp.raise_for_status()
     return resp.json()
@@ -43,9 +39,7 @@ def get_workflow(submission_id: str,
                  workflow_id: str,
                  workspace_name: Optional[str]=WORKSPACE_NAME,
                  workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> dict:
-    """
-    Get information about a workflow
-    """
+    """Get information about a workflow."""
     resp = fiss.fapi.get_workflow_metadata(workspace_namespace, workspace_name, submission_id, workflow_id)
     resp.raise_for_status()
     return resp.json()
@@ -53,9 +47,7 @@ def get_workflow(submission_id: str,
 def get_all_workflows(submission_id: str,
                       workspace: Optional[str]=WORKSPACE_NAME,
                       workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Dict[str, dict]:
-    """
-    Retrieve all workflows, and workflow metadata, for `submission_id`, including sub-workflows.
-    """
+    """Retrieve all workflows, and workflow metadata, for `submission_id`, including sub-workflows."""
     workflows_metadata = dict()
 
     def get_metadata_and_subworkflows(workflow_id: str):

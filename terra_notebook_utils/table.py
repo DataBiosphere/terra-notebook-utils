@@ -1,6 +1,4 @@
-"""
-Terra data table commands
-"""
+"""Terra data table commands."""
 import os
 from uuid import uuid4
 from collections import defaultdict, namedtuple
@@ -47,11 +45,9 @@ retry = Retry(total=10,
 http_session(fiss.fapi.__SESSION, retry)
 
 class Writer(_AsyncContextManager):
-    """
-    Distribute row uploads across as few API calls as possible.
-    Uploads are performed in the background.
-    Also transparently handles sequences, which the Firecloud API makes difficult. (These must be uploaded and modified
-    via separate API calls.)
+    """Distribute row uploads across as few API calls as possible. Uploads are performed in the background. Also
+    transparently handles sequences, which the Firecloud API makes difficult. (These must be uploaded and
+    modified via separate API calls.)
     """
     def __init__(self,
                  name: str,
@@ -123,9 +119,8 @@ class Writer(_AsyncContextManager):
         return row.name
 
     def _upload(self, force: bool=False):
-        """
-        Schedule uploads for all TSVs of size equal to or greater than `self._tsv_upload_size`.
-        If `force` is True, schedule uploads for all TSVs.
+        """Schedule uploads for all TSVs of size equal to or greater than `self._tsv_upload_size`. If `force` is True,
+        schedule uploads for all TSVs.
         """
         for column_headers, tsv in self._tsvs.copy().items():
             if force or len(tsv) >= self._tsv_upload_size:
@@ -156,9 +151,7 @@ class Writer(_AsyncContextManager):
             self._upload(force=True)
 
 class Deleter(_AsyncContextManager):
-    """
-    Distribute row deletes across as few API calls as possible.
-    """
+    """Distribute row deletes across as few API calls as possible."""
     def __init__(self,
                  name: str,
                  workspace: Optional[str]=WORKSPACE_NAME,
@@ -300,9 +293,8 @@ def fetch_drs_url(table: str,
                   file_name: str,
                   workspace: Optional[str]=WORKSPACE_NAME,
                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> str:
-    """
-    Fetch the first `object_id` associated with `pfb:file_name` from `table`.
-    DRS urls, when available, are stored in `pfb:object_id`.
+    """Fetch the first `object_id` associated with `pfb:file_name` from `table`. DRS urls, when available, are stored
+    in `pfb:object_id`.
     Note: prior to 21-October, 2020, column headers omitted the "pfb:" prefix. For the time being, both formats are
           supported.
     """

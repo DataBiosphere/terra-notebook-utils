@@ -1,6 +1,4 @@
-"""
-Grab the first N lines of a VCF and gzip or bgzip the result
-"""
+"""Grab the first N lines of a VCF and gzip or bgzip the result."""
 import io
 import os
 import sys

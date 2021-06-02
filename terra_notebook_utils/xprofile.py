@@ -2,8 +2,7 @@ import time
 from contextlib import AbstractContextManager
 
 class profile(AbstractContextManager):
-    """
-    Profile methods or code blocks with decorators or contexts, respectively.
+    """Profile methods or code blocks with decorators or contexts, respectively.
 
     @profile("profiling my method")
     def my_method(*args, **kwargs):

@@ -1,6 +1,4 @@
-"""
-VCF file utilities
-"""
+"""VCF file utilities."""
 import io
 import gzip
 from multiprocessing import cpu_count

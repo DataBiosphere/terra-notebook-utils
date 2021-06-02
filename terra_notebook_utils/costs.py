@@ -8,10 +8,7 @@ DAY = HOUR * 24
 MONTH = DAY * 30.437  # Not critical to be exact
 
 class PersistentDisk:
-    """
-    GCP persistent disk costs:
-    https://cloud.google.com/compute/disks-image-pricing#persistentdisk
-    """
+    """GCP persistent disk costs: https://cloud.google.com/compute/disks-image-pricing#persistentdisk"""
     standard = 0.04 / MONTH  # GCP disk prices are quoted per month :(
 
     @classmethod

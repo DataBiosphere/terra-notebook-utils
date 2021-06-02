@@ -4,9 +4,7 @@ from typing import Tuple
 
 
 class ThreadedLocalServer(threading.Thread):
-    """
-    Run an http server on a separate thread.
-    """
+    """Run an http server on a separate thread."""
     def __init__(self, handler_class: BaseHTTPRequestHandler, address: Tuple[str, int]=('', 8000)):
         super().__init__(daemon=True)
         self.address = address

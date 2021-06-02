@@ -1,6 +1,4 @@
-"""
-Workspace information and operations
-"""
+"""Workspace information and operations."""
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Optional
 
@@ -16,17 +14,13 @@ def get_workspace(workspace: Optional[str]=WORKSPACE_NAME, namespace: Optional[s
     return resp.json()
 
 def list_workspaces() -> List[dict]:
-    """
-    List workspaces available to current user.
-    """
+    """List workspaces available to current user."""
     resp = fiss.fapi.list_workspaces()
     resp.raise_for_status()
     return resp.json()
 
 def get_workspace_bucket(workspace: Optional[str]=WORKSPACE_NAME) -> Optional[str]:
-    """
-    Get Google Storage bucket associated with a workspace.
-    """
+    """Get Google Storage bucket associated with a workspace."""
     if not workspace:
         raise ValueError("Expected workspace")
     else:
@@ -36,9 +30,8 @@ def get_workspace_bucket(workspace: Optional[str]=WORKSPACE_NAME) -> Optional[st
         return None
 
 def get_workspace_namespace(workspace: Optional[str]=WORKSPACE_NAME) -> Optional[str]:
-    """
-    Best effort discovery of workspace namespace.
-    If two namespaces share a workspace of the same name, the first namespace encountered will be returned.
+    """Best effort discovery of workspace namespace. If two namespaces share a workspace of the same name, the first
+    namespace encountered will be returned.
     """
     if not workspace:
         raise ValueError("Expected workspace")
@@ -49,9 +42,7 @@ def get_workspace_namespace(workspace: Optional[str]=WORKSPACE_NAME) -> Optional
         return None
 
 def remove_workflow_logs(bucket_name=WORKSPACE_BUCKET, submission_id: str=None) -> List[str]:
-    """
-    Experimental: do not use
-    """
+    """Experimental: do not use."""
     bucket = gs.get_client().bucket(bucket_name)
 
     def _is_workflow_log(blob):
