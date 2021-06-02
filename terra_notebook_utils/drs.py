@@ -12,6 +12,7 @@ from google.cloud.exceptions import NotFound, Forbidden
 
 import gs_chunked_io as gscio
 from gs_chunked_io import async_collections
+from requests import Response
 
 from terra_notebook_utils import (WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MULTIPART_THRESHOLD,
                                   IO_CONCURRENCY, MARTHA_URL)
@@ -57,7 +58,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
         logger.warning(f"Failed to init requester pays for workspace {WORKSPACE_GOOGLE_PROJECT}/{WORKSPACE_NAME}.")
         logger.warning("You will not be able to access drs urls that interact with requester pays buckets.")
 
-def fetch_drs_info(drs_url: str) -> dict:
+def get_drs(drs_url: str) -> Response:
     """Request DRS infromation from martha."""
     access_token = gs.get_access_token()
 
@@ -71,9 +72,7 @@ def fetch_drs_info(drs_url: str) -> dict:
     json_body = dict(url=drs_url)
     resp = http.post(MARTHA_URL, headers=headers, json=json_body)
 
-    if 200 == resp.status_code:
-        resp_data = resp.json()
-    else:
+    if 200 != resp.status_code:
         logger.warning(resp.content)
         response_json = resp.json()
 
@@ -88,10 +87,10 @@ def fetch_drs_info(drs_url: str) -> dict:
         raise DRSResolutionError(f"Unexpected response while resolving DRS path. Expected status 200, got "
                                  f"{resp.status_code}. {error_details}")
 
-    return resp_data
+    return resp
 
 def info(drs_url: str) -> dict:
-    """Return a curated subset of data from `fetch_drs_info`."""
+    """Return a curated subset of data from `get_drs`."""
     info = resolve_drs_info_for_gs_storage(drs_url)
     out = dict(name=info.name, size=info.size, updated=info.updated)
     out['url'] = f"gs://{info.bucket_name}/{info.key}"
@@ -146,12 +145,13 @@ def convert_martha_v3_response_to_DRSInfo(drs_url: str, drs_response: dict) -> D
 def resolve_drs_info_for_gs_storage(drs_url: str) -> DRSInfo:
     """Attempt to resolve gs:// url and credentials for a DRS object."""
     assert drs_url.startswith("drs://")
-    drs_response: dict = fetch_drs_info(drs_url)
+    drs_response = get_drs(drs_url)
+    drs_data = drs_response.json()
 
-    if 'dos' in drs_response:
-        return convert_martha_v2_response_to_DRSInfo(drs_url, drs_response)
+    if 'dos' in drs_data:
+        return convert_martha_v2_response_to_DRSInfo(drs_url, drs_data)
     else:
-        return convert_martha_v3_response_to_DRSInfo(drs_url, drs_response)
+        return convert_martha_v3_response_to_DRSInfo(drs_url, drs_data)
 
 def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     """Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage
