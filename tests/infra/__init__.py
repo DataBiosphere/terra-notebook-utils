@@ -1,5 +1,7 @@
 import io
 import os
+import logging
+import requests
 import warnings
 
 from google.cloud.storage import Client
@@ -17,6 +19,9 @@ class SuppressWarningsMixin:
         warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
         # Suppress unclosed socket warnings
         warnings.simplefilter("ignore", ResourceWarning)
+
+        # Suppress urllib3 warnings
+        logging.getLogger(requests.packages.urllib3.__package__).setLevel(logging.ERROR)
 
 def upload_data(uri: str, data: bytes):
     if uri.startswith("gs://"):
