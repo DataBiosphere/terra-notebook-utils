@@ -60,6 +60,7 @@ class GSBlob(blobstore.Blob):
         self.credentials = credentials
 
     # The next two methods customize pickling behavior
+    # see docs: https://docs.python.org/3/library/pickle.html#object.__getstate
     def __getstate__(self):
         return dict(bucket_name=self.bucket_name,
                     key=self.key,
