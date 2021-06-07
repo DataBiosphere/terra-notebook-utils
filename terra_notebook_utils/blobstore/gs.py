@@ -59,8 +59,10 @@ class GSBlob(blobstore.Blob):
         self.billing_project = billing_project
         self.credentials = credentials
 
-    # The next two methods customize pickling behavior
-    # see docs: https://docs.python.org/3/library/pickle.html#object.__getstate
+    # The next two methods customize pickling behavior. Some modules such as multiprocessing/ProcessPoolExecutor
+    # require picklable objects. Let's make pickling snappy.
+    # Pickle docs: https://docs.python.org/3/library/pickle.html#object.__getstate
+    # multiprocessing docs: https://docs.python.org/3/library/multiprocessing.html#programming-guidelines
     def __getstate__(self):
         return dict(bucket_name=self.bucket_name,
                     key=self.key,
