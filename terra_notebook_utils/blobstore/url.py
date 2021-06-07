@@ -1,8 +1,4 @@
-import os
-import shutil
-from math import ceil
 from functools import wraps
-from typing import Dict, Generator, Optional
 
 from requests.exceptions import HTTPError, ConnectionError
 from getm.reader import URLRawReader, URLReaderKeepAlive
