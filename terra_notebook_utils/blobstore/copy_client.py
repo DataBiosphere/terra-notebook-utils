@@ -7,15 +7,16 @@ from typing import Union
 from getm import default_chunk_size
 from getm.concurrent.collections import ConcurrentHeap
 
-from terra_notebook_utils.blobstore.local import LocalBlobStore, LocalBlob
 from terra_notebook_utils.blobstore.gs import GSBlobStore, GSBlob
+from terra_notebook_utils.blobstore.url import URLBlobStore, URLBlob
+from terra_notebook_utils.blobstore.local import LocalBlobStore, LocalBlob
 from terra_notebook_utils.blobstore import BlobstoreChecksumError
 
 
 logger = logging.getLogger(__name__)
 
-AnyBlobStore = Union[LocalBlobStore, GSBlobStore]
-AnyBlob = Union[LocalBlob, GSBlob]
+AnyBlobStore = Union[GSBlobStore, URLBlobStore, LocalBlobStore]
+AnyBlob = Union[GSBlob, URLBlob, LocalBlob]
 CloudBlob = GSBlob
 
 def _finalize_copy(src_blob: AnyBlob, dst_blob: AnyBlob):
@@ -30,14 +31,14 @@ def _download(src_blob: AnyBlob, dst_blob: LocalBlob):
     src_blob.download(dst_blob.url)
     _finalize_copy(src_blob, dst_blob)
 
-def _copy_intra_cloud(src_blob: AnyBlob, dst_blob: AnyBlob, chunk_size: int):
+def _copy_intra_cloud(src_blob: AnyBlob, dst_blob: AnyBlob):
     # In general it is not necesary to compute checksums for intra cloud copies. The Storage services will do that for
     # us.
     # However, S3Etags depend on the part layout. Either ensure source and destination part layouts are the same, or
     # compute the destination S3Etag on the fly.
     logger.debug(f"Starting intra-cloud {src_blob.url} to {dst_blob.url}")
     assert isinstance(src_blob, type(dst_blob))
-    dst_blob.copy_from(src_blob, chunk_size)  # type: ignore
+    dst_blob.copy_from(src_blob)  # type: ignore
     if src_blob.cloud_native_checksum() != dst_blob.cloud_native_checksum():
         logger.error(f"Checksum failed for {src_blob.url} to {dst_blob.url}")
         dst_blob.delete()
@@ -68,7 +69,7 @@ def _copy_multipart_passthrough(src_blob: AnyBlob, dst_blob: CloudBlob):
     _finalize_copy(src_blob, dst_blob)
 
 class CopyClient:
-    chunk_size = default_chunk_size
+    multipart_threshold = default_chunk_size
 
     def __init__(self, concurrency: int=multiprocessing.cpu_count()):
         self._executor = ProcessPoolExecutor(max_workers=concurrency)
@@ -80,9 +81,9 @@ class CopyClient:
         if isinstance(dst_blob, LocalBlob):
             self._queue.priority_put(priority, _download, src_blob, dst_blob)
         elif isinstance(src_blob, type(dst_blob)):
-            self._queue.priority_put(priority, _copy_intra_cloud, src_blob, dst_blob, self.chunk_size)
+            self._queue.priority_put(priority, _copy_intra_cloud, src_blob, dst_blob)
         else:
-            if size <= self.chunk_size:
+            if size <= self.multipart_threshold:
                 self._queue.priority_put(priority, _copy_oneshot_passthrough, src_blob, dst_blob)
             else:
                 self._queue.priority_put(priority, _copy_multipart_passthrough, src_blob, dst_blob)
