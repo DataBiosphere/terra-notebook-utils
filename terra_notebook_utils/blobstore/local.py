@@ -2,7 +2,7 @@ import os
 import shutil
 from math import ceil
 from functools import wraps
-from typing import Dict, Generator, Optional
+from typing import Generator
 
 from getm import default_chunk_size
 
@@ -42,6 +42,7 @@ class LocalBlob(blobstore.Blob):
         self._path = os.path.join(basepath, relpath)
 
     # The next two methods customize pickling behavior
+    # see docs: https://docs.python.org/3/library/pickle.html#object.__getstate
     def __getstate__(self):
         return dict(bucket_name=self.bucket_name, key=self.key, _path=self._path)
 
@@ -74,11 +75,11 @@ class LocalBlob(blobstore.Blob):
         if self.url != src_blob.url:
             shutil.copyfile(src_blob._path, self._path)
 
-    def download(self, path: str):
+    def download(self, target: str):
         if not os.path.isfile(self._path):
             raise blobstore.BlobNotFoundError(f"Could not find {self.url}")
-        if self.url != path:
-            shutil.copyfile(self._path, path)
+        if self._path != target:
+            shutil.copyfile(self._path, target)
 
     def exists(self) -> bool:
         if os.path.isdir(self._path):
