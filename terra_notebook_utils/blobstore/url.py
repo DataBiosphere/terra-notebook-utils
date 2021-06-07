@@ -1,4 +1,5 @@
 from functools import wraps
+from typing import Tuple
 
 from requests.exceptions import HTTPError, ConnectionError
 from getm.reader import URLRawReader, URLReaderKeepAlive
@@ -19,12 +20,14 @@ def catch_blob_not_found(func):
     return wrapper
 
 class URLBlobStore(blobstore.BlobStore):
+    schema: Tuple[str, str] = ("http://", "https://")  # type: ignore
+
     def blob(self, url: str) -> "URLBlob":
         return URLBlob(url)
 
 class URLBlob(blobstore.Blob):
     def __init__(self, url: str):
-        assert url.startswith("http://") or url.startswith("https://")
+        assert url.startswith(URLBlobStore.schema)
         self.url = self.key = url
 
     # The next two methods customize pickling behavior. Some modules such as multiprocessing/ProcessPoolExecutor
