@@ -5,6 +5,9 @@ before_script:
   - virtualenv ~/venv
   - source ~/venv/bin/activate
   - pip install -r requirements-dev.txt
+  - echo -n ${TNU_GOOGLE_APPLICATION_CREDENTIALS} | base64 -d > gcp-creds.json
+  - export TNU_GOOGLE_APPLICATION_CREDENTIALS="gcp-creds.json"
+  - export GOOGLE_APPLICATION_CREDENTIALS="gcp-creds.json"
 
 stages:
   - test
