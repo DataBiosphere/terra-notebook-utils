@@ -92,9 +92,11 @@ class CopyClient:
         return self
 
     def __exit__(self, *args, **kwargs):
-        self._executor.shutdown()
-        for _ in self._queue:
-            pass
+        try:
+            for _ in self._queue:
+                pass
+        finally:
+            self._executor.shutdown()
 
 def copy(src_blob: AnyBlob, dst_blob: AnyBlob):
     with CopyClient() as client:
