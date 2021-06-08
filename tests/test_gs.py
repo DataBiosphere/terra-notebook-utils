@@ -15,9 +15,14 @@ from tests.infra import SuppressWarningsMixin
 
 @testmode("workspace_access")
 class TestTerraNotebookUtilsGS(SuppressWarningsMixin, unittest.TestCase):
-    def test_list_bucket(self):
-        for key in gs.list_bucket("consent1"):
-            print(key)
+    def test_get_access_token(self):
+        gs.get_access_token()
+
+    def test_reset_bond_cache(self):
+        gs.reset_bond_cache()
+
+    def test_get_client(self):
+        gs.get_client()
 
 if __name__ == '__main__':
     unittest.main()
