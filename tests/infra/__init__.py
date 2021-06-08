@@ -1,8 +1,15 @@
 import io
+import os
 import warnings
 
 from google.cloud.storage import Client
 
+
+def get_env(name: str) -> str:
+    val = os.environ.get(name)
+    if val is None:
+        raise RuntimeError(f"Please set the '{name}' environment variable to run tests.")
+    return val
 
 class SuppressWarningsMixin:
     def setUp(self):
@@ -10,7 +17,6 @@ class SuppressWarningsMixin:
         warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
         # Suppress unclosed socket warnings
         warnings.simplefilter("ignore", ResourceWarning)
-
 
 def upload_data(uri: str, data: bytes):
     if uri.startswith("gs://"):
