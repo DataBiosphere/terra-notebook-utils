@@ -7,7 +7,8 @@ from getm import checksum
 MiB = 1024 * 1024
 
 class BlobStore:
-    schema = ""
+    schema: str
+    chunk_size: int
 
     def list(self, prefix: str=""):
         raise NotImplementedError()
@@ -47,8 +48,7 @@ class Blob:
     def hash_class(self) -> checksum._Hasher:
         return checksum.GSCRC32C
 
-    # TODO: choose a better chunk_size
-    def iter_content(self, chunk_size: int=1024 * 1024) -> "PartIterator":
+    def iter_content(self) -> "PartIterator":
         raise NotImplementedError()
 
     def multipart_writer(self) -> "MultipartWriter":
@@ -57,13 +57,8 @@ class Blob:
 Part = namedtuple("Part", "number data")
 
 class PartIterator:
-    def __init__(self, bucket_name: str, key: str, chunk_size: int):
-        self.size = 0
-        self.chunk_size = 0
-        self._number_of_parts = 0
-
     def __len__(self):
-        return self._number_of_parts
+        raise NotImplementedError()
 
     def __iter__(self) -> Generator[Part, None, None]:
         raise NotImplementedError()
