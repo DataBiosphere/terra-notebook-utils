@@ -202,7 +202,7 @@ def head(drs_url: str,
     enable_requester_pays(workspace_name, workspace_namespace)
     try:
         blob = get_drs_blob(drs_url, workspace_namespace)
-        chunk_size = buffer or 2 * num_bytes
+        chunk_size = buffer or num_bytes
         with blob.open(chunk_size) as fh:
             the_bytes = fh.read(num_bytes)
     except (DRSResolutionError, NotFound, Forbidden):

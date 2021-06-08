@@ -277,11 +277,10 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         pfx = f"test-batch-copy/{uuid4()}"
         bucket = gs.get_client().bucket(WORKSPACE_BUCKET)
         with self.subTest("gs bucket"):
-            with mock.patch("terra_notebook_utils.drs.CopyClient.chunk_size", 400000):
-                drs.copy_batch(list(drs_urls.values()), f"gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10/{pfx}")
-                for name in list(drs_urls.keys()):
-                    blob = bucket.get_blob(f"{pfx}/{name}")
-                    self.assertGreater(blob.size, 0)
+            drs.copy_batch(list(drs_urls.values()), f"gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10/{pfx}")
+            for name in list(drs_urls.keys()):
+                blob = bucket.get_blob(f"{pfx}/{name}")
+                self.assertGreater(blob.size, 0)
         with self.subTest("local filesystem"):
             with tempfile.TemporaryDirectory() as dirname:
                 drs.copy_batch(list(drs_urls.values()), dirname)
