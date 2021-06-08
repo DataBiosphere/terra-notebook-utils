@@ -2,7 +2,7 @@ import os
 import shutil
 from math import ceil
 from functools import wraps
-from typing import Generator
+from typing import Generator, IO, Optional
 
 from getm import default_chunk_size
 
@@ -61,6 +61,10 @@ class LocalBlob(blobstore.Blob):
     def get(self) -> bytes:
         with open(self._path, "rb") as fh:
             return fh.read()
+
+    @catch_blob_not_found
+    def open(self, chunk_size: Optional[int]=None) -> IO:
+        return open(self._path, "rb")
 
     def put(self, data: bytes):
         with open(self._path, "wb") as fh:
