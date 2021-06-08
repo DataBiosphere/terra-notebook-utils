@@ -10,8 +10,6 @@ from getm.utils import indirect_open
 from terra_notebook_utils import blobstore
 
 
-default_chunk_size = default_chunk_size_keep_alive
-
 def catch_blob_not_found(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
@@ -23,6 +21,7 @@ def catch_blob_not_found(func):
 
 class URLBlobStore(blobstore.BlobStore):
     schema: Tuple[str, str] = ("http://", "https://")  # type: ignore
+    chunk_size = default_chunk_size_keep_alive
 
     def blob(self, url: str) -> "URLBlob":
         return URLBlob(url)
@@ -61,7 +60,7 @@ class URLBlob(blobstore.Blob):
             cs = checksum.GETMChecksum("", checksum.Algorithms.null)
 
         with indirect_open(path) as fh:
-            if http.size(self.url) < default_chunk_size:
+            if http.size(self.url) < URLBlobStore.chunk_size:
                 data = self.get()
                 cs.update(data)
                 fh.write(data)
@@ -75,9 +74,9 @@ class URLBlob(blobstore.Blob):
     def size(self) -> int:
         return http.size(self.url)
 
-    def iter_content(self, chunk_size: int=default_chunk_size) -> blobstore.PartIterator:
+    def iter_content(self) -> blobstore.PartIterator:
         self.size()  # raise BlobNotFoundError
-        return URLPartIterator(self.url, chunk_size)
+        return URLPartIterator(self.url, URLBlobStore.chunk_size)
 
 class URLPartIterator(blobstore.PartIterator):
     def __init__(self, url: str, chunk_size: int):

@@ -19,6 +19,8 @@ def catch_blob_not_found(func):
     return wrapper
 
 class LocalBlobStore(blobstore.BlobStore):
+    chunk_size = default_chunk_size
+
     def __init__(self, basepath: str):
         self.bucket_name = basepath
 
@@ -92,7 +94,7 @@ class LocalBlob(blobstore.Blob):
     def size(self) -> int:
         return os.path.getsize(self._path)
 
-    def iter_content(self, chunk_size: int=default_chunk_size) -> blobstore.PartIterator:
+    def iter_content(self) -> blobstore.PartIterator:
         return LocalPartIterator(self._path)
 
 class LocalPartIterator(blobstore.PartIterator):
@@ -101,7 +103,7 @@ class LocalPartIterator(blobstore.PartIterator):
             self.size = os.path.getsize(path)
         except FileNotFoundError:
             raise blobstore.BlobNotFoundError(f"Could not find {path}")
-        self.chunk_size = default_chunk_size
+        self.chunk_size = LocalBlobStore.chunk_size
         self._number_of_parts = ceil(self.size / self.chunk_size) if 0 < self.size else 1
         self.handle = open(path, "rb")
 

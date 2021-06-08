@@ -16,6 +16,7 @@ from terra_notebook_utils import gs as gcp
 
 class GSBlobStore(blobstore.BlobStore):
     schema = "gs://"
+    chunk_size = default_chunk_size
 
     def __init__(self,
                  bucket_name: str,
@@ -88,8 +89,8 @@ class GSBlob(blobstore.Blob):
     def get(self) -> bytes:
         return self._get_native_blob().download_as_bytes(checksum=None)
 
-    def open(self, chunk_size: int=default_chunk_size):
-        return self._get_native_blob().open(chunk_size=chunk_size, mode="rb")
+    def open(self):
+        return self._get_native_blob().open(chunk_size=GSBlobStore.chunk_size, mode="rb")
 
     def put(self, data: bytes):
         blob = self._gs_bucket.blob(self.key)
@@ -98,7 +99,7 @@ class GSBlob(blobstore.Blob):
     def delete(self):
         self._get_native_blob().delete()
 
-    def copy_from(self, src_blob: "GSBlob", chunk_size: int=default_chunk_size):
+    def copy_from(self, src_blob: "GSBlob"):
         assert isinstance(src_blob, type(self))
         if self.url != src_blob.url:
             if not src_blob._gs_bucket.user_project:
@@ -116,7 +117,7 @@ class GSBlob(blobstore.Blob):
                     else:
                         token = resp[0]
             else:
-                if src_blob.size() <= chunk_size:
+                if src_blob.size() <= GSBlobStore.chunk_size:
                     self.put(src_blob.get())
                 else:
                     with self.multipart_writer() as writer:
@@ -145,10 +146,10 @@ class GSBlob(blobstore.Blob):
     def Hash(self) -> checksum._Hasher:
         return checksum.GSCRC32C
 
-    def iter_content(self, chunk_size: int=default_chunk_size) -> blobstore.PartIterator:
+    def iter_content(self) -> blobstore.PartIterator:
         return GSPartIterator(self.bucket_name,
                               self.key,
-                              chunk_size,
+                              GSBlobStore.chunk_size,
                               credentials=self.credentials,
                               billing_project=self.billing_project)
 
