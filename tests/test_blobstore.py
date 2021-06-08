@@ -114,6 +114,15 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
             with self.assertRaises(BlobNotFoundError):
                 url_blobstore.blob(_fake_key(url_blobstore)).get()
 
+    def test_open(self):
+        chunk_size = randint(1024, 2048)
+        for bs in (local_blobstore, gs_blobstore, url_blobstore):
+            blob = test_data.oneshot_blob(bs)
+            with self.subTest(blobstore=bs, key=blob.key):
+                with blob.open(chunk_size) as fh:
+                    data = fh.read()
+                self.assertEqual(test_data.oneshot_data, data)
+
     def test_copy_from(self):
         dst_key = f"{uuid4()}"
         for bs in (local_blobstore, gs_blobstore):

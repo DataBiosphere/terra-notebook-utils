@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import Any, Generator
+from typing import Any, Generator, IO, Optional
 
 from getm import checksum
 
@@ -21,6 +21,9 @@ class Blob:
     url: str
 
     def get(self) -> bytes:
+        raise NotImplementedError()
+
+    def open(self, chunk_size: Optional[int]=None) -> IO:
         raise NotImplementedError()
 
     def put(self, data: bytes):

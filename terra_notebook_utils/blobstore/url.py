@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Tuple
+from typing import IO, Optional, Tuple
 
 from requests.exceptions import HTTPError, ConnectionError
 from getm.reader import URLRawReader, URLReaderKeepAlive
@@ -45,6 +45,10 @@ class URLBlob(blobstore.Blob):
     def get(self) -> bytes:
         with URLRawReader(self.url) as fh:
             return fh.read()
+
+    @catch_blob_not_found
+    def open(self, chunk_size: Optional[int]=None) -> IO:
+        return URLRawReader(self.url)
 
     @catch_blob_not_found
     def download(self, path: str):
