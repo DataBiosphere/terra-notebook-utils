@@ -5,4 +5,4 @@ bgzip >= 0.3.5, < 0.4
 cli-builder >= 0.1.5, < 0.2
 oauth2client
 jmespath == 0.10.0
-getm >= 0.0.2, <= 0.1.0
+getm >= 0.0.4, < 0.1.0
