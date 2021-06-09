@@ -18,6 +18,16 @@ def catch_blob_not_found(func):
             raise blobstore.BlobNotFoundError(f"Could not find {self.url}") from ex
     return wrapper
 
+def catch_blob_not_found_generator(generator):
+    @wraps(generator)
+    def wrapper(self, *args, **kwargs):
+        try:
+            for item in generator(self, *args, **kwargs):
+                yield item
+        except FileNotFoundError as ex:
+            raise blobstore.BlobNotFoundError(f"Could not find {self.url}") from ex
+    return wrapper
+
 class LocalBlobStore(blobstore.BlobStore):
     chunk_size = default_chunk_size
 
@@ -74,20 +84,30 @@ class LocalBlob(blobstore.Blob):
     def delete(self):
         os.remove(self._path)
 
-    @catch_blob_not_found
-    def copy_from(self, src_blob: "LocalBlob"):
+    @catch_blob_not_found_generator
+    def copy_from_iter(self, src_blob: "LocalBlob") -> Generator[int, None, None]:
         """
         Intra-cloud copy
         """
         assert isinstance(src_blob, type(self))
         if self.url != src_blob.url:
             shutil.copyfile(src_blob._path, self._path)
+        yield self.size()
 
-    def download(self, target: str):
+    def copy_from(self, src_blob: "LocalBlob"):
+        for part in self.copy_from_iter(src_blob):
+            pass
+
+    def download_iter(self, target: str) -> Generator[int, None, None]:
         if not os.path.isfile(self._path):
             raise blobstore.BlobNotFoundError(f"Could not find {self.url}")
         if self._path != target:
             shutil.copyfile(self._path, target)
+        yield self.size()
+
+    def download(self, target: str):
+        for _ in self.download_iter(target):
+            pass
 
     def exists(self) -> bool:
         if os.path.isdir(self._path):
