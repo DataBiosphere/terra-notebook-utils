@@ -64,7 +64,7 @@ def get_drs(drs_url: str) -> Response:
         'content-type': "application/json"
     }
 
-    logger.info(f"Resolving DRS uri '{drs_url}' through '{MARTHA_URL}'.")
+    logger.debug(f"Resolving DRS uri '{drs_url}' through '{MARTHA_URL}'.")
 
     json_body = dict(url=drs_url)
     resp = http.post(MARTHA_URL, headers=headers, json=json_body)
@@ -185,7 +185,6 @@ def copy_to_local(drs_url: str,
                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Copy a DRS object to the local filesystem."""
     enable_requester_pays(workspace_name, workspace_namespace)
-    logger.info(f"Downloading {drs_url} to {filepath}")
     info = get_drs_info(drs_url)
     copy_client.copy(get_drs_blob(info, workspace_namespace), _resolve_target(filepath, info))
 
@@ -224,7 +223,6 @@ def copy_to_bucket(drs_url: str,
         dst_key = src_info.name or src_info.key.rsplit("/", 1)[-1]
     src_blob = get_drs_blob(src_info, workspace_namespace)
     dst_blob = GSBlob(dst_bucket_name, dst_key)
-    logger.info(f"Beginning to copy from {src_blob.url} to {dst_blob.url}. This can take a while for large files...")
     copy_client.copy(src_blob, dst_blob)
 
 def copy(drs_url: str,
@@ -249,7 +247,7 @@ def copy_batch(drs_urls: Iterable[str],
                workspace_name: Optional[str]=WORKSPACE_NAME,
                workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     enable_requester_pays(workspace_name, workspace_namespace)
-    with copy_client.CopyClient() as cc:
+    with copy_client.CopyClient(progress_indicator="log") as cc:
         for drs_url in drs_urls:
             src_info = get_drs_info(drs_url)
             src_blob = get_drs_blob(src_info, workspace_namespace)
