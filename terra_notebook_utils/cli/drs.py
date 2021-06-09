@@ -3,7 +3,7 @@ import json
 import argparse
 from typing import Any, Dict
 
-from terra_notebook_utils import drs, MULTIPART_THRESHOLD
+from terra_notebook_utils import drs
 from terra_notebook_utils.cli import dispatch, Config
 from terra_notebook_utils.drs import DRSResolutionError
 
@@ -60,7 +60,7 @@ def drs_copy_batch(args: argparse.Namespace):
 @drs_cli.command("head", arguments={
     "drs_url": dict(type=str),
     "--bytes": dict(type=int, required=False, default=1, help="Number of bytes to fetch."),
-    "--buffer": dict(type=int, required=False, default=MULTIPART_THRESHOLD,
+    "--buffer": dict(type=int, required=False, default=None,
                      help="Control the buffer size when fetching data."),
     ** workspace_args,
 })
