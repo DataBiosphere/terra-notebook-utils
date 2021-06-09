@@ -100,7 +100,7 @@ class GSBlob(blobstore.Blob):
     def delete(self):
         self._get_native_blob().delete()
 
-    def copy_from(self, src_blob: "GSBlob") -> Generator[int, None, None]:
+    def copy_from_iter(self, src_blob: "GSBlob") -> Generator[int, None, None]:
         assert isinstance(src_blob, type(self))
         if self.url != src_blob.url:
             if not src_blob._gs_bucket.user_project:
@@ -130,7 +130,11 @@ class GSBlob(blobstore.Blob):
                             writer.put_part(part)
                             yield len(part.data)
 
-    def download(self, path: str) -> Generator[int, None, None]:
+    def copy_from(self, src_blob: "GSBlob"):
+        for _ in self.copy_from_iter(src_blob):
+            pass
+
+    def download_iter(self, path: str) -> Generator[int, None, None]:
         with indirect_open(path) as fh:
             cs = self.Hasher()
             for part in self.iter_content():
@@ -138,6 +142,10 @@ class GSBlob(blobstore.Blob):
                 cs.update(part.data)
                 yield len(part.data)
             assert cs.matches(self.cloud_native_checksum())
+
+    def download(self, path: str):
+        for _ in self.download_iter(path):
+            pass
 
     def exists(self) -> bool:
         blob = self._gs_bucket.blob(self.key)

@@ -25,7 +25,7 @@ def _download(src_blob: AnyBlob, dst_blob: LocalBlob):
     if dirname:
         os.makedirs(dirname, exist_ok=True)
     # The download methods for each Blob is expected to compute checksums
-    for part_size in src_blob.download(dst_blob.url):
+    for part_size in src_blob.download_iter(dst_blob.url):
         pass
 
 def _copy_intra_cloud(src_blob: AnyBlob, dst_blob: AnyBlob):
@@ -35,7 +35,7 @@ def _copy_intra_cloud(src_blob: AnyBlob, dst_blob: AnyBlob):
     # compute the destination S3Etag on the fly.
     logger.debug(f"Starting intra-cloud {src_blob.url} to {dst_blob.url}")
     assert isinstance(src_blob, type(dst_blob))
-    for part_size in dst_blob.copy_from(src_blob):  # type: ignore
+    for part_size in dst_blob.copy_from_iter(src_blob):  # type: ignore
         pass
     if src_blob.cloud_native_checksum() != dst_blob.cloud_native_checksum():
         logger.error(f"Checksum failed for {src_blob.url} to {dst_blob.url}")

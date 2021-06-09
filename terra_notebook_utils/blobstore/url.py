@@ -61,7 +61,7 @@ class URLBlob(blobstore.Blob):
         return URLRawReader(self.url)
 
     @catch_blob_not_found_generator
-    def download(self, path: str) -> Generator[int, None, None]:
+    def download_iter(self, path: str) -> Generator[int, None, None]:
         checksums = http.checksums(self.url)
         if 'gs_crc32c' in checksums:
             cs = checksum.GETMChecksum(checksums['gs_crc32c'], "gs_crc32c")
@@ -85,6 +85,10 @@ class URLBlob(blobstore.Blob):
                     fh.write(part.data)
                     yield len(part.data)
             assert cs.matches(), "Checksum failed!"
+
+    def download(self, path: str):
+        for _ in self.download_iter(path):
+            pass
 
     @catch_blob_not_found
     def size(self) -> int:

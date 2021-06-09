@@ -85,7 +85,7 @@ class LocalBlob(blobstore.Blob):
         os.remove(self._path)
 
     @catch_blob_not_found_generator
-    def copy_from(self, src_blob: "LocalBlob") -> Generator[int, None, None]:
+    def copy_from_iter(self, src_blob: "LocalBlob") -> Generator[int, None, None]:
         """
         Intra-cloud copy
         """
@@ -94,12 +94,20 @@ class LocalBlob(blobstore.Blob):
             shutil.copyfile(src_blob._path, self._path)
         yield self.size()
 
-    def download(self, target: str) -> Generator[int, None, None]:
+    def copy_from(self, src_blob: "LocalBlob"):
+        for part in self.copy_from_iter(src_blob):
+            pass
+
+    def download_iter(self, target: str) -> Generator[int, None, None]:
         if not os.path.isfile(self._path):
             raise blobstore.BlobNotFoundError(f"Could not find {self.url}")
         if self._path != target:
             shutil.copyfile(self._path, target)
         yield self.size()
+
+    def download(self, target: str):
+        for _ in self.download_iter(target):
+            pass
 
     def exists(self) -> bool:
         if os.path.isdir(self._path):
