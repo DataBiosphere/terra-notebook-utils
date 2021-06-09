@@ -14,6 +14,7 @@ pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noq
 sys.path.insert(0, pkg_root)  # noqa
 
 from terra_notebook_utils import WORKSPACE_BUCKET
+from terra_notebook_utils.blobstore import BlobNotFoundError
 from terra_notebook_utils.blobstore.gs import GSBlobStore, GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlobStore, LocalBlob
 from terra_notebook_utils.blobstore import BlobStore, copy_client
@@ -62,6 +63,12 @@ class TestData:
 
 test_data = TestData()
 
+class TestExceptionOfDoom(Exception):
+    pass
+
+def _mock_do_copy(*args, **kwargs):
+    raise TestExceptionOfDoom()
+
 class TestCopyClient(infra.SuppressWarningsMixin, unittest.TestCase):
     def test_copy(self):
         src_blob = mock.MagicMock()
@@ -77,6 +84,22 @@ class TestCopyClient(infra.SuppressWarningsMixin, unittest.TestCase):
             for blob, expected_data in expected_data_map.items():
                 with self.subTest(blob.url):
                     self.assertEqual(blob.get(), expected_data)
+
+    def test_copy_client_error_handling(self):
+        src_blob = GSBlob("doom", "gloom")
+        src_blob.size = lambda: 10
+        dst_blob = GSBlob(f"no-such-bucket-{uuid4()}", "no-such-key")
+
+        with mock.patch("terra_notebook_utils.blobstore.copy_client._do_copy", _mock_do_copy):
+            raise_on_error = False
+            with self.subTest("Copy operation should fail. Client should not raise"):
+                with copy_client.CopyClient(raise_on_error=raise_on_error) as client:
+                    client.copy(src_blob, dst_blob)
+            raise_on_error = True
+            with self.subTest("Copy operation should fail. Client should raise"):
+                with self.assertRaises(TestExceptionOfDoom):
+                    with copy_client.CopyClient(raise_on_error=raise_on_error) as client:
+                        client.copy(src_blob, dst_blob)
 
     def _do_blobstore_copies(self,
                              src_blobstores=(local_blobstore, gs_blobstore),

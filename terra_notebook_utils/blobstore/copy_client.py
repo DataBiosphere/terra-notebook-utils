@@ -83,9 +83,14 @@ def _do_copy(src_blob: AnyBlob, dst_blob: AnyBlob, multipart_threshold: int):
 class CopyClient:
     multipart_threshold = default_chunk_size
 
-    def __init__(self, concurrency: int=multiprocessing.cpu_count()):
+    def __init__(self, concurrency: int=multiprocessing.cpu_count(), raise_on_error: bool=False):
+        """If 'raise_on_error' is False, all copy operations will be attempted even if one or more operations error. If
+        'raise_on_error' is True, the first error encountered will be raise and all scheduled operations will be
+        canceled.
+        """
         self._executor = ProcessPoolExecutor(max_workers=concurrency)
         self._queue = ConcurrentHeap(self._executor, concurrency)
+        self.raise_on_error = raise_on_error
 
     def copy(self, src_blob: AnyBlob, dst_blob: AnyBlob):
         priority = -src_blob.size()
@@ -96,8 +101,13 @@ class CopyClient:
 
     def __exit__(self, *args, **kwargs):
         try:
-            for _ in self._queue:
-                pass
+            for f in self._queue.iter_futures():
+                if self.raise_on_error:
+                    try:
+                        f.result()
+                    except Exception:
+                        self._queue.abort()
+                        raise
         finally:
             self._executor.shutdown()
 
