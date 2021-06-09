@@ -100,37 +100,43 @@ class GSBlob(blobstore.Blob):
     def delete(self):
         self._get_native_blob().delete()
 
-    def copy_from(self, src_blob: "GSBlob"):
+    def copy_from(self, src_blob: "GSBlob") -> Generator[int, None, None]:
         assert isinstance(src_blob, type(self))
         if self.url != src_blob.url:
             if not src_blob._gs_bucket.user_project:
-                # TODO: always use rewrite when it support requester pays buckets
+                # TODO: always use rewrite when it supports requester pays buckets
                 dst_gs_blob = self._gs_bucket.blob(self.key)
                 src_gs_blob = src_blob._gs_bucket.blob(src_blob.key)
                 token: Optional[str] = None
+                total_bytes_written = 0
                 while True:
                     try:
-                        resp = dst_gs_blob.rewrite(src_gs_blob, token)
+                        token, bytes_written, _ = dst_gs_blob.rewrite(src_gs_blob, token)
                     except gcp_exceptions.NotFound as e:
                         raise blobstore.BlobNotFoundError() from e
-                    if resp[0] is None:
+                    chunk_size = bytes_written - total_bytes_written
+                    total_bytes_written = bytes_written
+                    yield chunk_size
+                    if token is None:
                         break
-                    else:
-                        token = resp[0]
             else:
-                if src_blob.size() <= GSBlobStore.chunk_size:
+                size = src_blob.size()
+                if size <= GSBlobStore.chunk_size:
                     self.put(src_blob.get())
+                    yield size
                 else:
                     with self.multipart_writer() as writer:
                         for part in src_blob.iter_content():
                             writer.put_part(part)
+                            yield len(part.data)
 
-    def download(self, path: str):
+    def download(self, path: str) -> Generator[int, None, None]:
         with indirect_open(path) as fh:
             cs = self.Hasher()
             for part in self.iter_content():
                 fh.write(part.data)
                 cs.update(part.data)
+                yield len(part.data)
             assert cs.matches(self.cloud_native_checksum())
 
     def exists(self) -> bool:

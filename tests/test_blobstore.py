@@ -129,11 +129,13 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
             for src_blob in (test_data.oneshot_blob(bs), test_data.multipart_blob(bs)):
                 with self.subTest(src_key=src_blob.key, dst_key=dst_key, blobstore=bs):
                     dst_blob = bs.blob(dst_key)
-                    dst_blob.copy_from(src_blob)
+                    for part_size in dst_blob.copy_from(src_blob):
+                        pass
                     self.assertEqual(src_blob.get(), dst_blob.get())
             with self.subTest("blob not found", blobstore=bs):
                 with self.assertRaises(BlobNotFoundError):
-                    bs.blob(_fake_key(bs)).copy_from(bs.blob(_fake_key(bs)))
+                    for part_size in bs.blob(_fake_key(bs)).copy_from(bs.blob(_fake_key(bs))):
+                        pass
 
     def test_download(self):
         dst_path = local_blobstore.blob(f"{uuid4()}").url
@@ -141,17 +143,20 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
             for expected_data, src_blob in [(test_data.oneshot_data, test_data.oneshot_blob(bs)),
                                             (test_data.multipart_data, test_data.multipart_blob(bs))]:
                 with self.subTest(key=src_blob.key, blobstore=bs):
-                    src_blob.download(dst_path)
+                    for part_size in src_blob.download(dst_path):
+                        pass
                     with open(dst_path, "rb") as fh:
                         data = fh.read()
                     self.assertEqual(expected_data, data)
                 with self.subTest("blob not found", blobstore=bs):
                     with self.assertRaises(BlobNotFoundError):
-                        bs.blob(_fake_key(bs)).download(dst_path)
+                        for part_size in bs.blob(_fake_key(bs)).download(dst_path):
+                            pass
                 dst_subdir_path = local_blobstore.blob(os.path.join(f"{uuid4()}", "nope")).url
                 with self.subTest("Subdirectories don't exist", blobstore=bs):
                     with self.assertRaises(FileNotFoundError):
-                        bs.blob(src_blob.key).download(dst_subdir_path)
+                        for part_size in bs.blob(src_blob.key).download(dst_subdir_path):
+                            pass
 
     def test_size(self):
         expected_size = randint(1, 509)

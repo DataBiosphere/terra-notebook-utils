@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import IO, Optional, Tuple
+from typing import Generator, IO, Optional, Tuple
 
 from requests.exceptions import HTTPError, ConnectionError
 from getm.reader import URLRawReader, URLReaderKeepAlive
@@ -15,6 +15,16 @@ def catch_blob_not_found(func):
     def wrapper(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
+        except (HTTPError, ConnectionError) as ex:
+            raise blobstore.BlobNotFoundError(f"Could not find {self.url}") from ex
+    return wrapper
+
+def catch_blob_not_found_generator(generator):
+    @wraps(generator)
+    def wrapper(self, *args, **kwargs):
+        try:
+            for item in generator(self, *args, **kwargs):
+                yield item
         except (HTTPError, ConnectionError) as ex:
             raise blobstore.BlobNotFoundError(f"Could not find {self.url}") from ex
     return wrapper
@@ -50,8 +60,8 @@ class URLBlob(blobstore.Blob):
     def open(self, chunk_size: Optional[int]=None) -> IO:
         return URLRawReader(self.url)
 
-    @catch_blob_not_found
-    def download(self, path: str):
+    @catch_blob_not_found_generator
+    def download(self, path: str) -> Generator[int, None, None]:
         checksums = http.checksums(self.url)
         if 'gs_crc32c' in checksums:
             cs = checksum.GETMChecksum(checksums['gs_crc32c'], "gs_crc32c")
@@ -68,10 +78,12 @@ class URLBlob(blobstore.Blob):
                 data = self.get()
                 cs.update(data)
                 fh.write(data)
+                yield self.size()
             else:
                 for part in self.iter_content():
                     cs.update(part.data)
                     fh.write(part.data)
+                    yield len(part.data)
             assert cs.matches(), "Checksum failed!"
 
     @catch_blob_not_found

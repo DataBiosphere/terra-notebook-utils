@@ -32,11 +32,12 @@ class Blob:
     def delete(self):
         raise NotImplementedError()
 
-    def copy_from(self, src_blob: Any):
-        """Intra-cloud copy."""
+    def copy_from(self, src_blob: Any) -> Generator[int, None, None]:
+        """Intra-cloud copy. This yields the size of parts copied, and must be iterated"""
         raise NotImplementedError()
 
-    def download(self, path: str):
+    def download(self, path: str) -> Generator[int, None, None]:
+        """This yields the size of parts downloaded, and must be iterated"""
         raise NotImplementedError()
 
     def exists(self) -> bool:
