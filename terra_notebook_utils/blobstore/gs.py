@@ -111,8 +111,8 @@ class GSBlob(blobstore.Blob):
                 while True:
                     try:
                         resp = dst_gs_blob.rewrite(src_gs_blob, token)
-                    except gcp_exceptions.NotFound:
-                        raise blobstore.BlobNotFoundError(f"Could not find {src_blob.url}")
+                    except gcp_exceptions.NotFound as e:
+                        raise blobstore.BlobNotFoundError() from e
                     if resp[0] is None:
                         break
                     else:
