@@ -127,7 +127,7 @@ class GSBlob(blobstore.Blob):
 
     def download(self, path: str):
         with indirect_open(path) as fh:
-            cs = self.Hash()
+            cs = self.Hasher()
             for part in self.iter_content():
                 fh.write(part.data)
                 cs.update(part.data)
@@ -144,7 +144,7 @@ class GSBlob(blobstore.Blob):
         return self._get_native_blob().crc32c
 
     @property
-    def Hash(self) -> checksum._Hasher:
+    def Hasher(self) -> checksum._Hasher:
         return checksum.GSCRC32C
 
     def iter_content(self) -> blobstore.PartIterator:
