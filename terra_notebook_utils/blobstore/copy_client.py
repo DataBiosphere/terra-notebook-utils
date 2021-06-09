@@ -49,7 +49,7 @@ def _copy_oneshot_passthrough(src_blob: AnyBlob, dst_blob: CloudBlob):
     logger.debug(f"Starting oneshot passthrough {src_blob.url} to {dst_blob.url}")
     data = src_blob.get()
     dst_blob.put(data)
-    if not dst_blob.Hash(data).matches(dst_blob.cloud_native_checksum()):
+    if not dst_blob.Hasher(data).matches(dst_blob.cloud_native_checksum()):
         logger.error(f"Checksum failed for {src_blob.url} to {dst_blob.url}")
         dst_blob.delete()
         raise BlobstoreChecksumError()
@@ -57,7 +57,7 @@ def _copy_oneshot_passthrough(src_blob: AnyBlob, dst_blob: CloudBlob):
 
 def _copy_multipart_passthrough(src_blob: AnyBlob, dst_blob: CloudBlob):
     logger.debug(f"Starting multipart passthrough {src_blob.url} to {dst_blob.url}")
-    cs = dst_blob.Hash()
+    cs = dst_blob.Hasher()
     with dst_blob.multipart_writer() as writer:
         for part in src_blob.iter_content():
             writer.put_part(part)
