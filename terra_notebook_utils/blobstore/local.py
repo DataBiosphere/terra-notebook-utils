@@ -1,8 +1,9 @@
+import io
 import os
 import shutil
 from math import ceil
 from functools import wraps
-from typing import Generator, IO, Optional
+from typing import Generator, Optional
 
 from getm import default_chunk_size
 
@@ -73,8 +74,8 @@ class LocalBlob(blobstore.Blob):
             return fh.read()
 
     @catch_blob_not_found
-    def open(self, chunk_size: Optional[int]=None) -> IO:
-        return open(self._path, "rb")
+    def open(self, chunk_size: Optional[int]=None) -> io.FileIO:
+        return open(self._path, "rb")  # type: ignore  # this is technically BinaryIO but should be compatible
 
     def put(self, data: bytes):
         with open(self._path, "wb") as fh:
