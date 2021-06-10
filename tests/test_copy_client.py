@@ -17,6 +17,7 @@ from terra_notebook_utils import WORKSPACE_BUCKET
 from terra_notebook_utils.blobstore import BlobNotFoundError
 from terra_notebook_utils.blobstore.gs import GSBlobStore, GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlobStore, LocalBlob
+from terra_notebook_utils.blobstore.url import URLBlob
 from terra_notebook_utils.blobstore import BlobStore, copy_client
 
 from tests import infra
@@ -122,6 +123,29 @@ class TestCopyClient(infra.SuppressWarningsMixin, unittest.TestCase):
                             client.copy(src_blob, dst_blob)
                         expected_data_map[dst_blob] = data_bundle['data']
         return expected_data_map, completed_keys
+
+    def test_blob_for_url(self):
+        with self.subTest("should work"):
+            bucket_name = f"{uuid4()}"
+            key = "ba/ba/little/black/sheep"
+            tests = [
+                (f"gs://{bucket_name}/{key}", GSBlob),
+                ("http://oompa/loompa", URLBlob),
+                ("https://oompa/loompa", URLBlob),
+                (os.path.sep.join(["", "argle", "bargle"]), LocalBlob)
+            ]
+            for url, expected_blob_class in tests:
+                blob = copy_client.blob_for_url(url)
+                self.assertTrue(isinstance(blob, expected_blob_class))
+                if isinstance(blob, GSBlob):
+                    self.assertEqual(bucket_name, blob.bucket_name)
+                    self.assertEqual(key, blob.key)
+
+        with self.subTest("should error"):
+            tests = ["gs://bucket-name", "laflasjf/asjf"]
+            for url in tests:
+                with self.assertRaises(ValueError):
+                    copy_client.blob_for_url(url)
 
 if __name__ == '__main__':
     unittest.main()

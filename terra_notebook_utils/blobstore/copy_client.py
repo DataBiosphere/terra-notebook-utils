@@ -82,6 +82,20 @@ def _do_copy(src_blob: AnyBlob, dst_blob: AnyBlob, multipart_threshold: int):
             pass
         raise
 
+def blob_for_url(url: str) -> AnyBlob:
+    if url.startswith(GSBlobStore.schema):
+        parts = url[len(GSBlobStore.schema):].split("/", 1)
+        if 2 != len(parts):
+            raise ValueError(f"Incorrect GS url '{url}'")
+        bucket, key = parts
+        return GSBlob(bucket, key)
+    elif url.startswith(URLBlobStore.schema):
+        return URLBlob(url)
+    elif url.startswith(os.path.sep):
+        return LocalBlob(os.path.sep, url)
+    else:
+        raise ValueError(f"Unable to translate blob for '{url}'")
+
 class CopyClient:
     multipart_threshold = default_chunk_size
 
@@ -94,9 +108,13 @@ class CopyClient:
         self._queue = ConcurrentHeap(self._executor, concurrency)
         self.raise_on_error = raise_on_error
 
-    def copy(self, src_blob: AnyBlob, dst_blob: AnyBlob):
-        priority = -src_blob.size()
-        self._queue.priority_put(priority, _do_copy, src_blob, dst_blob, self.multipart_threshold)
+    def copy(self, src: Union[str, AnyBlob], dst: Union[str, AnyBlob]):
+        if isinstance(src, str):
+            src = blob_for_url(src)
+        if isinstance(dst, str):
+            dst = blob_for_url(dst)
+        priority = -src.size()
+        self._queue.priority_put(priority, _do_copy, src, dst, self.multipart_threshold)
 
     def __enter__(self):
         return self
@@ -113,6 +131,6 @@ class CopyClient:
         finally:
             self._executor.shutdown()
 
-def copy(src_blob: AnyBlob, dst_blob: AnyBlob):
+def copy(src: Union[str, AnyBlob], dst: Union[str, AnyBlob]):
     with CopyClient() as client:
-        client.copy(src_blob, dst_blob)
+        client.copy(src, dst)

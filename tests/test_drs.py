@@ -314,7 +314,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.tar_gz"))
             es.enter_context(mock.patch("terra_notebook_utils.blobstore.gs.GSBlob.download"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.CopyClient"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.copy_client.CopyClient"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.GSBlob.open"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with mock.patch("terra_notebook_utils.drs.enable_requester_pays") as enable_requester_pays:
