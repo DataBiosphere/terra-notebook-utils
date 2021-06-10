@@ -1,5 +1,6 @@
+import io
 from functools import wraps
-from typing import Generator, IO, Optional, Tuple
+from typing import Generator, Optional, Tuple
 
 from requests.exceptions import HTTPError, ConnectionError
 from getm.reader import URLRawReader, URLReaderKeepAlive
@@ -57,7 +58,7 @@ class URLBlob(blobstore.Blob):
             return fh.read()
 
     @catch_blob_not_found
-    def open(self, chunk_size: Optional[int]=None) -> IO:
+    def open(self, chunk_size: Optional[int]=None) -> io.FileIO:
         return URLRawReader(self.url)
 
     @catch_blob_not_found_generator

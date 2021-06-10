@@ -1,5 +1,6 @@
+import io
 from collections import namedtuple
-from typing import Any, Generator, IO, Optional
+from typing import Any, Generator, Optional
 
 from getm import checksum
 
@@ -23,7 +24,7 @@ class Blob:
     def get(self) -> bytes:
         raise NotImplementedError()
 
-    def open(self, chunk_size: Optional[int]=None) -> IO:
+    def open(self, chunk_size: Optional[int]=None) -> io.FileIO:
         raise NotImplementedError()
 
     def put(self, data: bytes):

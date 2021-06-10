@@ -2,7 +2,7 @@ import io
 import multiprocessing
 from math import ceil
 from concurrent.futures import ThreadPoolExecutor
-from typing import Generator, IO, Optional, Union
+from typing import Generator, Optional, Union
 
 from getm import checksum, default_chunk_size
 from getm.utils import indirect_open
@@ -89,7 +89,7 @@ class GSBlob(blobstore.Blob):
     def get(self) -> bytes:
         return self._get_native_blob().download_as_bytes(checksum=None)
 
-    def open(self, chunk_size: Optional[int]=None) -> IO:
+    def open(self, chunk_size: Optional[int]=None) -> io.FileIO:
         chunk_size = chunk_size or GSBlobStore.chunk_size
         return self._get_native_blob().open(chunk_size=chunk_size, mode="rb")
 
