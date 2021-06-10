@@ -142,7 +142,7 @@ def _drs_info_from_martha_v3(drs_url: str, drs_data: dict) -> DRSInfo:
 
 def get_drs_info(drs_url: str) -> DRSInfo:
     """Attempt to resolve gs:// url and credentials for a DRS object."""
-    assert drs_url.startswith("drs://")
+    assert drs_url.startswith("drs://"), "Expected DRS URI of the form 'drs://...', got '{drs_url}'"
     drs_data = get_drs(drs_url).json()
     if 'dos' in drs_data:
         return _drs_info_from_martha_v2(drs_url, drs_data)
@@ -163,8 +163,6 @@ def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
     """Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage
     client.
     """
-    assert drs_url.startswith("drs://")
-
     info = get_drs_info(drs_url)
 
     if info.credentials is not None:
@@ -186,7 +184,6 @@ def copy_to_local(drs_url: str,
                   workspace_name: Optional[str]=WORKSPACE_NAME,
                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Copy a DRS object to the local filesystem."""
-    assert drs_url.startswith("drs://")
     enable_requester_pays(workspace_name, workspace_namespace)
     logger.info(f"Downloading {drs_url} to {filepath}")
     info = get_drs_info(drs_url)
@@ -198,7 +195,6 @@ def head(drs_url: str,
          workspace_name: Optional[str]=WORKSPACE_NAME,
          workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Head a DRS object by byte."""
-    assert drs_url.startswith("drs://"), f'Not a DRS schema: {drs_url}'
     enable_requester_pays(workspace_name, workspace_namespace)
     try:
         blob = get_drs_blob(drs_url, workspace_namespace)
@@ -219,7 +215,6 @@ def copy_to_bucket(drs_url: str,
     """Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.  If `dst_bucket` is None, copy into
     workspace bucket.
     """
-    assert drs_url.startswith("drs://")
     enable_requester_pays(workspace_name, workspace_namespace)
     if dst_bucket_name is None:
         dst_bucket_name = WORKSPACE_BUCKET
@@ -240,7 +235,6 @@ def copy(drs_url: str,
     """Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with
     "gs://".
     """
-    assert drs_url.startswith("drs://")
     if dst.startswith("gs://"):
         bucket_name, key = _bucket_name_and_key(dst)
         copy_to_bucket(drs_url,
@@ -259,7 +253,6 @@ def copy_batch(drs_urls: Iterable[str],
     enable_requester_pays(workspace_name, workspace_namespace)
     with CopyClient() as cc:
         for drs_url in drs_urls:
-            assert drs_url.startswith("drs://")
             src_info = get_drs_info(drs_url)
             src_blob = get_drs_blob(src_info, workspace_namespace)
             if dst.startswith("gs://"):
