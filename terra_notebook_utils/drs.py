@@ -14,7 +14,7 @@ from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 from terra_notebook_utils.http import http
 from terra_notebook_utils.blobstore.gs import GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlob
-from terra_notebook_utils.blobstore import copy_client
+from terra_notebook_utils.blobstore import Blob, copy_client
 
 
 logger = logging.getLogger(__name__)
@@ -159,19 +159,11 @@ def get_drs_blob(drs_url_or_info: Union[str, DRSInfo],
         raise TypeError()
     return GSBlob(info.bucket_name, info.key, info.credentials, workspace_namespace)
 
-def resolve_drs_for_gs_storage(drs_url: str) -> Tuple[gs.Client, DRSInfo]:
-    """Attempt to resolve gs:// url and credentials for a DRS object. Instantiate and return the Google Storage
-    client.
-    """
-    info = get_drs_info(drs_url)
-
-    if info.credentials is not None:
-        project_id = info.credentials['project_id']
+def blob_for_url(url: str, workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Blob:
+    if url.startswith("drs://"):
+        return get_drs_blob(url, workspace_namespace)
     else:
-        project_id = None
-
-    client = gs.get_client(info.credentials, project=project_id)
-    return client, info
+        return copy_client.blob_for_url(url)
 
 def _resolve_target(filepath: str, info: DRSInfo) -> str:
     if os.path.isdir(filepath):
