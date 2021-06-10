@@ -14,7 +14,7 @@ sys.path.insert(0, pkg_root)  # noqa
 from tests import config  # initialize the test environment
 from tests.infra.testmode import testmode
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
-from terra_notebook_utils import drs, gs, tar_gz, vcf
+from terra_notebook_utils import drs, gs
 from terra_notebook_utils.drs import DRSResolutionError
 from tests.infra import SuppressWarningsMixin
 
@@ -26,7 +26,7 @@ class TestTerraNotebookUtilsDRSInDev(SuppressWarningsMixin, unittest.TestCase):
                    "2a2bfaa24c7a_c0e40912-8b14-43f6-9a2f-b278144d0060"
 
     def test_resolve_drs_for_google_storage(self):
-        _, info = drs.resolve_drs_for_gs_storage(self.jade_dev_url)
+        info = drs.get_drs_info(self.jade_dev_url)
         self.assertEqual(info.bucket_name, "broad-jade-dev-data-bucket")
         self.assertEqual(info.key, "ca8edd48-e954-4c20-b911-b017fedffb67/c0e40912-8b14-43f6-9a2f-b278144d0060")
         self.assertEqual(info.name, "hapmap_3.3.hg38.vcf.gz")
@@ -221,7 +221,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
 
     @testmode("controlled_access")
     def test_resolve_drs_for_google_storage(self):
-        _, info = drs.resolve_drs_for_gs_storage(self.drs_url)
+        info = drs.get_drs_info(self.drs_url)
         self.assertEqual(info.bucket_name, "topmed-irc-share")
         self.assertEqual(info.key, "genomes/NWD522743.b38.irc.v1.cram.crai")
 
@@ -338,7 +338,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
-            _, actual_info = drs.resolve_drs_for_gs_storage(self.jade_dev_url)
+            actual_info = drs.get_drs_info(self.jade_dev_url)
             self.assertEqual(None, actual_info.credentials)
             self.assertEqual('broad-jade-dev-data-bucket', actual_info.bucket_name)
             self.assertEqual('fd8d8492-ad02-447d-b54e-35a7ffd0e7a5/8b07563a-542f-4b5c-9e00-e8fe6b1861de',
@@ -354,7 +354,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
-            _, actual_info = drs.resolve_drs_for_gs_storage(self.drs_url)
+            actual_info = drs.get_drs_info(self.drs_url)
             self.assertEqual({'project_id': "foo"}, actual_info.credentials)
             self.assertEqual('bogus', actual_info.bucket_name)
             self.assertEqual('my_data', actual_info.key)
@@ -369,7 +369,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
-            _, actual_info = drs.resolve_drs_for_gs_storage(self.jade_dev_url)
+            actual_info = drs.get_drs_info(self.jade_dev_url)
             self.assertEqual({'project_id': "foo"}, actual_info.credentials)
             self.assertEqual('broad-jade-dev-data-bucket', actual_info.bucket_name)
             self.assertEqual('fd8d8492-ad02-447d-b54e-35a7ffd0e7a5/8b07563a-542f-4b5c-9e00-e8fe6b1861de',
@@ -385,7 +385,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
-            _, actual_info = drs.resolve_drs_for_gs_storage(self.drs_url)
+            actual_info = drs.get_drs_info(self.drs_url)
             self.assertEqual(None, actual_info.credentials)
             self.assertEqual('bogus', actual_info.bucket_name)
             self.assertEqual('my_data', actual_info.key)
@@ -401,7 +401,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with self.assertRaisesRegex(DRSResolutionError, f"No GS url found for DRS uri '{self.jade_dev_url}'"):
-                drs.resolve_drs_for_gs_storage(self.jade_dev_url)
+                drs.get_drs_blob(self.jade_dev_url)
 
     # test for when no GS url is found in martha_v2 response. It should throw error
     def test_martha_v2_response_without_gs_uri(self):
@@ -411,7 +411,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with self.assertRaisesRegex(Exception, f"No GS url found for DRS uri '{self.drs_url}'"):
-                drs.resolve_drs_for_gs_storage(self.drs_url)
+                drs.get_drs_blob(self.drs_url)
 
     # test for when martha_v3 returns error. It should throw error
     def test_martha_v3_error_response(self):
@@ -425,7 +425,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
                     "Unexpected response while resolving DRS path. Expected status 200, got 500. "
                     "Error: {\"msg\":\"User 'null' does not have required action: read_data\",\"status_code\":500}"
             ):
-                drs.resolve_drs_for_gs_storage(self.jade_dev_url)
+                drs.get_drs_blob(self.jade_dev_url)
 
     # test for when martha_v3 returns error response with 'text' field. It should throw error
     def test_martha_v3_empty_error_response(self):
@@ -438,7 +438,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
                     DRSResolutionError,
                     "Unexpected response while resolving DRS path. Expected status 200, got 500. "
             ):
-                drs.resolve_drs_for_gs_storage(self.jade_dev_url)
+                drs.get_drs_blob(self.jade_dev_url)
 
     def test_bucket_name_and_key(self):
         expected_bucket_name = f"{uuid4()}"
