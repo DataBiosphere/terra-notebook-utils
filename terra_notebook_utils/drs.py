@@ -14,7 +14,7 @@ from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 from terra_notebook_utils.http import http
 from terra_notebook_utils.blobstore.gs import GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlob
-from terra_notebook_utils.blobstore.copy_client import CopyClient
+from terra_notebook_utils.blobstore import copy_client
 
 
 logger = logging.getLogger(__name__)
@@ -187,7 +187,7 @@ def copy_to_local(drs_url: str,
     enable_requester_pays(workspace_name, workspace_namespace)
     logger.info(f"Downloading {drs_url} to {filepath}")
     info = get_drs_info(drs_url)
-    get_drs_blob(info, workspace_namespace).download(_resolve_target(filepath, info))
+    copy_client.copy(get_drs_blob(info, workspace_namespace), _resolve_target(filepath, info))
 
 def head(drs_url: str,
          num_bytes: int = 1,
@@ -225,8 +225,7 @@ def copy_to_bucket(drs_url: str,
     src_blob = get_drs_blob(src_info, workspace_namespace)
     dst_blob = GSBlob(dst_bucket_name, dst_key)
     logger.info(f"Beginning to copy from {src_blob.url} to {dst_blob.url}. This can take a while for large files...")
-    with CopyClient() as cc:
-        cc.copy(src_blob, dst_blob)
+    copy_client.copy(src_blob, dst_blob)
 
 def copy(drs_url: str,
          dst: str,
@@ -246,24 +245,22 @@ def copy(drs_url: str,
         copy_to_local(drs_url, dst, workspace_name, workspace_namespace)
 
 def copy_batch(drs_urls: Iterable[str],
-               dst: str,
+               dst_pfx: str,
                workspace_name: Optional[str]=WORKSPACE_NAME,
                workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    dst_blob: Union[GSBlob, LocalBlob]
     enable_requester_pays(workspace_name, workspace_namespace)
-    with CopyClient() as cc:
+    with copy_client.CopyClient() as cc:
         for drs_url in drs_urls:
             src_info = get_drs_info(drs_url)
             src_blob = get_drs_blob(src_info, workspace_namespace)
-            if dst.startswith("gs://"):
-                if dst.endswith("/"):
+            if dst_pfx.startswith("gs://"):
+                if dst_pfx.endswith("/"):
                     raise ValueError("Bucket destination cannot end with '/'")
-                dst_bucket_name, dst_pfx = _bucket_name_and_key(dst)
                 basename = src_info.name or src_info.key.rsplit("/", 1)[-1]
-                dst_blob = GSBlob(dst_bucket_name, f"{dst_pfx}/{basename}")
+                dst = f"{dst_pfx}/{basename}"
             else:
-                dst_blob = LocalBlob("/", _resolve_target(dst, src_info))
-            cc.copy(src_blob, dst_blob)
+                dst = _resolve_target(dst_pfx, src_info)
+            cc.copy(src_blob, dst)
 
 def extract_tar_gz(drs_url: str,
                    dst_pfx: str=None,
