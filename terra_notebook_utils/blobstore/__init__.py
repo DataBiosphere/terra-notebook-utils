@@ -63,21 +63,18 @@ class Blob:
     def iter_content(self) -> "PartIterator":
         raise NotImplementedError()
 
-    def multipart_writer(self) -> "MultipartWriter":
+    def part_writer(self) -> "PartWriter":
         raise NotImplementedError()
-
-Part = namedtuple("Part", "number data")
 
 class PartIterator:
     def __len__(self):
         raise NotImplementedError()
 
-    def __iter__(self) -> Generator[Part, None, None]:
+    def __iter__(self) -> Generator[bytes, None, None]:
         raise NotImplementedError()
 
-
-class MultipartWriter:
-    def put_part(self, part: Part):
+class PartWriter:
+    def put_part(self, part: bytes):
         raise NotImplementedError()
 
     def close(self):

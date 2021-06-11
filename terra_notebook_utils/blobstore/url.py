@@ -82,9 +82,9 @@ class URLBlob(blobstore.Blob):
                 yield self.size()
             else:
                 for part in self.iter_content():
-                    cs.update(part.data)
-                    fh.write(part.data)
-                    yield len(part.data)
+                    cs.update(part)
+                    fh.write(part)
+                    yield len(part)
             assert cs.matches(), "Checksum failed!"
 
     def download(self, path: str):
@@ -108,5 +108,5 @@ class URLPartIterator(blobstore.PartIterator):
         if 0 == http.size(self.url):
             yield blobstore.Part(0, b"")
         else:
-            for i, data in enumerate(URLReaderKeepAlive.iter_content(self.url, self.chunk_size)):
-                yield blobstore.Part(i, data)
+            for data in URLReaderKeepAlive.iter_content(self.url, self.chunk_size):
+                yield data

@@ -15,7 +15,7 @@ from google.cloud import storage
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
-from terra_notebook_utils.blobstore import BlobStore, Part, BlobNotFoundError
+from terra_notebook_utils.blobstore import BlobStore, BlobNotFoundError
 from terra_notebook_utils.blobstore.gs import GSBlobStore
 from terra_notebook_utils.blobstore.local import LocalBlobStore
 from terra_notebook_utils.blobstore.url import URLBlobStore
@@ -208,18 +208,16 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
                     with self.assertRaises(ValueError):
                         bs.blob("/").exists()
 
-    def test_multipart_writers(self):
+    def test_part_writers(self):
         expected_data = test_data.multipart_data
         chunk_size = default_chunk_size
         number_of_chunks = ceil(len(expected_data) / chunk_size)
-        for bs in (gs_blobstore,):
+        for bs in (gs_blobstore, local_blobstore):
             with self.subTest(blobstore=bs):
                 dst_blob = bs.blob(f"{uuid4()}")
-                with dst_blob.multipart_writer() as writer:
+                with dst_blob.part_writer() as writer:
                     for i in range(number_of_chunks):
-                        part = Part(number=i,
-                                    data=expected_data[i * chunk_size: (i + 1) * chunk_size])
-                        writer.put_part(part)
+                        writer.put_part(expected_data[i * chunk_size: (i + 1) * chunk_size])
                 self.assertEqual(expected_data, dst_blob.get())
 
 if __name__ == '__main__':

@@ -79,11 +79,11 @@ def _copy_multipart_passthrough(src_blob: AnyBlob, dst_blob: CloudBlob):
     logger.debug(f"Starting multipart passthrough {src_blob.url} to {dst_blob.url}")
     cs = dst_blob.Hasher()
     with Progress.indicator(dst_blob.url, src_blob.size()) as progress:
-        with dst_blob.multipart_writer() as writer:
+        with dst_blob.part_writer() as writer:
             for part in src_blob.iter_content():
                 writer.put_part(part)
-                cs.update(part.data)
-                progress.add(len(part.data))
+                cs.update(part)
+                progress.add(len(part))
     if not cs.matches(dst_blob.cloud_native_checksum()):
         logger.error(f"Checksum failed for {src_blob.url} to {dst_blob.url}")
         raise BlobstoreChecksumError()

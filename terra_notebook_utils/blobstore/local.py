@@ -122,6 +122,9 @@ class LocalBlob(blobstore.Blob):
     def iter_content(self) -> blobstore.PartIterator:
         return LocalPartIterator(self._path)
 
+    def part_writer(self) -> "LocalPartWriter":
+        return LocalPartWriter(self._path)
+
 class LocalPartIterator(blobstore.PartIterator):
     def __init__(self, path: str):
         try:
@@ -135,9 +138,9 @@ class LocalPartIterator(blobstore.PartIterator):
     def __len__(self):
         return self._number_of_parts
 
-    def __iter__(self) -> Generator[blobstore.Part, None, None]:
-        for part_number in range(self._number_of_parts):
-            yield blobstore.Part(part_number, self.handle.read(self.chunk_size))
+    def __iter__(self) -> Generator[bytes, None, None]:
+        for _ in range(self._number_of_parts):
+            yield self.handle.read(self.chunk_size)
 
     def close(self):
         if hasattr(self, "handle"):
@@ -145,3 +148,14 @@ class LocalPartIterator(blobstore.PartIterator):
 
     def __del__(self):
         self.close()
+
+class LocalPartWriter(blobstore.PartWriter):
+    """This provides a consistent interface for blobs, but is mostly just a wrapper over a normal file handle."""
+    def __init__(self, filepath: str):
+        self._fh = open(filepath, "wb")
+
+    def put_part(self, part: bytes):
+        self._fh.write(part)
+
+    def close(self):
+        self._fh.close()

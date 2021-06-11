@@ -125,10 +125,10 @@ class GSBlob(blobstore.Blob):
                     self.put(src_blob.get())
                     yield size
                 else:
-                    with self.multipart_writer() as writer:
+                    with self.part_writer() as writer:
                         for part in src_blob.iter_content():
                             writer.put_part(part)
-                            yield len(part.data)
+                            yield len(part)
 
     def copy_from(self, src_blob: "GSBlob"):
         for _ in self.copy_from_iter(src_blob):
@@ -138,9 +138,9 @@ class GSBlob(blobstore.Blob):
         with indirect_open(path) as fh:
             cs = self.Hasher()
             for part in self.iter_content():
-                fh.write(part.data)
-                cs.update(part.data)
-                yield len(part.data)
+                fh.write(part)
+                cs.update(part)
+                yield len(part)
             assert cs.matches(self.cloud_native_checksum())
 
     def download(self, path: str):
@@ -168,11 +168,11 @@ class GSBlob(blobstore.Blob):
                               credentials=self.credentials,
                               billing_project=self.billing_project)
 
-    def multipart_writer(self) -> "blobstore.MultipartWriter":
-        return GSMultipartWriter(self.bucket_name,
-                                 self.key,
-                                 credentials=self.credentials,
-                                 billing_project=self.billing_project)
+    def part_writer(self) -> "blobstore.PartWriter":
+        return GSPartWriter(self.bucket_name,
+                            self.key,
+                            credentials=self.credentials,
+                            billing_project=self.billing_project)
 
 class GSPartIterator(blobstore.PartIterator):
     def __init__(self,
@@ -186,13 +186,13 @@ class GSPartIterator(blobstore.PartIterator):
         self.chunk_size = chunk_size
         self._number_of_parts = ceil(self.size / self.chunk_size) if 0 < self.size else 1
 
-    def __iter__(self) -> Generator[blobstore.Part, None, None]:
+    def __iter__(self) -> Generator[bytes, None, None]:
         with ThreadPoolExecutor(max_workers=multiprocessing.cpu_count()) as e:
             q = gscio.async_collections.AsyncQueue(e)
-            for chunk_number, data in enumerate(gscio.for_each_chunk(self._blob, self.chunk_size, q)):
-                yield blobstore.Part(chunk_number, data)
+            for _, data in enumerate(gscio.for_each_chunk(self._blob, self.chunk_size, q)):
+                yield data
 
-class GSMultipartWriter(blobstore.MultipartWriter):
+class GSPartWriter(blobstore.PartWriter):
     def __init__(self,
                  bucket_name: str,
                  key: str,
@@ -206,9 +206,11 @@ class GSMultipartWriter(blobstore.MultipartWriter):
         self._executor = ThreadPoolExecutor(max_workers=IO_CONCURRENCY)
         async_set = gscio.async_collections.AsyncSet(self._executor, IO_CONCURRENCY)
         self._part_uploader = gscio.AsyncPartUploader(key, bucket, async_set)
+        self._part_number = 0
 
-    def put_part(self, part: blobstore.Part):
-        self._part_uploader.put_part(part.number, part.data)
+    def put_part(self, part: bytes):
+        self._part_uploader.put_part(self._part_number, part)
+        self._part_number += 1
 
     def close(self):
         self._part_uploader.close()
