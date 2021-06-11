@@ -296,8 +296,8 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         # of data from the cohort vcf pointed to by `drs://dg.4503/da8cb525-4532-4d0f-90a3-4d327817ec73`.
         with mock.patch("terra_notebook_utils.tar_gz._extract_single_chunk", True):
             drs_url = "drs://dg.4503/da8cb525-4532-4d0f-90a3-4d327817ec73"  # cohort VCF tarball
-            pfx = f"test_cohort_extract_{uuid4()}"
-            drs.extract_tar_gz(drs_url, pfx)
+            pfx = "test_cohort_extract_{uuid4()}"
+            drs.extract_tar_gz(drs_url, f"gs://{WORKSPACE_BUCKET}/{pfx}")
             for key in list_bucket(pfx):
                 blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
                 data = blob.download_as_bytes()[:len(expected_data)]
@@ -328,7 +328,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
                     enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
                 with self.subTest("Extract tarball"):
                     enable_requester_pays.reset_mock()
-                    drs.extract_tar_gz(self.drs_url, "some_pfx", "some_bucket")
+                    drs.extract_tar_gz(self.drs_url)
                     enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
 
     # test for when we get everything what we wanted in martha_v3 response

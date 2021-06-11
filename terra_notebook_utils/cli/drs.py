@@ -87,8 +87,11 @@ def drs_head(args: argparse.Namespace):
 
 @drs_cli.command("extract-tar-gz", arguments={
     "drs_url": dict(type=str),
-    "dst_gs_url": dict(type=str, help=("Root of extracted archive. This must be a Google Storage location prefixed"
-                                       "prefixed with 'gs://'")),
+    "dst": dict(type=str,
+                nargs='?',
+                default=None,
+                help=("Root of extracted archive. This may be a local filepath or a 'gs://' url."
+                      "If not provided, default extraction is to the bucket for 'workspace'")),
     ** workspace_args,
 })
 def drs_extract_tar_gz(args: argparse.Namespace):
@@ -97,11 +100,8 @@ def drs_extract_tar_gz(args: argparse.Namespace):
     example:
         tnu drs extract-tar-gz drs://my-tar-gz gs://my-dst-bucket/root
     """
-    assert args.dst_gs_url.startswith("gs://")
-    bucket, pfx = args.dst_gs_url[5:].split("/", 1)
-    pfx = pfx or None
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    drs.extract_tar_gz(args.drs_url, pfx, bucket, args.workspace, args.workspace_namespace)
+    drs.extract_tar_gz(args.drs_url, args.dst, args.workspace, args.workspace_namespace)
 
 @drs_cli.command("info", arguments={
     "drs_url": dict(type=str),
