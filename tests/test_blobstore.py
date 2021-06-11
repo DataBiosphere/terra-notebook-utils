@@ -181,17 +181,15 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
             expected_parts = [test_data.multipart_data[i * bs.chunk_size:(i + 1) * bs.chunk_size]
                               for i in range(number_of_parts)]
             with self.subTest(test_name):
-                count = 0
-                for part_number, data in blob.iter_content():
+                for part_number, data in enumerate(blob.iter_content()):
                     self.assertEqual(expected_parts[part_number], data)
-                    count += 1
-                self.assertEqual(number_of_parts, count)
+                self.assertEqual(number_of_parts, part_number + 1)
 
                 zero_blob = bs.blob(_put_blob(bs, b""))
-                for part_number, data in zero_blob.iter_content():
-                    pass
+                for part_number, part in enumerate(zero_blob.iter_content()):
+                    data = bytes(part)
                 self.assertEqual(0, part_number)
-                self.assertEqual(b"", data)
+                self.assertEqual(b"", bytes(data))
 
         with self.subTest("shuold raise 'BlobNotFoundError'"):
             with self.assertRaises(BlobNotFoundError):

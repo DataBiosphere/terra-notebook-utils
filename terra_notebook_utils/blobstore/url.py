@@ -106,7 +106,7 @@ class URLPartIterator(blobstore.PartIterator):
 
     def __iter__(self):
         if 0 == http.size(self.url):
-            yield blobstore.Part(0, b"")
+            yield b""
         else:
             for data in URLReaderKeepAlive.iter_content(self.url, self.chunk_size):
                 yield data
