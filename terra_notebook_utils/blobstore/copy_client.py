@@ -36,10 +36,10 @@ class Progress:
     @classmethod
     def indicator(cls, name: str, size: int):
         if cls.indicator_type == ProgressIndicatorType.bar:
-            incriments = 40
+            increments = 40
         elif cls.indicator_type == ProgressIndicatorType.log:
-            incriments = ceil(size / default_chunk_size / 2)
-        return cls.indicator_type.value(name, size, incriments)
+            increments = ceil(size / default_chunk_size / 2)
+        return cls.indicator_type.value(name, size, increments)
 
 def _download(src_blob: AnyBlob, dst_blob: LocalBlob):
     logger.debug(f"Starting download {src_blob.url} to {dst_blob.url}")
@@ -52,7 +52,7 @@ def _download(src_blob: AnyBlob, dst_blob: LocalBlob):
             progress.add(part_size)
 
 def _copy_intra_cloud(src_blob: AnyBlob, dst_blob: AnyBlob):
-    # In general it is not necesary to compute checksums for intra cloud copies. The Storage services will do that for
+    # In general it is not necessary to compute checksums for intra cloud copies. The Storage services will do that for
     # us.
     # However, S3Etags depend on the part layout. Either ensure source and destination part layouts are the same, or
     # compute the destination S3Etag on the fly.
