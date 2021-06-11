@@ -109,7 +109,7 @@ class TestTerraNotebookUtilsCLI_VCF(SuppressWarningsMixin, CLITestMixin, unittes
         upload_data(cls.gs_uri, partial_bgzip_vcf)
 
     @testmode("workspace_access")
-    def test_head(self):
+    def test_head_vcf(self):
         with self.subTest("Test gs:// object"):
             self._test_cmd(terra_notebook_utils.cli.vcf.head, path=self.gs_uri)
 

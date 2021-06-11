@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import io
 import os
 import sys
 import unittest
@@ -11,19 +10,19 @@ sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config  # initialize the test environment
 from tests.infra.testmode import testmode
-from terra_notebook_utils import WORKSPACE_BUCKET
-from terra_notebook_utils import drs, gs, vcf
 from tests.infra import SuppressWarningsMixin, upload_data
 from tests.infra.partialize_vcf import partialize_vcf
+
+from terra_notebook_utils import vcf, drs, WORKSPACE_BUCKET
 
 
 class TestTerraNotebookUtilsVCF(SuppressWarningsMixin, unittest.TestCase):
     @testmode("controlled_access")
     def test_vcf_info_drs(self):
         drs_uri = "drs://dg.4503/6aad51c2-2ea9-4248-8a38-7d52c10cfc89"
-        vcf_info = vcf.vcf_info(drs_uri)
-        self.assertEqual("chr5", vcf_info.chrom)
-        self.assertEqual("10018", vcf_info.pos)
+        info = vcf.VCFInfo.with_blob(drs.blob_for_url(drs_uri))
+        self.assertEqual("chr5", info.chrom)
+        self.assertEqual("10018", info.pos)
 
     @testmode("workspace_access")
     def test_vcf_info(self):
@@ -39,9 +38,9 @@ class TestTerraNotebookUtilsVCF(SuppressWarningsMixin, unittest.TestCase):
             for test_name, uri, data in tests:
                 with self.subTest(test_name):
                     upload_data(uri, data)
-                    vcf_info = vcf.vcf_info(uri)
-                    self.assertEqual("2", vcf_info.chrom)
-                    self.assertEqual("10133", vcf_info.pos)
+                    info = vcf.VCFInfo.with_blob(drs.blob_for_url(uri))
+                    self.assertEqual("2", info.chrom)
+                    self.assertEqual("10133", info.pos)
 
 if __name__ == '__main__':
     unittest.main()
