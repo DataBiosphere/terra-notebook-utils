@@ -53,6 +53,7 @@ class LocalBlob(blobstore.Blob):
         self.bucket_name = basepath
         self.key = relpath
         self._path = os.path.join(basepath, relpath)
+        self.makedirs = True  # create subdirectories if needed during write operations
 
     # The next two methods customize pickling behavior. Some modules such as multiprocessing/ProcessPoolExecutor
     # require picklable objects. Let's make pickling snappy.
@@ -78,6 +79,8 @@ class LocalBlob(blobstore.Blob):
         return open(self._path, "rb")  # type: ignore  # this is technically BinaryIO but should be compatible
 
     def put(self, data: bytes):
+        if self.makedirs:
+            os.makedirs(os.path.dirname(self._path), exist_ok=True)
         with open(self._path, "wb") as fh:
             fh.write(data)
 
@@ -123,7 +126,7 @@ class LocalBlob(blobstore.Blob):
         return LocalPartIterator(self._path)
 
     def part_writer(self) -> "LocalPartWriter":
-        return LocalPartWriter(self._path)
+        return LocalPartWriter(self._path, self.makedirs)
 
 class LocalPartIterator(blobstore.PartIterator):
     def __init__(self, path: str):
@@ -151,7 +154,9 @@ class LocalPartIterator(blobstore.PartIterator):
 
 class LocalPartWriter(blobstore.PartWriter):
     """This provides a consistent interface for blobs, but is mostly just a wrapper over a normal file handle."""
-    def __init__(self, filepath: str):
+    def __init__(self, filepath: str, makedirs: bool):
+        if makedirs:
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
         self._fh = open(filepath, "wb")
 
     def put_part(self, part: bytes):
