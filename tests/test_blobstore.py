@@ -114,6 +114,15 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
             with self.assertRaises(BlobNotFoundError):
                 url_blobstore.blob(_fake_key(url_blobstore)).get()
 
+        with self.subTest("local blobstore subdir creation"):
+            local_blob = local_blobstore.blob(f"{uuid4()}/{uuid4()}")
+            local_blob.put(b"asdf")
+
+            local_blob = local_blobstore.blob(f"{uuid4()}/{uuid4()}")
+            local_blob.makedirs = False
+            with self.assertRaises(FileNotFoundError):
+                local_blob.put(b"asdf")
+
     def test_open(self):
         chunk_size = randint(1024, 2048)
         for bs in (local_blobstore, gs_blobstore, url_blobstore):
@@ -217,6 +226,17 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
                     for i in range(number_of_chunks):
                         writer.put_part(expected_data[i * chunk_size: (i + 1) * chunk_size])
                 self.assertEqual(expected_data, dst_blob.get())
+
+        with self.subTest("local blob subdir creation"):
+            local_blob = local_blobstore.blob(f"{uuid4()}/{uuid4()}")
+            with local_blob.part_writer() as writer:
+                writer.put_part(b"aslkf")
+
+            local_blob = local_blobstore.blob(f"{uuid4()}/{uuid4()}")
+            local_blob.makedirs = False
+            with self.assertRaises(FileNotFoundError):
+                with local_blob.part_writer() as writer:
+                    writer.put_part(b"aslkf")
 
 if __name__ == '__main__':
     unittest.main()
