@@ -10,7 +10,7 @@ from typing import Tuple, Iterable, Optional, Union
 from requests import Response
 
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
-from terra_notebook_utils import gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
+from terra_notebook_utils import workspace, gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 from terra_notebook_utils.http import http
 from terra_notebook_utils.blobstore.gs import GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlob
@@ -253,18 +253,17 @@ def copy_batch(drs_urls: Iterable[str],
             cc.copy(src_blob, dst)
 
 def extract_tar_gz(drs_url: str,
-                   dst_pfx: str=None,
-                   dst_bucket_name: str=None,
+                   dst: Optional[str]=None,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
                    workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    """Extract a `.tar.gz` archive resolved by a DRS url into a Google Storage bucket."""
-    if dst_bucket_name is None:
-        dst_bucket_name = WORKSPACE_BUCKET
+    """Extract a `.tar.gz` archive resolved by a DRS url. 'dst' may be either a local filepath or a 'gs://' url.
+    Default extraction is to the bucket for 'workspace'.
+    """
+    dst = dst or f"gs://{workspace.get_workspace_bucket(workspace_name)}"
     enable_requester_pays(workspace_name, workspace_namespace)
-    dst_bucket = gs.get_client().bucket(dst_bucket_name)
     blob = get_drs_blob(drs_url, workspace_namespace)
     with blob.open() as fh:
-        tar_gz.extract(fh, dst_bucket, root=dst_pfx)
+        tar_gz.extract(fh, dst)
 
 def _bucket_name_and_key(gs_url: str) -> Tuple[str, str]:
     assert gs_url.startswith("gs://")
