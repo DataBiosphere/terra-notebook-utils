@@ -1,10 +1,8 @@
-#!/usr/bin/env python
-import os
+"""This is the main CLI entry point."""
 import sys
 
-pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
-sys.path.insert(0, pkg_root)  # noqa
-
+# Only the commands modules imported here are available to the CLI
+# These must be imported before dispatch
 import terra_notebook_utils.cli.commands.config
 import terra_notebook_utils.cli.commands.vcf
 import terra_notebook_utils.cli.commands.workspace
@@ -15,7 +13,7 @@ import terra_notebook_utils.cli.commands.workflows
 from terra_notebook_utils.cli import dispatch
 
 
-if __name__ == "__main__":
+def main():
     if 2 == len(sys.argv) and "--version" == sys.argv[1].strip():
         from terra_notebook_utils import version
         print(version.__version__)

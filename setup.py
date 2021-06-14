@@ -26,7 +26,7 @@ setup(
     author_email="bhannafi@ucsc.edu",
     license="MIT",
     packages=find_packages(exclude=["tests"]),
-    scripts=glob.glob("scripts/*"),
+    entry_points=dict(console_scripts=['tnu=terra_notebook_utils.cli.main:main']),
     zip_safe=False,
     install_requires=install_requires,
     platforms=["MacOS X", "Posix"],
