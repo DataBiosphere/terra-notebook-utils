@@ -15,7 +15,7 @@ from tests import CLITestMixin
 from tests.infra.testmode import testmode
 from terra_notebook_utils import workflows
 from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
-import terra_notebook_utils.cli.workflows
+import terra_notebook_utils.cli.commands.workflows
 
 
 @testmode("workspace_access")
@@ -46,17 +46,17 @@ class TestTerraNotebookUtilsWorkflowsCLI(CLITestMixin, unittest.TestCase):
 
     def test_list_submissions(self):
         with mock.patch("terra_notebook_utils.workflows.list_submissions"):
-            self._test_cmd(terra_notebook_utils.cli.workflows.list_submissions)
+            self._test_cmd(terra_notebook_utils.cli.commands.workflows.list_submissions)
 
     def test_get_submission(self):
         with mock.patch("terra_notebook_utils.workflows.get_submission", return_value=dict()):
-            self._test_cmd(terra_notebook_utils.cli.workflows.get_submission,
+            self._test_cmd(terra_notebook_utils.cli.commands.workflows.get_submission,
                            submission_id="frank")
 
     def test_get_workflow(self):
         with mock.patch("terra_notebook_utils.workflows.get_submission", return_value=dict()):
             with mock.patch("terra_notebook_utils.workflows.get_workflow", return_value=dict()):
-                self._test_cmd(terra_notebook_utils.cli.workflows.get_submission,
+                self._test_cmd(terra_notebook_utils.cli.commands.workflows.get_submission,
                                submission_id="frank",
                                workflow_id="bob")
 
@@ -65,7 +65,8 @@ class TestTerraNotebookUtilsWorkflowsCLI(CLITestMixin, unittest.TestCase):
         with mock.patch("terra_notebook_utils.workflows.get_all_workflows", return_value=ret):
             with mock.patch("terra_notebook_utils.workflows.estimate_workflow_cost",
                             return_value=dict()) as estimate_workflow_cost:
-                self._test_cmd(terra_notebook_utils.cli.workflows.estimate_submission_cost, submission_id="frank")
+                self._test_cmd(terra_notebook_utils.cli.commands.workflows.estimate_submission_cost,
+                               submission_id="frank")
                 estimate_workflow_cost.assert_called()
 
 if __name__ == '__main__':
