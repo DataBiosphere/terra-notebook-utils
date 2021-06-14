@@ -13,8 +13,7 @@ sys.path.insert(0, pkg_root)  # noqa
 from tests import config  # initialize the test environment
 from tests import CLITestMixin
 from tests.infra.testmode import testmode
-from terra_notebook_utils import workflows
-from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
+from terra_notebook_utils import workflows, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
 import terra_notebook_utils.cli.commands.workflows
 
 

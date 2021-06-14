@@ -10,10 +10,11 @@ pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noq
 sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config  # initialize the test environment
+from tests import CLITestMixin, ConfigOverride
 from tests.infra.testmode import testmode
-from terra_notebook_utils import WORKSPACE_BUCKET, WORKSPACE_NAME
-from terra_notebook_utils import gs, workspace
+from terra_notebook_utils import gs, workspace, WORKSPACE_BUCKET, WORKSPACE_NAME
 from tests.infra import SuppressWarningsMixin
+import terra_notebook_utils.cli.commands.workspace
 
 
 @testmode("workspace_access")
@@ -80,6 +81,16 @@ class TestTerraNotebookUtilsWorkspace(SuppressWarningsMixin, unittest.TestCase):
             for f in as_completed(futures):
                 f.result()
         return manifest
+
+@testmode("workspace_access")
+class TestTerraNotebookUtilsCLI_Workspace(CLITestMixin, unittest.TestCase):
+    def test_list(self):
+        self._test_cmd(terra_notebook_utils.cli.commands.workspace.list_workspaces)
+
+    def test_get(self):
+        self._test_cmd(terra_notebook_utils.cli.commands.workspace.get_workspace,
+                       workspace=WORKSPACE_NAME,
+                       workspace_namespace="firecloud-cgl")
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,10 +10,12 @@ sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config  # initialize the test environment
 from tests.infra.testmode import testmode
+from tests import CLITestMixin, ConfigOverride
 from tests.infra import SuppressWarningsMixin, upload_data
 from tests.infra.partialize_vcf import partialize_vcf
 
-from terra_notebook_utils import vcf, drs, WORKSPACE_BUCKET
+from terra_notebook_utils import vcf, drs, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
+import terra_notebook_utils.cli.commands.vcf
 
 
 class TestTerraNotebookUtilsVCF(SuppressWarningsMixin, unittest.TestCase):
@@ -41,6 +43,59 @@ class TestTerraNotebookUtilsVCF(SuppressWarningsMixin, unittest.TestCase):
                     info = vcf.VCFInfo.with_blob(drs.blob_for_url(uri))
                     self.assertEqual("2", info.chrom)
                     self.assertEqual("10133", info.pos)
+
+class TestTerraNotebookUtilsCLI_VCF(SuppressWarningsMixin, CLITestMixin, unittest.TestCase):
+    common_kwargs = dict(workspace=WORKSPACE_NAME, workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+    vcf_drs_url = "drs://dg.4503/57f58130-2d66-4d46-9b2b-539f7e6c2080"
+
+    @classmethod
+    def setUpClass(cls):
+        src_uri = ("gs://genomics-public-data/1000-genomes"
+                   "/vcf/ALL.chr2.integrated_phase1_v3.20101123.snps_indels_svs.genotypes.vcf")
+        cls.gs_uri = f"gs://{WORKSPACE_BUCKET}/test_vcf_cli/{uuid4()}"
+        partial_bgzip_vcf = partialize_vcf(src_uri, 500)
+        upload_data(cls.gs_uri, partial_bgzip_vcf)
+
+    @testmode("workspace_access")
+    def test_head_vcf(self):
+        with self.subTest("Test gs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.commands.vcf.head, path=self.gs_uri)
+
+        with self.subTest("Test local object"):
+            self._test_cmd(terra_notebook_utils.cli.commands.vcf.head, path="tests/fixtures/non_block_gzipped.vcf.gz")
+
+    @testmode("controlled_access")
+    def test_head_drs(self):
+        with self.subTest("Test drs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.commands.vcf.head, path=self.vcf_drs_url)
+
+    @testmode("workspace_access")
+    def test_samples(self):
+        with self.subTest("Test gs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.commands.vcf.samples, path=self.gs_uri)
+
+        with self.subTest("Test local object"):
+            self._test_cmd(terra_notebook_utils.cli.commands.vcf.samples,
+                           path="tests/fixtures/non_block_gzipped.vcf.gz")
+
+    @testmode("controlled_access")
+    def test_samples_drs(self):
+        with self.subTest("Test drs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.commands.vcf.samples,
+                           path=self.vcf_drs_url)
+
+    def test_stats(self):
+        with self.subTest("Test gs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.commands.vcf.stats, path=self.gs_uri)
+
+        with self.subTest("Test local object"):
+            self._test_cmd(terra_notebook_utils.cli.commands.vcf.stats, path="tests/fixtures/non_block_gzipped.vcf.gz")
+
+    @testmode("controlled_access")
+    def test_stats_drs(self):
+        with self.subTest("Test drs:// object"):
+            self._test_cmd(terra_notebook_utils.cli.commands.vcf.stats,
+                           path=self.vcf_drs_url)
 
 if __name__ == '__main__':
     unittest.main()
