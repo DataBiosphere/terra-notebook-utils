@@ -2,17 +2,21 @@
 import os
 import sys
 import time
+import json
 import random
 import unittest
 from uuid import uuid4
+from random import randint
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config  # initialize the test environment
+from tests import CLITestMixin, ConfigOverride
 from tests.infra.testmode import testmode
-from terra_notebook_utils import table as tnu_table
+from terra_notebook_utils import table as tnu_table, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
 from tests.infra import SuppressWarningsMixin
+import terra_notebook_utils.cli.commands.table
 
 
 class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
@@ -128,6 +132,48 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
         tnu_table.Row(name="foo", attributes=dict())
         with self.assertRaises(AssertionError):
             tnu_table.Row(name=1, attributes=dict())
+
+@testmode("workspace_access")
+class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
+    common_kwargs = dict(workspace=WORKSPACE_NAME, workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.table = f"test-{uuid4()}"
+        cls.table_data = list()
+        with tnu_table.Writer(cls.table) as writer:
+            for _ in range(11):
+                row = tnu_table.Row(f"{uuid4()}", dict(a=f"{uuid4()}", b=f"{uuid4()}"))
+                writer.put_row(row)
+                e = row.attributes.copy()
+                e['entity_id'] = row.name
+                cls.table_data.append(e)
+        cls.columns = list(row.attributes.keys())
+
+    @classmethod
+    def tearDownClass(cls):
+        tnu_table.delete(cls.table)
+
+    def setUp(self):
+        self.row_index = randint(0, len(self.table_data) - 1)
+        self.entity_id = self.table_data[self.row_index]['entity_id']
+        self.column = self.columns[randint(0, len(self.columns) - 1)]
+        self.cell_value = self.table_data[self.row_index][self.column]
+
+    def test_list(self):
+        self._test_cmd(terra_notebook_utils.cli.commands.table.list_tables)
+
+    def test_list_rows(self):
+        self._test_cmd(terra_notebook_utils.cli.commands.table.list_rows, table="simple_germline_variation")
+
+    def test_get_row(self):
+        out = self._test_cmd(terra_notebook_utils.cli.commands.table.get_row,
+                             table=self.table,
+                             row=self.entity_id)
+        row_name, data = out.split(maxsplit=1)
+        attributes = json.loads(data)
+        attributes['entity_id'] = row_name  # TODO: refactor `entity_id` out of test data
+        self.assertEqual(attributes, self.table_data[self.row_index])
 
 if __name__ == '__main__':
     unittest.main()

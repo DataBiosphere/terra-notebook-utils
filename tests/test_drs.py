@@ -1,22 +1,27 @@
 #!/usr/bin/env python
+import io
 import os
 import sys
+import base64
 import unittest
 import tempfile
+import subprocess
 from uuid import uuid4
 from unittest import mock
 from contextlib import ExitStack
 from typing import Generator
 
+import google_crc32c
+
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config  # initialize the test environment
-from tests.infra.testmode import testmode
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
-from terra_notebook_utils import drs, gs
-from terra_notebook_utils.drs import DRSResolutionError
+from tests import CLITestMixin, ConfigOverride
 from tests.infra import SuppressWarningsMixin
+from tests.infra.testmode import testmode
+from terra_notebook_utils import drs, gs, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
+import terra_notebook_utils.cli.commands.drs
 
 
 # These tests will only run on `make dev_env_access_test` command as they are testing DRS against Terra Dev env
@@ -400,7 +405,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
-            with self.assertRaisesRegex(DRSResolutionError, f"No GS url found for DRS uri '{self.jade_dev_url}'"):
+            with self.assertRaisesRegex(drs.DRSResolutionError, f"No GS url found for DRS uri '{self.jade_dev_url}'"):
                 drs.get_drs_blob(self.jade_dev_url)
 
     # test for when no GS url is found in martha_v2 response. It should throw error
@@ -421,7 +426,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with self.assertRaisesRegex(
-                    DRSResolutionError,
+                    drs.DRSResolutionError,
                     "Unexpected response while resolving DRS path. Expected status 200, got 500. "
                     "Error: {\"msg\":\"User 'null' does not have required action: read_data\",\"status_code\":500}"
             ):
@@ -435,7 +440,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with self.assertRaisesRegex(
-                    DRSResolutionError,
+                    drs.DRSResolutionError,
                     "Unexpected response while resolving DRS path. Expected status 200, got 500. "
             ):
                 drs.get_drs_blob(self.jade_dev_url)
@@ -467,6 +472,105 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         )
         self.assertEqual(drs.info(uri), expected_info)
 
+# These tests will only run on `make dev_env_access_test` command as they are testing DRS against Terra Dev env
+@testmode("dev_env_access")
+class TestTerraNotebookUtilsCLI_DRSInDev(CLITestMixin, unittest.TestCase):
+    jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-" \
+                   "2a2bfaa24c7a_c0e40912-8b14-43f6-9a2f-b278144d0060"
+    expected_crc32c = "/VKJIw=="
+
+    def test_copy(self):
+        with self.subTest("test copy to local path"):
+            with tempfile.NamedTemporaryFile() as tf:
+                self._test_cmd(terra_notebook_utils.cli.commands.drs.drs_copy,
+                               drs_url=self.jade_dev_url,
+                               dst=tf.name,
+                               workspace=WORKSPACE_NAME,
+                               workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+                with open(tf.name, "rb") as fh:
+                    data = fh.read()
+                self.assertEqual(_crc32c(data), self.expected_crc32c)
+
+        with self.subTest("test copy to gs bucket"):
+            key = "test-drs-cli-object"
+            self._test_cmd(terra_notebook_utils.cli.commands.drs.drs_copy,
+                           drs_url=self.jade_dev_url,
+                           dst=f"gs://{WORKSPACE_BUCKET}/{key}",
+                           workspace=WORKSPACE_NAME,
+                           workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+            blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
+            out = io.BytesIO()
+            blob.download_to_file(out)
+            blob.reload()  # download_to_file causes the crc32c to change, for some reason. Reload blob to recover.
+            self.assertEqual(self.expected_crc32c, blob.crc32c)
+            self.assertEqual(_crc32c(out.getvalue()), blob.crc32c)
+
+@testmode("controlled_access")
+class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
+    drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
+    expected_crc32c = "LE1Syw=="
+
+    def test_copy(self):
+        with self.subTest("test local"):
+            with tempfile.NamedTemporaryFile() as tf:
+                self._test_cmd(terra_notebook_utils.cli.commands.drs.drs_copy,
+                               drs_url=self.drs_url,
+                               dst=tf.name,
+                               workspace=WORKSPACE_NAME,
+                               workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+                with open(tf.name, "rb") as fh:
+                    data = fh.read()
+                self.assertEqual(_crc32c(data), self.expected_crc32c)
+
+        with self.subTest("test gs"):
+            key = "test-drs-cli-object"
+            self._test_cmd(terra_notebook_utils.cli.commands.drs.drs_copy,
+                           drs_url=self.drs_url,
+                           dst=f"gs://{WORKSPACE_BUCKET}/{key}",
+                           workspace=WORKSPACE_NAME,
+                           workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+            blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
+            out = io.BytesIO()
+            blob.download_to_file(out)
+            blob.reload()  # download_to_file causes the crc32c to change, for some reason. Reload blob to recover.
+            self.assertEqual(self.expected_crc32c, blob.crc32c)
+            self.assertEqual(_crc32c(out.getvalue()), blob.crc32c)
+
+    def test_head(self):
+        with self.subTest("Test heading a drs url."):
+            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+                   f'--workspace={WORKSPACE_NAME}',
+                   f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
+            stdout = self._run_cmd(cmd)
+            self.assertEqual(stdout, b'\x1f', stdout)
+            self.assertEqual(len(stdout), 1, stdout)
+
+            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+                   '--bytes=3',
+                   f'--workspace={WORKSPACE_NAME}',
+                   f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
+            stdout = self._run_cmd(cmd)
+            self.assertEqual(stdout, b'\x1f\x8b\x08')
+            self.assertEqual(len(stdout), 3)
+
+            for buffer in [1, 2, 10, 11]:
+                cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+                       '--bytes=10',
+                       f'--buffer={buffer}',
+                       f'--workspace={WORKSPACE_NAME} ',
+                       f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
+                stdout = self._run_cmd(cmd)
+                self.assertEqual(stdout, b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03')
+                self.assertEqual(len(stdout), 10)
+
+        with self.subTest("Test heading a non-existent drs url."):
+            fake_drs_url = 'drs://nothing/asf/f'
+            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', fake_drs_url,
+                   f'--workspace={WORKSPACE_NAME}',
+                   f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
+            with self.assertRaises(subprocess.CalledProcessError):
+                self._run_cmd(cmd)
+
 def list_bucket(prefix="", bucket=WORKSPACE_BUCKET):
     for blob in gs.get_client().bucket(bucket).list_blobs(prefix=prefix):
         yield blob.name
@@ -476,6 +580,10 @@ def _list_tree(root) -> Generator[str, None, None]:
         for filename in filenames:
             relpath = os.path.join(dirpath, filename)
             yield os.path.abspath(relpath)
+
+def _crc32c(data: bytes) -> str:
+    # Compute Google's wonky base64 encoded crc32c checksum
+    return base64.b64encode(google_crc32c.Checksum(data).digest()).decode("utf-8")
 
 if __name__ == '__main__':
     unittest.main()
