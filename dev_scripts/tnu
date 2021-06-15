@@ -1,0 +1,12 @@
+#!/usr/bin/env python
+"""Execute the CLI in a dev environment."""
+import os
+import sys
+
+pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
+sys.path.insert(0, pkg_root)  # noqa
+
+import terra_notebook_utils.cli.main
+
+
+terra_notebook_utils.cli.main.main()

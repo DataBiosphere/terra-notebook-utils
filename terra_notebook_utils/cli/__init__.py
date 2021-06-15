@@ -1,14 +1,19 @@
 """
 Configure the CLI
 """
+"""Configure the CLI and CLI dispatch using the cli-builder package:
+https://github.com/xbrianh/cli-builder
+
+This cannot be combined with the main CLI entrypoint module due to circular imports. Command groups must import the
+dispatcher to access cli-builder decorators.
+"""
 import os
 import json
 from typing import Optional, Tuple
-from terra_notebook_utils import version
 
 import cli_builder
 
-from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
+from terra_notebook_utils import version, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
 
 
 class Config:
@@ -44,7 +49,6 @@ class Config:
                                " configued by setting the `WORKSPACE_GOOGLE_PROJECT` env var")
         return workspace, namespace
 Config.load()
-
 
 descr = f"""
     Welcome to the terra-notebook-utils cli, version {version.__version__}
