@@ -96,7 +96,6 @@ def put_row(args: argparse.Namespace):
     Example:
     tnu table put-row \\
     --table abbrv_merge_input \\
-    --id 1 \\
     bucket=fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10 \\
     input_keys=test_vcfs/a.vcf.gz,test_vcfs/b.vcf.gz \\
     output_key=foo.vcf.gz
