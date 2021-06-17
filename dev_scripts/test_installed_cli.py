@@ -58,12 +58,22 @@ class TestTerraNotebookUtilsReleaseCLI(unittest.TestCase):
         run(f"{TNU} drs copy {WORKSPACE_ARGS} {DRS_URI_370_KB} gs://{TNU_TEST_BUCKET}")
         run(f"{TNU} drs copy {WORKSPACE_ARGS} {DRS_URI_240_MB} gs://{TNU_TEST_BUCKET}")
 
-    def test_drs_copy_batch_to_local(self):
-        run(f"{TNU} drs copy-batch {WORKSPACE_ARGS} --dst . {DRS_URI_370_KB} {DRS_URI_021_MB} {DRS_URI_240_MB}")
+    def test_drs_copy_batch(self):
+        with open("manifest.json", "w") as fh:
+            manifest = [dict(drs_uri=uri, dst=".") for uri in (DRS_URI_370_KB, DRS_URI_021_MB, DRS_URI_240_MB)]
+            manifest.extend([dict(drs_uri=uri, dst=f"gs://{TNU_TEST_BUCKET}")
+                             for uri in (DRS_URI_370_KB, DRS_URI_021_MB, DRS_URI_240_MB)])
+            fh.write(json.dumps(manifest))
 
-    def test_drs_copy_batch_to_gs_bucket(self):
-        run(f"{TNU} drs copy-batch {WORKSPACE_ARGS} --dst gs://{TNU_TEST_BUCKET} "
-            f"{DRS_URI_370_KB} {DRS_URI_021_MB} {DRS_URI_240_MB}")
+        with self.subTest("with manifest to local and gs"):
+            p = run(f"{TNU} drs copy-batch {WORKSPACE_ARGS} --manifest manifest.json")
+
+        with self.subTest("without manifest to local"):
+            run(f"{TNU} drs copy-batch {WORKSPACE_ARGS} --dst . {DRS_URI_370_KB} {DRS_URI_021_MB}")
+
+        with self.subTest("without manifest to gs bucket"):
+            run(f"{TNU} drs copy-batch {WORKSPACE_ARGS} --dst gs://{TNU_TEST_BUCKET} "
+                f"{DRS_URI_370_KB} {DRS_URI_021_MB} {DRS_URI_240_MB}")
 
     def test_drs_head(self):
         run(f"{TNU} drs head {WORKSPACE_ARGS} {DRS_URI_240_MB}")

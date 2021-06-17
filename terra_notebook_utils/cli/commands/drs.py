@@ -42,20 +42,41 @@ def drs_copy(args: argparse.Namespace):
     drs.copy(args.drs_url, args.dst, args.workspace, args.workspace_namespace)
 
 @drs_cli.command("copy-batch", arguments={
-    "drs_urls": dict(type=str, nargs="*", help="space separated list of drs:// URIs"),
-    "--dst": dict(type=str, required=True, help="local directory, or Google Storage location if prefixed with 'gs://'"),
+    "drs_uris": dict(type=str, nargs="*", help="space separated list of drs:// URIs"),
+    "--dst": dict(type=str, default=None, help="local directory, or Google Storage location if prefixed with 'gs://'"),
+    "--manifest": dict(type=str, default=None, help="filepath to JSON manifest."),
     ** workspace_args,
 })
 def drs_copy_batch(args: argparse.Namespace):
     """
     Copy several drs:// objects to local directory or Google Storage bucket
     examples:
-        tnu drs copy drs://my-drs-1 drs://my-drs-2 drs://my-drs-3 --dst /tmp/doom
-        tnu drs copy drs://my-drs-1 drs://my-drs-2 drs://my-drs-3 --dst gs://my-cool-bucket/my-cool-folder
+        tnu drs copy-batch drs://my-drs-1 drs://my-drs-2 drs://my-drs-3 --dst /tmp/doom
+        tnu drs copy-batch drs://my-drs-1 drs://my-drs-2 drs://my-drs-3 --dst gs://my-cool-bucket/my-cool-folder
+        tnu drs copy-batch --manifest manifest.json
+
+    example manifest.json:
+    [
+      {
+        "drs_uri": "drs://my/cool/drs/uri",
+        "dst": "/path/to/local/dir"
+      },
+      {
+        "drs_uri": "drs://my/cool/drs/uri",
+        "dst": "gs://my-cook-bucket/my-cool-prefix"
+      }
+    ]
     """
-    assert 1 <= len(args.drs_urls)
+    if args.drs_uris:
+        assert args.manifest is None, "Cannot use 'drs_uris' with '--manifest'"
+        manifest = [dict(drs_uri=uri, dst=args.dst) for uri in args.drs_uris]
+    elif args.manifest:
+        with open(args.manifest) as fh:
+            manifest = json.loads(fh.read())
+    else:
+        raise RuntimeError("Must supply either 'drs_uris' or '--manifest'")
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
-    drs.copy_batch(args.drs_urls, args.dst, args.workspace, args.workspace_namespace)
+    drs.copy_batch(manifest, args.workspace, args.workspace_namespace)
 
 @drs_cli.command("head", arguments={
     "drs_url": dict(type=str),
