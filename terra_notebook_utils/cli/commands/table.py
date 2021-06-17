@@ -38,7 +38,7 @@ def list_rows(args: argparse.Namespace):
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     for row in tnu_table.list_rows(args.table, args.workspace, args.workspace_namespace):
-        print(row.name, row.attributes)
+        print(json.dumps({f"{args.table}_id": row.name, **row.attributes}))
 
 @table_cli.command("get-row", arguments={
     "--table": dict(type=str, required=True, help="table name"),
@@ -51,7 +51,7 @@ def get_row(args: argparse.Namespace):
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     row = tnu_table.get_row(args.table, args.row, args.workspace, args.workspace_namespace)
     if row is not None:
-        print(row.name, json.dumps(row.attributes))
+        print(json.dumps({f"{args.table}_id": row.name, **row.attributes}))
 
 @table_cli.command("delete-table", arguments={
     "--table": dict(type=str, required=True, help="table name"),
@@ -107,3 +107,4 @@ def put_row(args: argparse.Namespace):
         attributes[key] = val
     row = tnu_table.Row(name=args.row or f"{uuid4()}", attributes=attributes)
     tnu_table.put_row(args.table, row, args.workspace, args.workspace_namespace)
+    print(json.dumps({f"{args.table}_id": row.name, **row.attributes}))

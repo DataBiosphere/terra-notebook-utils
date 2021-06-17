@@ -170,10 +170,10 @@ class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
         out = self._test_cmd(terra_notebook_utils.cli.commands.table.get_row,
                              table=self.table,
                              row=self.entity_id)
-        row_name, data = out.split(maxsplit=1)
-        attributes = json.loads(data)
-        attributes['entity_id'] = row_name  # TODO: refactor `entity_id` out of test data
-        self.assertEqual(attributes, self.table_data[self.row_index])
+        data = json.loads(out)
+        data['entity_id'] = data[f'{self.table}_id']
+        del data[f'{self.table}_id']
+        self.assertEqual(data, self.table_data[self.row_index])
 
 if __name__ == '__main__':
     unittest.main()
