@@ -1,11 +1,11 @@
 """Terra data table commands."""
 import os
 from uuid import uuid4
+from functools import lru_cache
 from collections import defaultdict, namedtuple
 from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 import requests
-from firecloud import fiss
 
 from terra_notebook_utils.http import Retry, http_session
 from terra_notebook_utils.utils import _AsyncContextManager
@@ -33,16 +33,21 @@ ROW_OR_NAME = Union[Row, str]
 # It would be preferable if the Firecloud API exposed JSON endpoints for uploading table data (which may already exist
 # on the backend?)
 
-# It turns out google.auth.transport.requests.AuthorizedSession is not thread safe.
-# Fortunately fiss.fapi._set_session caches the result. Call it once on the main thread.
-fiss.fapi._set_session()
+@lru_cache()
+def fiss():
+    """Initialize fiss lazily to improve startup times."""
+    from firecloud import fiss
+    # It turns out google.auth.transport.requests.AuthorizedSession is not thread safe.
+    # Fortunately fiss.fapi._set_session caches the result. Call it once on the main thread.
+    fiss.fapi._set_session()
 
-# Overrde retry behaviour from google.auth.transport.requests.AuthorizedSession
-# This is especially useful for fiss.fapi.update_entity, which enjoys throwing spurious PATCH 500 errors.
-retry = Retry(total=10,
-              status_forcelist=[429, 500, 502, 503, 504],
-              method_whitelist=['GET', 'HEAD', 'DELETE', 'PATCH', 'PUT'])
-http_session(fiss.fapi.__SESSION, retry)
+    # Overrde retry behaviour from google.auth.transport.requests.AuthorizedSession
+    # This is especially useful for fiss.fapi.update_entity, which enjoys throwing spurious PATCH 500 errors.
+    retry = Retry(total=10,
+                  status_forcelist=[429, 500, 502, 503, 504],
+                  method_whitelist=['GET', 'HEAD', 'DELETE', 'PATCH', 'PUT'])
+    http_session(fiss.fapi.__SESSION, retry)
+    return fiss.fapi
 
 class Writer(_AsyncContextManager):
     """Distribute row uploads across as few API calls as possible. Uploads are performed in the background. Also
@@ -131,20 +136,20 @@ class Writer(_AsyncContextManager):
                     del self._row_update_request_data[column_headers]
 
     def _do_fiss_upload(self, tsv: str, row_update_request_data: List[Tuple[Row, List[Dict[str, Any]]]]):
-        fiss.fapi.upload_entities(self._workspace_google_project,
-                                  self._workspace,
-                                  tsv,
-                                  model="flexible").raise_for_status()
+        fiss().upload_entities(self._workspace_google_project,
+                               self._workspace,
+                               tsv,
+                               model="flexible").raise_for_status()
         for row, request_data in row_update_request_data:
             if request_data:
                 self.submit(self._do_fiss_updates, row, request_data)
 
     def _do_fiss_updates(self, row: Row, request_data: UPDATE_OPS):
-        fiss.fapi.update_entity(self._workspace_google_project,
-                                self._workspace,
-                                self.name,
-                                row.name,
-                                request_data).raise_for_status()
+        fiss().update_entity(self._workspace_google_project,
+                             self._workspace,
+                             self.name,
+                             row.name,
+                             request_data).raise_for_status()
 
     def _prepare_for_exit(self):
         if self._tsvs:
@@ -183,9 +188,9 @@ class Deleter(_AsyncContextManager):
 
     def _do_fiss_delete(self, ents: List[Dict[str, str]]):
         try:
-            fiss.fapi.delete_entities(self._workspace_google_project,
-                                      self._workspace,
-                                      ents).raise_for_status()
+            fiss().delete_entities(self._workspace_google_project,
+                                   self._workspace,
+                                   ents).raise_for_status()
         except requests.exceptions.HTTPError as e:
             if 400 == e.response.status_code:
                 pass
@@ -198,7 +203,7 @@ class Deleter(_AsyncContextManager):
 
 def list_tables(workspace: Optional[str]=WORKSPACE_NAME,
                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Generator[str, None, None]:
-    resp = fiss.fapi.list_entity_types(workspace_namespace, workspace)
+    resp = fiss().list_entity_types(workspace_namespace, workspace)
     resp.raise_for_status()
     for table_name in resp.json():
         yield table_name
@@ -210,13 +215,13 @@ def _get_rows_page(table: str,
                    filter_terms: Any=None,
                    workspace: Optional[str]=WORKSPACE_NAME,
                    workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Tuple[int, dict]:
-    resp = fiss.fapi.get_entities_query(workspace_namespace,
-                                        workspace,
-                                        table,
-                                        page=page_number,
-                                        page_size=page_size,
-                                        sort_direction=sort_direction,
-                                        filter_terms=filter_terms)
+    resp = fiss().get_entities_query(workspace_namespace,
+                                     workspace,
+                                     table,
+                                     page=page_number,
+                                     page_size=page_size,
+                                     sort_direction=sort_direction,
+                                     filter_terms=filter_terms)
     resp.raise_for_status()
     body = resp.json()
     return body['resultMetadata']['filteredPageCount'], body['results']
@@ -243,7 +248,7 @@ def get_row(table: str,
             workspace: Optional[str]=WORKSPACE_NAME,
             workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Optional[Row]:
     row_name = item.name if isinstance(item, Row) else item
-    resp = fiss.fapi.get_entity(workspace_namespace, workspace, table, row_name)
+    resp = fiss().get_entity(workspace_namespace, workspace, table, row_name)
     try:
         resp.raise_for_status()
     except requests.exceptions.HTTPError as e:
