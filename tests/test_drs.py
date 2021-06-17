@@ -11,6 +11,7 @@ from unittest import mock
 from contextlib import ExitStack
 from typing import Generator
 
+import jsonschema
 import google_crc32c
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
@@ -18,11 +19,17 @@ sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config  # initialize the test environment
 from tests import CLITestMixin, ConfigOverride
-from tests.infra import SuppressWarningsMixin
+from tests.infra import SuppressWarningsMixin, get_env
 from tests.infra.testmode import testmode
 from terra_notebook_utils import drs, gs, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
 import terra_notebook_utils.cli.commands.drs
 
+
+TNU_TEST_GS_BUCKET = get_env("TNU_BLOBSTORE_TEST_GS_BUCKET")
+
+DRS_URI_500_KB = "drs://dg.4503/5ec0e501-432e-4cad-808d-1a4e9100b7de"  # 1000 Genomes, 500.15 KB
+DRS_URI_370_KB = "drs://dg.4503/6ffc2f59-2596-405c-befd-9634dc0ed837"  # 1000 Genomes, 370.38 KB
+DRS_URI_003_MB = "drs://dg.4503/0f26beeb-d468-405e-abb7-412eb7bf8b19"  # 1000 Genomes, 2.5 MB
 
 # These tests will only run on `make dev_env_access_test` command as they are testing DRS against Terra Dev env
 @testmode("dev_env_access")
@@ -268,29 +275,29 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
 
     @testmode("controlled_access")
     def test_copy_batch(self):
-        drs_urls = {
-            # 1631686 bytes # name property disapeard from DRS response :(
-            # "NWD522743.b38.irc.v1.cram.crai": "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35",  # 1631686 bytes
-            "NWD522743.b38.irc.v1.cram.crai": "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35",
-            "data_phs001237.v2.p1.c1.avro.gz": "drs://dg.4503/26e11149-5deb-4cd7-a475-16997a825655",  # 1115092 bytes
-            "RootStudyConsentSet_phs001237.TOPMed_WGS_WHI.v2.p1.c1.HMB-IRB.tar.gz":
-                "drs://dg.4503/e9c2caf2-b2a1-446d-92eb-8d5389e99ee3",  # 332237 bytes
-
-            # "NWD961306.freeze5.v1.vcf.gz": "drs://dg.4503/6e73a376-f7fd-47ed-ac99-0567bb5a5993",  # 2679331445 bytes
-            # "NWD531899.freeze5.v1.vcf.gz": "drs://dg.4503/651a4ad1-06b5-4534-bb2c-1f8ed51134f6",  # 2679411265 bytes
+        drs_uris = {
+            "CCDG_13607_B01_GRM_WGS_2019-02-19_chr2.recalibrated_variants.annotated.clinical.txt": DRS_URI_003_MB,
+            "CCDG_13607_B01_GRM_WGS_2019-02-19_chr9.recalibrated_variants.annotated.clinical.txt": DRS_URI_370_KB,
+            "CCDG_13607_B01_GRM_WGS_2019-02-19_chr3.recalibrated_variants.annotated.clinical.txt": DRS_URI_500_KB,
         }
         pfx = f"test-batch-copy/{uuid4()}"
-        bucket = gs.get_client().bucket(WORKSPACE_BUCKET)
-        with self.subTest("gs bucket"):
-            drs.copy_batch(list(drs_urls.values()), f"gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10/{pfx}")
-            for name in list(drs_urls.keys()):
+        bucket = gs.get_client().bucket(TNU_TEST_GS_BUCKET)
+        with tempfile.TemporaryDirectory() as dirname:
+            # create a mixed manifest with local and cloud destinations
+            manifest = [dict(drs_uri=uri, dst=f"gs://{os.environ['TNU_BLOBSTORE_TEST_GS_BUCKET']}/{pfx}")
+                        for uri in drs_uris.values()]
+            manifest.extend([dict(drs_uri=uri, dst=dirname) for uri in drs_uris.values()])
+            drs.copy_batch(manifest)
+            for name in drs_uris:
                 blob = bucket.get_blob(f"{pfx}/{name}")
                 self.assertGreater(blob.size, 0)
-        with self.subTest("local filesystem"):
-            with tempfile.TemporaryDirectory() as dirname:
-                drs.copy_batch(list(drs_urls.values()), dirname)
-                names = [os.path.basename(path) for path in _list_tree(dirname)]
-                self.assertEqual(sorted(names), sorted(list(drs_urls.keys())))
+            names = [os.path.basename(path) for path in _list_tree(dirname)]
+            self.assertEqual(sorted(names), sorted(list(drs_uris.keys())))
+
+        with self.subTest("malformed manifest"):
+            manifest = [dict(a="b"), dict(drs_uri="drs://foo", dst=".")]
+            with self.assertRaises(jsonschema.exceptions.ValidationError):
+                drs.copy_batch(manifest)
 
     @testmode("controlled_access")
     def test_extract_tar_gz(self):

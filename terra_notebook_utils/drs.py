@@ -5,7 +5,7 @@ import traceback
 from functools import lru_cache
 from collections import namedtuple
 from google.cloud.exceptions import NotFound, Forbidden
-from typing import Tuple, Iterable, Optional, Union
+from typing import Dict, List, Tuple, Iterable, Optional, Union
 
 from requests import Response
 
@@ -234,22 +234,35 @@ def copy(drs_url: str,
     else:
         copy_to_local(drs_url, dst, workspace_name, workspace_namespace)
 
-def copy_batch(drs_urls: Iterable[str],
-               dst_pfx: str,
+manifest_schema = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "drs_uri": {"type": "string"},
+            "dst": {"type": "string"},
+        },
+        "required": ["drs_uri", "dst"],
+    },
+}
+
+def copy_batch(manifest: List[Dict[str, str]],
                workspace_name: Optional[str]=WORKSPACE_NAME,
                workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    from jsonschema import validate
+    validate(instance=manifest, schema=manifest_schema)
     enable_requester_pays(workspace_name, workspace_namespace)
     with copy_client.CopyClient(progress_indicator="log") as cc:
-        for drs_url in drs_urls:
-            src_info = get_drs_info(drs_url)
+        for item in manifest:
+            src_info = get_drs_info(item['drs_uri'])
             src_blob = get_drs_blob(src_info, workspace_namespace)
-            if dst_pfx.startswith("gs://"):
-                if dst_pfx.endswith("/"):
+            if item['dst'].startswith("gs://"):
+                if item['dst'].endswith("/"):
                     raise ValueError("Bucket destination cannot end with '/'")
                 basename = src_info.name or src_info.key.rsplit("/", 1)[-1]
-                dst = f"{dst_pfx}/{basename}"
+                dst = f"{item['dst']}/{basename}"
             else:
-                dst = _resolve_target(dst_pfx, src_info)
+                dst = _resolve_target(item['dst'], src_info)
             cc.copy(src_blob, dst)
 
 def extract_tar_gz(drs_url: str,
