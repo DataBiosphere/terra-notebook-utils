@@ -3,9 +3,10 @@
 SHELL=/bin/bash -eo pipefail
 
 # needed by miniwdl
-ifeq ($(shell which shellcheck),)
-$(error Please install shellcheck using "apt-get install shellcheck" or "brew install shellcheck")
-endif
+# TODO: uncomment this when shellcheck can be made available in ci/cd
+# ifeq ($(shell which shellcheck),)
+# $(error Please install shellcheck using "apt-get install shellcheck" or "brew install shellcheck")
+# endif
 
 release_major:
 	$(eval export TAG=$(shell git describe --tags --match 'v*.*.*' | perl -ne '/^v(\d)+\.(\d)+\.(\d+)+/; print "v@{[$$1+1]}.0.0"'))
