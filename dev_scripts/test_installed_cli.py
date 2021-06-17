@@ -167,7 +167,7 @@ class TestTerraNotebookUtilsReleaseCLI(unittest.TestCase):
         with self.subTest("get-submission"):
             run(f"{TNU} workflows estimate-submission-cost {WORKSPACE_ARGS} --submission-id {submission_id}")
 
-class bcolors:
+class BColors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
@@ -183,10 +183,10 @@ def run(cmd: str) -> subprocess.CompletedProcess:
     p = subprocess.run(cmd, shell=True, capture_output=True)
     try:
         p.check_returncode()
-        print(f"{bcolors.OKGREEN}{cmd}{bcolors.ENDC}")
+        print(f"{BColors.OKGREEN}{cmd}{BColors.ENDC}")
     except subprocess.CalledProcessError:
-        print(f"{bcolors.FAIL}{cmd}{bcolors.ENDC}")
-        print(f"{bcolors.FAIL}{p.stderr}{bcolors.ENDC}")  # type: ignore # go home mypy you're drunk
+        print(f"{BColors.FAIL}{cmd}{BColors.ENDC}")
+        print(f"{BColors.FAIL}{p.stderr}{BColors.ENDC}")  # type: ignore # go home mypy you're drunk
         raise
     return p
 
