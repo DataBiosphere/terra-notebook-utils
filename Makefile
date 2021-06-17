@@ -34,6 +34,10 @@ $(tests): %.py : mypy lint
 dev_scripts/test_installed_cli.py:
 	python dev_scripts/test_installed_cli.py
 
+# Test the wdl script locally using miniwdl
+wdl_tests/copy_batch.wdl:
+	miniwdl run --verbose --copy-input-files wdl_tests/copy_batch.wdl --input wdl_tests/copy_batch_input.json
+
 version: terra_notebook_utils/version.py
 
 terra_notebook_utils/version.py: setup.py
@@ -51,4 +55,4 @@ sdist: clean
 install: build
 	pip install --upgrade dist/*.whl
 
-.PHONY: test lint mypy tests clean build install dev_scripts/test_installed_cli.py
+.PHONY: test lint mypy tests clean build install dev_scripts/test_installed_cli.py wdl_tests/copy_batch.wdl
