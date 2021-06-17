@@ -12,6 +12,7 @@ dev_env_access_test:
 
 all_test: 
 	$(MAKE) TNU_TESTMODE="workspace_access controlled_access" test
+	$(MAKE) dev_scripts/test_installed_cli.py
 
 controlled_access_test:
 	$(MAKE) TNU_TESTMODE="controlled_access" test
@@ -30,6 +31,9 @@ test: $(tests)
 $(tests): %.py : mypy lint
 	coverage run -p --source=terra-notebook-utils $*.py --verbose
 
+dev_scripts/test_installed_cli.py:
+	python dev_scripts/test_installed_cli.py
+
 version: terra_notebook_utils/version.py
 
 terra_notebook_utils/version.py: setup.py
@@ -47,4 +51,4 @@ sdist: clean
 install: build
 	pip install --upgrade dist/*.whl
 
-.PHONY: test lint mypy tests clean build install
+.PHONY: test lint mypy tests clean build install dev_scripts/test_installed_cli.py
