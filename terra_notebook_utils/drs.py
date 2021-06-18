@@ -244,7 +244,7 @@ def copy(drs_uri: str,
 
 def copy_to_bucket(drs_uri: str,
                    dst_key: str="",
-                   dst_bucket_name: str=None,
+                   dst_bucket_name: Optional[str]=None,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
                    workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.  If `dst_bucket` is None, copy into
