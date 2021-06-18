@@ -8,10 +8,12 @@ The following steps are performed:
 import os
 import sys
 import json
+import time
 import unittest
 import tempfile
 import subprocess
 from uuid import uuid4
+from functools import wraps
 
 pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noqa
 sys.path.insert(0, pkg_root)  # noqa
@@ -40,6 +42,15 @@ DRS_URI_069_GB = "drs://dg.4503/81f2efd4-20bc-44c9-bf04-2743275d21ac"  # 1000 Ge
 DRS_URI_100_GB = "drs://dg.4503/6ff298c4-35fc-44aa-acb2-f0b4d98e407a"  # 1000 Genomes, 100 GB
 DRS_URI_TAR_GZ = "drs://dg.4503/da8cb525-4532-4d0f-90a3-4d327817ec73"  # GENOA, 198 GB
 
+def profile(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        res = func(*args, **kwargs)
+        print(f"{func.__name__} took {time.time() - start} seconds.")
+        return res
+    return wrapper
+
 class TestTerraNotebookUtilsReleaseCLI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -58,7 +69,8 @@ class TestTerraNotebookUtilsReleaseCLI(unittest.TestCase):
         run(f"{TNU} drs copy {WORKSPACE_ARGS} {DRS_URI_370_KB} gs://{TNU_TEST_BUCKET}")
         run(f"{TNU} drs copy {WORKSPACE_ARGS} {DRS_URI_240_MB} gs://{TNU_TEST_BUCKET}")
 
-    def test_drs_copy_batch(self):
+    @profile
+    def test_drs_copy_batch_with_manifest(self):
         with open("manifest.json", "w") as fh:
             manifest = [dict(drs_uri=uri, dst=".") for uri in (DRS_URI_370_KB, DRS_URI_021_MB, DRS_URI_240_MB)]
             manifest.extend([dict(drs_uri=uri, dst=f"gs://{TNU_TEST_BUCKET}")
@@ -68,6 +80,8 @@ class TestTerraNotebookUtilsReleaseCLI(unittest.TestCase):
         with self.subTest("with manifest to local and gs"):
             p = run(f"{TNU} drs copy-batch {WORKSPACE_ARGS} --manifest manifest.json")
 
+    @profile
+    def test_drs_copy_batch_without_manifest(self):
         with self.subTest("without manifest to local"):
             run(f"{TNU} drs copy-batch {WORKSPACE_ARGS} --dst . {DRS_URI_370_KB} {DRS_URI_021_MB}")
 
