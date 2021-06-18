@@ -207,17 +207,15 @@ def _do_copy_drs(drs_uri: str,
                  workspace_name: Optional[str]=WORKSPACE_NAME,
                  workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     dst_blob: Union[GSBlob, URLBlob, LocalBlob]
+    src_info = get_drs_info(drs_uri)
+    src_blob = get_drs_blob(src_info, workspace_namespace)
     if dst.startswith("gs://"):
-        src_info = get_drs_info(drs_uri)
-        src_blob = get_drs_blob(src_info, workspace_namespace)
         bucket_name, key = _resolve_bucket_target(dst, src_info)
         dst_blob = GSBlob(bucket_name, key)
-        copy_client._do_copy(src_blob, dst_blob, multipart_threshold)
     else:
         info = get_drs_info(drs_uri)
-        src_blob = get_drs_blob(info, workspace_namespace)
         dst_blob = copy_client.blob_for_url(_resolve_local_target(dst, info))
-        copy_client._do_copy(src_blob, dst_blob, multipart_threshold)
+    copy_client._do_copy(src_blob, dst_blob, multipart_threshold)
 
 class DRSCopyClient(copy_client.CopyClient):
     workspace: Optional[str] = None
