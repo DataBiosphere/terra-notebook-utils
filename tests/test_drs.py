@@ -545,14 +545,14 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
 
     def test_head(self):
         with self.subTest("Test heading a drs url."):
-            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+            cmd = [f'{pkg_root}/dev_scripts/tnu', 'drs', 'head', self.drs_url,
                    f'--workspace={WORKSPACE_NAME}',
                    f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
             stdout = self._run_cmd(cmd)
             self.assertEqual(stdout, b'\x1f', stdout)
             self.assertEqual(len(stdout), 1, stdout)
 
-            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+            cmd = [f'{pkg_root}/dev_scripts/tnu', 'drs', 'head', self.drs_url,
                    '--bytes=3',
                    f'--workspace={WORKSPACE_NAME}',
                    f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
@@ -561,7 +561,7 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
             self.assertEqual(len(stdout), 3)
 
             for buffer in [1, 2, 10, 11]:
-                cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', self.drs_url,
+                cmd = [f'{pkg_root}/dev_scripts/tnu', 'drs', 'head', self.drs_url,
                        '--bytes=10',
                        f'--buffer={buffer}',
                        f'--workspace={WORKSPACE_NAME} ',
@@ -572,7 +572,7 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
 
         with self.subTest("Test heading a non-existent drs url."):
             fake_drs_url = 'drs://nothing/asf/f'
-            cmd = [f'{pkg_root}/scripts/tnu', 'drs', 'head', fake_drs_url,
+            cmd = [f'{pkg_root}/dev_scripts/tnu', 'drs', 'head', fake_drs_url,
                    f'--workspace={WORKSPACE_NAME}',
                    f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
             with self.assertRaises(subprocess.CalledProcessError):
