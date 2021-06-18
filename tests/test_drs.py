@@ -278,11 +278,6 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         self.assertEqual(info.key, "genomes/NWD522743.b38.irc.v1.cram.crai")
 
     @testmode("controlled_access")
-    def test_download(self):
-        with tempfile.NamedTemporaryFile() as tf:
-            drs.copy_to_local(self.drs_url, tf.name)
-
-    @testmode("controlled_access")
     def test_head(self):
         drs_url = 'drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71'
         the_bytes = drs.head(drs_url)
@@ -296,6 +291,11 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             drs.head(fake_drs_url)
 
     @testmode("controlled_access")
+    def test_download(self):
+        with tempfile.NamedTemporaryFile() as tf:
+            drs.copy(self.drs_url, tf.name)
+
+    @testmode("controlled_access")
     def test_copy(self):
         with self.subTest("Test copy to local location"):
             with tempfile.NamedTemporaryFile() as tf:
@@ -303,15 +303,15 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
                 self.assertTrue(os.path.isfile(tf.name))
         with self.subTest("Test copy to bucket location"):
             key = f"test_oneshot_object_{uuid4()}"
-            drs.copy(self.drs_url, f"gs://{WORKSPACE_BUCKET}/{key}")
+            drs.copy(self.drs_url, f"gs://{TNU_TEST_GS_BUCKET}/{key}")
             self.assertTrue(self._gs_obj_exists(key))
         with self.subTest("Test copy to bare bucket"):
             name = drs.info(self.drs_url)['name']
-            drs.copy(self.drs_url, f"gs://{WORKSPACE_BUCKET}")
+            drs.copy(self.drs_url, f"gs://{TNU_TEST_GS_BUCKET}")
             self.assertTrue(self._gs_obj_exists(name))
 
     def _gs_obj_exists(self, key: str) -> bool:
-        return gs.get_client().bucket(WORKSPACE_BUCKET).blob(key).exists()
+        return gs.get_client().bucket(TNU_TEST_GS_BUCKET).blob(key).exists()
 
     @testmode("controlled_access")
     def test_copy_batch(self):
@@ -375,7 +375,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.tar_gz"))
             es.enter_context(mock.patch("terra_notebook_utils.blobstore.gs.GSBlob.download"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.copy_client.CopyClient"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.DRSCopyClient"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.GSBlob.open"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with mock.patch("terra_notebook_utils.drs.enable_requester_pays") as enable_requester_pays:

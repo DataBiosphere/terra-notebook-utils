@@ -58,7 +58,7 @@ def drs_copy_batch(args: argparse.Namespace):
     """
     Copy several drs:// objects to local directory or Google Storage bucket
     examples:
-        tnu drs copy-batch drs://my-drs-1 drs://my-drs-2 drs://my-drs-3 --dst /tmp/doom
+        tnu drs copy-batch drs://my-drs-1 drs://my-drs-2 drs://my-drs-3 --dst /tmp/doom/
         tnu drs copy-batch drs://my-drs-1 drs://my-drs-2 drs://my-drs-3 --dst gs://my-cool-bucket/my-cool-folder
         tnu drs copy-batch --manifest manifest.json
 
