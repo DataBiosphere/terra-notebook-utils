@@ -231,6 +231,46 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         }
     }
 
+    def test_resolve_targets(self):
+        expected_name = f"{uuid4()}"
+        for name in (expected_name, None):
+            info = drs.DRSInfo(credentials=None,
+                               access_url=None,
+                               bucket_name=None,
+                               key=f"/foo/bar/{expected_name}",
+                               name=name,
+                               size=None,
+                               updated=None)
+            local_tests = [
+                (os.path.join(os.getcwd(), expected_name), "."),
+                (os.path.join(os.path.sep, expected_name), "/"),
+                (os.path.join(os.getcwd(), "foo", expected_name), "foo/"),
+                (os.path.join(os.getcwd(), "foo", expected_name), "foo//"),
+                ("/foo", "/foo"),
+                ("/foo/bar", "/foo/bar"),
+                (os.path.join(os.getcwd(), "foo", "bar", expected_name), "foo/bar/"),
+            ]
+
+            target_bucket_name = f"{uuid4()}"
+            bucket_tests = [
+                ((target_bucket_name, expected_name), f"gs://{target_bucket_name}"),
+                ((target_bucket_name, expected_name), f"gs://{target_bucket_name}/"),
+                ((target_bucket_name, "foo"), f"gs://{target_bucket_name}/foo"),
+                ((target_bucket_name, f"foo/{expected_name}"), f"gs://{target_bucket_name}/foo/"),
+                ((target_bucket_name, f"foo//{expected_name}"), f"gs://{target_bucket_name}/foo//"),
+                ((target_bucket_name, "foo/bar"), f"gs://{target_bucket_name}/foo/bar"),
+                ((target_bucket_name, f"foo/bar/{expected_name}"), f"gs://{target_bucket_name}/foo/bar/"),
+                ((target_bucket_name, f"foo/bar//{expected_name}"), f"gs://{target_bucket_name}/foo/bar//"),
+            ]
+
+            with self.subTest("local"):
+                for expected, dst in local_tests:
+                    self.assertEqual(expected, drs._resolve_local_target(dst, info))
+
+            with self.subTest("bucket"):
+                for expected, dst in bucket_tests:
+                    self.assertEqual(expected, drs._resolve_bucket_target(dst, info))
+
     @testmode("controlled_access")
     def test_resolve_drs_for_google_storage(self):
         info = drs.get_drs_info(self.drs_url)
@@ -280,19 +320,28 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             "CCDG_13607_B01_GRM_WGS_2019-02-19_chr9.recalibrated_variants.annotated.clinical.txt": DRS_URI_370_KB,
             "CCDG_13607_B01_GRM_WGS_2019-02-19_chr3.recalibrated_variants.annotated.clinical.txt": DRS_URI_500_KB,
         }
+        named_drs_uris = {
+            f"{uuid4()}": DRS_URI_003_MB,
+            f"{uuid4()}": DRS_URI_370_KB,
+            f"{uuid4()}": DRS_URI_500_KB,
+        }
         pfx = f"test-batch-copy/{uuid4()}"
         bucket = gs.get_client().bucket(TNU_TEST_GS_BUCKET)
         with tempfile.TemporaryDirectory() as dirname:
             # create a mixed manifest with local and cloud destinations
-            manifest = [dict(drs_uri=uri, dst=f"gs://{os.environ['TNU_BLOBSTORE_TEST_GS_BUCKET']}/{pfx}")
+            manifest = [dict(drs_uri=uri, dst=f"gs://{os.environ['TNU_BLOBSTORE_TEST_GS_BUCKET']}/{pfx}/")
                         for uri in drs_uris.values()]
+            manifest.extend([dict(drs_uri=uri, dst=f"gs://{os.environ['TNU_BLOBSTORE_TEST_GS_BUCKET']}/{pfx}/{name}")
+                             for name, uri in named_drs_uris.items()])
             manifest.extend([dict(drs_uri=uri, dst=dirname) for uri in drs_uris.values()])
+            manifest.extend([dict(drs_uri=uri, dst=os.path.join(dirname, name))
+                             for name, uri in named_drs_uris.items()])
             drs.copy_batch(manifest)
-            for name in drs_uris:
+            for name in dict(**drs_uris, **named_drs_uris):
                 blob = bucket.get_blob(f"{pfx}/{name}")
                 self.assertGreater(blob.size, 0)
             names = [os.path.basename(path) for path in _list_tree(dirname)]
-            self.assertEqual(sorted(names), sorted(list(drs_uris.keys())))
+            self.assertEqual(sorted(names), sorted(list(dict(**drs_uris, **named_drs_uris).keys())))
 
         with self.subTest("malformed manifest"):
             manifest = [dict(a="b"), dict(drs_uri="drs://foo", dst=".")]

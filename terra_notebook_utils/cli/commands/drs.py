@@ -34,9 +34,16 @@ workspace_args: Dict[str, Dict[str, Any]] = {
 def drs_copy(args: argparse.Namespace):
     """
     Copy drs:// object to local file or Google Storage bucket
+
+    If 'dst' is suffixed with "/", the destination is assumed to be a folder and the file name is
+    derived from the drs response and appended to 'dst'. Otherwise the destination is assumed
+    to be absolute.
+
     examples:
-        tnu drs copy drs://my-drs-id /tmp/doom
+        tnu drs copy drs://my-drs-id /tmp/doom  # copy to /tmp/doom
+        tnu drs copy drs://my-drs-id /tmp/doom/  # copy to /tmp/doom/{file-name-from-drs-resolution}
         tnu drs copy drs://my-drs-id gs://my-cool-bucket/my-cool-bucket-key
+        tnu drs copy drs://my-drs-id gs://my-cool-bucket/my-cool-bucket-key/
     """
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     drs.copy(args.drs_url, args.dst, args.workspace, args.workspace_namespace)
@@ -55,11 +62,15 @@ def drs_copy_batch(args: argparse.Namespace):
         tnu drs copy-batch drs://my-drs-1 drs://my-drs-2 drs://my-drs-3 --dst gs://my-cool-bucket/my-cool-folder
         tnu drs copy-batch --manifest manifest.json
 
+    When not using a manifest, 'dst' is treated as a folder, and file names are derived from the drs response.
+    Otherwise, in a manifest, 'dst' can either be a folder (if suffixed with "/"), or an absolute path, e.g.
+    '/home/me/my-file-name.vcf.gz' or 'gs://bucket-name/pfx/my-file.vcf.gz'.
+
     example manifest.json:
     [
       {
         "drs_uri": "drs://my/cool/drs/uri",
-        "dst": "/path/to/local/dir"
+        "dst": "/path/to/local/dir/"
       },
       {
         "drs_uri": "drs://my/cool/drs/uri",

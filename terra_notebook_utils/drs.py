@@ -165,21 +165,6 @@ def blob_for_url(url: str, workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_P
     else:
         return copy_client.blob_for_url(url)
 
-def _resolve_target(filepath: str, info: DRSInfo) -> str:
-    if os.path.isdir(filepath):
-        filename = info.name or info.key.rsplit("/", 1)[-1]
-        filepath = os.path.join(os.path.abspath(filepath), filename)
-    return filepath
-
-def copy_to_local(drs_url: str,
-                  filepath: str,
-                  workspace_name: Optional[str]=WORKSPACE_NAME,
-                  workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    """Copy a DRS object to the local filesystem."""
-    enable_requester_pays(workspace_name, workspace_namespace)
-    info = get_drs_info(drs_url)
-    copy_client.copy(get_drs_blob(info, workspace_namespace), _resolve_target(filepath, info))
-
 def head(drs_url: str,
          num_bytes: int = 1,
          buffer: Optional[int]=None,
@@ -197,6 +182,32 @@ def head(drs_url: str,
                                  f'Could not be accessed because of:\n'
                                  f'{traceback.format_exc()}')
     return the_bytes
+
+def _resolve_bucket_target(url: str, info: DRSInfo) -> Tuple[str, str]:
+    bucket_name, pfx = _bucket_name_and_key(url)
+    if not pfx or pfx.endswith("/"):
+        if pfx.endswith("/"):
+            pfx = pfx[:-1]
+        basename = info.name or info.key.rsplit("/", 1)[-1]
+        key = f"{pfx}/{basename}" if pfx else basename
+    else:
+        key = pfx
+    return bucket_name, key
+
+def _resolve_local_target(filepath: str, info: DRSInfo) -> str:
+    if filepath.endswith(os.path.sep) or os.path.isdir(filepath):
+        filename = info.name or info.key.rsplit("/", 1)[-1]
+        filepath = os.path.join(os.path.abspath(filepath), filename)
+    return filepath
+
+def copy_to_local(drs_url: str,
+                  filepath: str,
+                  workspace_name: Optional[str]=WORKSPACE_NAME,
+                  workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    """Copy a DRS object to the local filesystem."""
+    enable_requester_pays(workspace_name, workspace_namespace)
+    info = get_drs_info(drs_url)
+    copy_client.copy(get_drs_blob(info, workspace_namespace), _resolve_local_target(filepath, info))
 
 def copy_to_bucket(drs_url: str,
                    dst_key: str,
@@ -225,7 +236,7 @@ def copy(drs_url: str,
     "gs://".
     """
     if dst.startswith("gs://"):
-        bucket_name, key = _bucket_name_and_key(dst)
+        bucket_name, key = _resolve_bucket_target(dst, get_drs_info(drs_url))
         copy_to_bucket(drs_url,
                        key,
                        bucket_name,
@@ -257,12 +268,10 @@ def copy_batch(manifest: List[Dict[str, str]],
             src_info = get_drs_info(item['drs_uri'])
             src_blob = get_drs_blob(src_info, workspace_namespace)
             if item['dst'].startswith("gs://"):
-                if item['dst'].endswith("/"):
-                    raise ValueError("Bucket destination cannot end with '/'")
-                basename = src_info.name or src_info.key.rsplit("/", 1)[-1]
-                dst = f"{item['dst']}/{basename}"
+                bucket_name, key = _resolve_bucket_target(item['dst'], src_info)
+                dst = f"gs://{bucket_name}/{key}"
             else:
-                dst = _resolve_target(item['dst'], src_info)
+                dst = _resolve_local_target(item['dst'], src_info)
             cc.copy(src_blob, dst)
 
 def extract_tar_gz(drs_url: str,
