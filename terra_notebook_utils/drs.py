@@ -5,7 +5,7 @@ import traceback
 from functools import lru_cache
 from collections import namedtuple
 from google.cloud.exceptions import NotFound, Forbidden
-from typing import Dict, List, Tuple, Iterable, Optional, Union
+from typing import Dict, List, Tuple, Optional, Union
 
 from requests import Response
 
@@ -14,6 +14,7 @@ from terra_notebook_utils import workspace, gs, tar_gz, TERRA_DEPLOYMENT_ENV, _G
 from terra_notebook_utils.http import http
 from terra_notebook_utils.blobstore.gs import GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlob
+from terra_notebook_utils.blobstore.url import URLBlob
 from terra_notebook_utils.blobstore import Blob, copy_client
 
 
@@ -200,50 +201,62 @@ def _resolve_local_target(filepath: str, info: DRSInfo) -> str:
         filepath = os.path.join(os.path.abspath(filepath), filename)
     return filepath
 
-def copy_to_local(drs_url: str,
-                  filepath: str,
-                  workspace_name: Optional[str]=WORKSPACE_NAME,
-                  workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    """Copy a DRS object to the local filesystem."""
-    enable_requester_pays(workspace_name, workspace_namespace)
-    info = get_drs_info(drs_url)
-    copy_client.copy(get_drs_blob(info, workspace_namespace), _resolve_local_target(filepath, info))
+def _do_copy_drs(drs_uri: str,
+                 dst: str,
+                 multipart_threshold: int,
+                 workspace_name: Optional[str]=WORKSPACE_NAME,
+                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    dst_blob: Union[GSBlob, URLBlob, LocalBlob]
+    if dst.startswith("gs://"):
+        src_info = get_drs_info(drs_uri)
+        src_blob = get_drs_blob(src_info, workspace_namespace)
+        bucket_name, key = _resolve_bucket_target(dst, src_info)
+        dst_blob = GSBlob(bucket_name, key)
+        copy_client._do_copy(src_blob, dst_blob, multipart_threshold)
+    else:
+        info = get_drs_info(drs_uri)
+        src_blob = get_drs_blob(info, workspace_namespace)
+        dst_blob = copy_client.blob_for_url(_resolve_local_target(dst, info))
+        copy_client._do_copy(src_blob, dst_blob, multipart_threshold)
 
-def copy_to_bucket(drs_url: str,
-                   dst_key: str,
-                   dst_bucket_name: str=None,
-                   workspace_name: Optional[str]=WORKSPACE_NAME,
-                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    """Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.  If `dst_bucket` is None, copy into
-    workspace bucket.
-    """
-    enable_requester_pays(workspace_name, workspace_namespace)
-    if dst_bucket_name is None:
-        dst_bucket_name = WORKSPACE_BUCKET
-    assert dst_bucket_name
-    src_info = get_drs_info(drs_url)
-    if not dst_key:
-        dst_key = src_info.name or src_info.key.rsplit("/", 1)[-1]
-    src_blob = get_drs_blob(src_info, workspace_namespace)
-    dst_blob = GSBlob(dst_bucket_name, dst_key)
-    copy_client.copy(src_blob, dst_blob)
+class DRSCopyClient(copy_client.CopyClient):
+    workspace: Optional[str] = None
+    workspace_namespace: Optional[str] = None
 
-def copy(drs_url: str,
+    def copy(self, drs_uri: str, dst: str):  # type: ignore
+        self._queue.put(_do_copy_drs,
+                        drs_uri,
+                        dst,
+                        self.multipart_threshold,
+                        self.workspace,
+                        self.workspace_namespace)
+
+def copy(drs_uri: str,
          dst: str,
          workspace_name: Optional[str]=WORKSPACE_NAME,
          workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with
     "gs://".
     """
-    if dst.startswith("gs://"):
-        bucket_name, key = _resolve_bucket_target(dst, get_drs_info(drs_url))
-        copy_to_bucket(drs_url,
-                       key,
-                       bucket_name,
-                       workspace_name=workspace_name,
-                       workspace_namespace=workspace_namespace)
-    else:
-        copy_to_local(drs_url, dst, workspace_name, workspace_namespace)
+    enable_requester_pays(workspace_name, workspace_namespace)
+    with DRSCopyClient(raise_on_error=True, progress_indicator="bar") as cc:
+        cc.workspace = workspace_name
+        cc.workspace_namespace = workspace_namespace
+        cc.copy(drs_uri, dst or ".")
+
+def copy_to_bucket(drs_uri: str,
+                   dst_key: str="",
+                   dst_bucket_name: str=None,
+                   workspace_name: Optional[str]=WORKSPACE_NAME,
+                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+    """Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.  If `dst_bucket` is None, copy into
+    workspace bucket.
+    """
+    dst_bucket_name = dst_bucket_name or WORKSPACE_BUCKET
+    dst_url = f"gs://{dst_bucket_name}"
+    if dst_key:
+        dst_url += f"/{dst_key}"
+    copy(drs_uri, dst_url, workspace_name, workspace_namespace)
 
 manifest_schema = {
     "type": "array",
@@ -263,16 +276,11 @@ def copy_batch(manifest: List[Dict[str, str]],
     from jsonschema import validate
     validate(instance=manifest, schema=manifest_schema)
     enable_requester_pays(workspace_name, workspace_namespace)
-    with copy_client.CopyClient(progress_indicator="log") as cc:
+    with DRSCopyClient(progress_indicator="log") as cc:
+        cc.workspace = workspace_name
+        cc.workspace_namespace = workspace_namespace
         for item in manifest:
-            src_info = get_drs_info(item['drs_uri'])
-            src_blob = get_drs_blob(src_info, workspace_namespace)
-            if item['dst'].startswith("gs://"):
-                bucket_name, key = _resolve_bucket_target(item['dst'], src_info)
-                dst = f"gs://{bucket_name}/{key}"
-            else:
-                dst = _resolve_local_target(item['dst'], src_info)
-            cc.copy(src_blob, dst)
+            cc.copy(item['drs_uri'], item['dst'])
 
 def extract_tar_gz(drs_url: str,
                    dst: Optional[str]=None,
