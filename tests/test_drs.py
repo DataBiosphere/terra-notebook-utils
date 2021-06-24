@@ -9,7 +9,8 @@ import subprocess
 from uuid import uuid4
 from unittest import mock
 from contextlib import ExitStack
-from typing import Generator
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Generator, Optional
 
 import jsonschema
 import google_crc32c
@@ -279,14 +280,13 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
 
     @testmode("controlled_access")
     def test_head(self):
-        drs_url = 'drs://dg.4503/828d82a1-e6cd-4a24-a593-f7e8025c7d71'
-        the_bytes = drs.head(drs_url)
+        the_bytes = drs.head(DRS_URI_370_KB)
         self.assertEqual(1, len(the_bytes))
 
-        the_bytes = drs.head(drs_url, num_bytes=10)
+        the_bytes = drs.head(DRS_URI_370_KB, num_bytes=10)
         self.assertEqual(10, len(the_bytes))
 
-        with self.assertRaises(drs.GSBlobInaccessible):
+        with self.assertRaises(drs.BlobNotFoundError):
             fake_drs_url = 'drs://nothing'
             drs.head(fake_drs_url)
 
@@ -563,8 +563,9 @@ class TestTerraNotebookUtilsCLI_DRSInDev(CLITestMixin, unittest.TestCase):
 
 @testmode("controlled_access")
 class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
-    drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
-    expected_crc32c = "LE1Syw=="
+    drs_url = DRS_URI_370_KB
+    expected_crc32c = "nX4opw=="
+    first_11_bytes = b"\x43\x48\x52\x4f\x4d\x09\x50\x4f\x53\x09\x49"
 
     def test_copy(self):
         with self.subTest("test local"):
@@ -593,39 +594,24 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
             self.assertEqual(_crc32c(out.getvalue()), blob.crc32c)
 
     def test_head(self):
-        with self.subTest("Test heading a drs url."):
-            cmd = [f'{pkg_root}/dev_scripts/tnu', 'drs', 'head', self.drs_url,
+        def _test_head(uri: str, num_bytes: int, expected_error: Optional[Exception]=None):
+            cmd = [f'{pkg_root}/dev_scripts/tnu', 'drs', 'head', uri,
                    f'--workspace={WORKSPACE_NAME}',
                    f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
-            stdout = self._run_cmd(cmd)
-            self.assertEqual(stdout, b'\x1f', stdout)
-            self.assertEqual(len(stdout), 1, stdout)
+            if 1 < num_bytes:
+                cmd.append(f"--bytes={num_bytes}")
+            with self.subTest(uri=uri, num_bytes=num_bytes, expected_error=expected_error):
+                if expected_error is None:
+                    stdout = self._run_cmd(cmd)
+                    self.assertEqual(self.first_11_bytes[:num_bytes], stdout)
+                else:
+                    with self.assertRaises(expected_error):  # type: ignore
+                        self._run_cmd(cmd)
 
-            cmd = [f'{pkg_root}/dev_scripts/tnu', 'drs', 'head', self.drs_url,
-                   '--bytes=3',
-                   f'--workspace={WORKSPACE_NAME}',
-                   f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
-            stdout = self._run_cmd(cmd)
-            self.assertEqual(stdout, b'\x1f\x8b\x08')
-            self.assertEqual(len(stdout), 3)
-
-            for buffer in [1, 2, 10, 11]:
-                cmd = [f'{pkg_root}/dev_scripts/tnu', 'drs', 'head', self.drs_url,
-                       '--bytes=10',
-                       f'--buffer={buffer}',
-                       f'--workspace={WORKSPACE_NAME} ',
-                       f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
-                stdout = self._run_cmd(cmd)
-                self.assertEqual(stdout, b'\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03')
-                self.assertEqual(len(stdout), 10)
-
-        with self.subTest("Test heading a non-existent drs url."):
-            fake_drs_url = 'drs://nothing/asf/f'
-            cmd = [f'{pkg_root}/dev_scripts/tnu', 'drs', 'head', fake_drs_url,
-                   f'--workspace={WORKSPACE_NAME}',
-                   f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
-            with self.assertRaises(subprocess.CalledProcessError):
-                self._run_cmd(cmd)
+        tests = [(self.drs_url, 1), (self.drs_url, 11), ("drs://nothing/asf/f", 1, subprocess.CalledProcessError)]
+        with ThreadPoolExecutor() as e:
+            for f in as_completed([e.submit(_test_head, *args) for args in tests]):
+                f.result()
 
 def list_bucket(prefix="", bucket=WORKSPACE_BUCKET):
     for blob in gs.get_client().bucket(bucket).list_blobs(prefix=prefix):
