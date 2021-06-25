@@ -53,8 +53,9 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
     resp = http.put(rawls_url, headers=headers)
 
     if resp.status_code != 204:
-        logger.warning(f"Failed to init requester pays for workspace {WORKSPACE_GOOGLE_PROJECT}/{WORKSPACE_NAME}.")
-        logger.warning("You will not be able to access drs urls that interact with requester pays buckets.")
+        logger.warning(f"Failed to init requester pays for workspace {WORKSPACE_GOOGLE_PROJECT}/{WORKSPACE_NAME}: "
+                       f"Expected '204', got '{resp.status_code}' for '{rawls_url}'. "
+                       "You will not be able to access DRS URIs that interact with requester pays buckets.")
 
 def get_drs(drs_url: str) -> Response:
     """Request DRS infromation from martha."""
@@ -82,7 +83,7 @@ def get_drs(drs_url: str) -> Response:
         else:
             error_details = ""
 
-        raise DRSResolutionError(f"Unexpected response while resolving DRS path. Expected status 200, got "
+        raise DRSResolutionError(f"Unexpected response while resolving DRS URI. Expected status 200, got "
                                  f"{resp.status_code}. {error_details}")
 
     return resp

@@ -481,11 +481,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
-            with self.assertRaisesRegex(
-                    drs.DRSResolutionError,
-                    "Unexpected response while resolving DRS path. Expected status 200, got 500. "
-                    "Error: {\"msg\":\"User 'null' does not have required action: read_data\",\"status_code\":500}"
-            ):
+            with self.assertRaises(drs.DRSResolutionError):
                 drs.get_drs_blob(self.jade_dev_url)
 
     # test for when martha_v3 returns error response with 'text' field. It should throw error
@@ -495,10 +491,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
-            with self.assertRaisesRegex(
-                    drs.DRSResolutionError,
-                    "Unexpected response while resolving DRS path. Expected status 200, got 500. "
-            ):
+            with self.assertRaises(drs.DRSResolutionError):
                 drs.get_drs_blob(self.jade_dev_url)
 
     def test_bucket_name_and_key(self):
