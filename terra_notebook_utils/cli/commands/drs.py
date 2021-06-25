@@ -92,8 +92,6 @@ def drs_copy_batch(args: argparse.Namespace):
 @drs_cli.command("head", arguments={
     "drs_url": dict(type=str),
     "--bytes": dict(type=int, required=False, default=1, help="Number of bytes to fetch."),
-    "--buffer": dict(type=int, required=False, default=None,
-                     help="Control the buffer size when fetching data."),
     ** workspace_args,
 })
 def drs_head(args: argparse.Namespace):
@@ -106,7 +104,6 @@ def drs_head(args: argparse.Namespace):
     args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
     the_bytes = drs.head(args.drs_url,
                          num_bytes=args.bytes,
-                         buffer=args.buffer,
                          workspace_name=args.workspace,
                          workspace_namespace=args.workspace_namespace)
     # sys.stdout.buffer is used outside of a python notebook since that's the standard non-lossy way

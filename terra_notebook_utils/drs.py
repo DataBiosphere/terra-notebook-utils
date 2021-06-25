@@ -4,7 +4,6 @@ import logging
 import traceback
 from functools import lru_cache
 from collections import namedtuple
-from google.cloud.exceptions import NotFound, Forbidden
 from typing import Dict, List, Tuple, Optional, Union
 
 from requests import Response
@@ -15,15 +14,12 @@ from terra_notebook_utils.http import http
 from terra_notebook_utils.blobstore.gs import GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlob
 from terra_notebook_utils.blobstore.url import URLBlob
-from terra_notebook_utils.blobstore import Blob, copy_client
+from terra_notebook_utils.blobstore import Blob, copy_client, BlobNotFoundError
 
 
 logger = logging.getLogger(__name__)
 
 DRSInfo = namedtuple("DRSInfo", "credentials access_url bucket_name key name size updated")
-
-class GSBlobInaccessible(Exception):
-    pass
 
 class DRSResolutionError(Exception):
     pass
@@ -169,20 +165,16 @@ def blob_for_url(url: str, workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_P
 
 def head(drs_url: str,
          num_bytes: int = 1,
-         buffer: Optional[int]=None,
          workspace_name: Optional[str]=WORKSPACE_NAME,
          workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Head a DRS object by byte."""
     enable_requester_pays(workspace_name, workspace_namespace)
     try:
         blob = get_drs_blob(drs_url, workspace_namespace)
-        chunk_size = buffer or num_bytes
-        with blob.open(chunk_size) as fh:
+        with blob.open(chunk_size=num_bytes) as fh:
             the_bytes = fh.read(num_bytes)
-    except (DRSResolutionError, NotFound, Forbidden):
-        raise GSBlobInaccessible(f'The DRS URL: {drs_url}\n'
-                                 f'Could not be accessed because of:\n'
-                                 f'{traceback.format_exc()}')
+    except (DRSResolutionError, BlobNotFoundError) as e:
+        raise BlobNotFoundError(f"The DRS URI: '{drs_url}' could not be accessed.") from e
     return the_bytes
 
 def _resolve_bucket_target(url: str, info: DRSInfo) -> Tuple[str, str]:
