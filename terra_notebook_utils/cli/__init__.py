@@ -22,10 +22,9 @@ class Config:
 
     @classmethod
     def load(cls):
-        if not os.path.isfile(cls.path):
-            cls.write()
-        with open(cls.path) as fh:
-            cls.info = json.loads(fh.read())
+        if os.path.isfile(cls.path):
+            with open(cls.path) as fh:
+                cls.info = json.loads(fh.read())
 
     @classmethod
     def write(cls):
