@@ -34,6 +34,9 @@ $(tests): %.py : mypy lint
 dev_scripts/test_installed_cli.py:
 	python dev_scripts/test_installed_cli.py
 
+dev_scripts/test_notebook.py:
+	herzog dev_scripts/test_notebook.py | gsutil cp - gs://fc-9169fcd1-92ce-4d60-9d2d-d19fd326ff10/notebooks/tnu-tests.ipynb
+
 # Test the wdl script locally using miniwdl
 wdl_tests/copy_batch.wdl:
 	miniwdl run --verbose --copy-input-files wdl_tests/copy_batch.wdl --input wdl_tests/copy_batch_input.json
@@ -55,4 +58,4 @@ sdist: clean
 install: build
 	pip install --upgrade dist/*.whl
 
-.PHONY: test lint mypy tests clean build install dev_scripts/test_installed_cli.py wdl_tests/copy_batch.wdl
+.PHONY: test lint mypy tests clean build install dev_scripts/test_installed_cli.py dev_scripts/test_notebook.py wdl_tests/copy_batch.wdl
