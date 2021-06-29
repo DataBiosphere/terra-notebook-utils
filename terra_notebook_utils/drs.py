@@ -1,6 +1,5 @@
 """Utilities for working with DRS objects."""
 import os
-import logging
 import traceback
 from functools import lru_cache
 from collections import namedtuple
@@ -15,9 +14,8 @@ from terra_notebook_utils.blobstore.gs import GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlob
 from terra_notebook_utils.blobstore.url import URLBlob
 from terra_notebook_utils.blobstore import Blob, copy_client, BlobNotFoundError
+from terra_notebook_utils.logger import logger
 
-
-logger = logging.getLogger(__name__)
 
 DRSInfo = namedtuple("DRSInfo", "credentials access_url bucket_name key name size updated")
 

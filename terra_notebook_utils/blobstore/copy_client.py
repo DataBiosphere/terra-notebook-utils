@@ -1,5 +1,4 @@
 import os
-import logging
 import multiprocessing
 from enum import Enum
 from math import ceil
@@ -14,9 +13,8 @@ from terra_notebook_utils.blobstore.gs import GSBlobStore, GSBlob
 from terra_notebook_utils.blobstore.url import URLBlobStore, URLBlob
 from terra_notebook_utils.blobstore.local import LocalBlobStore, LocalBlob
 from terra_notebook_utils.blobstore import BlobstoreChecksumError
+from terra_notebook_utils.logger import logger
 
-
-logger = logging.getLogger(__name__)
 
 AnyBlobStore = Union[GSBlobStore, URLBlobStore, LocalBlobStore]
 AnyBlob = Union[GSBlob, URLBlob, LocalBlob]
