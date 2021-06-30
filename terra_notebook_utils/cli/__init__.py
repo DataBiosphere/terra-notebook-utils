@@ -16,7 +16,7 @@ import cli_builder
 from terra_notebook_utils import version, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
 
 
-class Config:
+class CLIConfig:
     info = dict(workspace=None, workspace_namespace=None)
     path = os.path.join(os.path.expanduser("~"), ".tnu_config")
 
@@ -47,7 +47,7 @@ class Config:
                                ", or configure the CLI (see `tnu config --help`). A default may also be"
                                " configued by setting the `WORKSPACE_GOOGLE_PROJECT` env var")
         return workspace, namespace
-Config.load()
+CLIConfig.load()
 
 descr = f"""
     Welcome to the terra-notebook-utils cli, version {version.__version__}
