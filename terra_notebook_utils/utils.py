@@ -1,5 +1,6 @@
 import json
 import threading
+from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor, Future, as_completed
 from typing import Any, Callable, Dict, Optional, Iterable, Set
 
@@ -54,3 +55,11 @@ def js_get(path: str, data: Dict[str, Any], default: Optional[Any]=None) -> Any:
         return default
     else:
         raise KeyError(f"'{path}' not found in {json.dumps(data, indent=2)}")
+
+@lru_cache()
+def is_notebook() -> bool:
+    """Detect if runtime is a Jupyter notebook."""
+    try:
+        return "ZMQInteractiveShell" == get_ipython().__class__.__name__  # type: ignore
+    except NameError:
+        return False
