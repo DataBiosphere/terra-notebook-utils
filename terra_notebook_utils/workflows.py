@@ -1,6 +1,5 @@
 """Workflow information."""
 import json
-import logging
 from datetime import datetime
 from functools import lru_cache
 from typing import Dict, Generator, Optional, Tuple
@@ -9,9 +8,8 @@ from firecloud import fiss
 
 from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, costs
 from terra_notebook_utils.utils import concurrent_recursion, js_get
+from terra_notebook_utils.logger import logger
 
-
-logger = logging.getLogger(__name__)
 
 date_format = "%Y-%m-%dT%H:%M:%S.%fZ"
 

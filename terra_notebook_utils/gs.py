@@ -7,10 +7,11 @@ from google.oauth2 import service_account
 import google.auth
 
 from terra_notebook_utils import TERRA_DEPLOYMENT_ENV
+from terra_notebook_utils.logger import logger
 
 
-logging.getLogger("google.resumable_media.requests.download").setLevel(logging.WARNING)
-logging.getLogger("gs_chunked_io.writer").setLevel(logging.WARNING)
+logging.getLogger("google.resumable_media.requests.download").setLevel(logger.getEffectiveLevel())
+logging.getLogger("gs_chunked_io.writer").setLevel(logger.getEffectiveLevel())
 
 # Suppress the annoying google gcloud _CLOUD_SDK_CREDENTIALS_WARNING warnings
 warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
