@@ -47,7 +47,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
     resp = http.put(rawls_url, headers=headers)
 
     if resp.status_code != 204:
-        logger.warning(f"Failed to init requester pays for workspace {WORKSPACE_GOOGLE_PROJECT}/{WORKSPACE_NAME}: "
+        logger.warning(f"Failed to init requester pays for workspace {workspace_namespace}/{workspace_name}: "
                        f"Expected '204', got '{resp.status_code}' for '{rawls_url}'. "
                        "You will not be able to access DRS URIs that interact with requester pays buckets.")
 
