@@ -27,6 +27,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
     def test_config_print(self):
         workspace = f"{uuid4()}"
         workspace_namespace = f"{uuid4()}"
+        copy_progress_indicator_type = "auto"
         with NamedTemporaryFile() as tf:
             with CLIConfigOverride(workspace, workspace_namespace, tf.name):
                 CLIConfig.write()
@@ -35,7 +36,9 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
                 with redirect_stdout(out):
                     terra_notebook_utils.cli.commands.config.config_print(args)
                 data = json.loads(out.getvalue())
-                self.assertEqual(data, dict(workspace=workspace, workspace_namespace=workspace_namespace))
+                self.assertEqual(data, dict(workspace=workspace,
+                                            workspace_namespace=workspace_namespace,
+                                            copy_progress_indicator_type=copy_progress_indicator_type))
 
     def test_resolve(self):
         with self.subTest("Should fall back to env vars if arguments are None and config file missing"):
@@ -69,6 +72,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
     def test_config_set(self):
         new_workspace = f"{uuid4()}"
         new_workspace_namespace = f"{uuid4()}"
+        new_copy_progress_indicator_type = "log"
         with NamedTemporaryFile() as tf:
             with CLIConfigOverride(None, None, tf.name):
                 CLIConfig.write()
@@ -76,10 +80,13 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
                 terra_notebook_utils.cli.commands.config.set_config_workspace(args)
                 args = argparse.Namespace(workspace_namespace=new_workspace_namespace)
                 terra_notebook_utils.cli.commands.config.set_config_workspace_namespace(args)
+                args = argparse.Namespace(copy_progress_indicator_type=new_copy_progress_indicator_type)
+                terra_notebook_utils.cli.commands.config.set_indicator_type(args)
                 with open(tf.name) as fh:
                     data = json.loads(fh.read())
                 self.assertEqual(data, dict(workspace=new_workspace,
-                                            workspace_namespace=new_workspace_namespace))
+                                            workspace_namespace=new_workspace_namespace,
+                                            copy_progress_indicator_type="log"))
 
 if __name__ == '__main__':
     unittest.main()

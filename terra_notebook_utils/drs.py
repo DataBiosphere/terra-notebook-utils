@@ -7,13 +7,14 @@ from typing import Dict, List, Tuple, Optional, Union
 
 from requests import Response
 
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
+from terra_notebook_utils import utils, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
 from terra_notebook_utils import workspace, gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 from terra_notebook_utils.http import http
 from terra_notebook_utils.blobstore.gs import GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlob
 from terra_notebook_utils.blobstore.url import URLBlob
-from terra_notebook_utils.blobstore import Blob, copy_client, BlobNotFoundError, progress
+from terra_notebook_utils.blobstore.progress import Indicator
+from terra_notebook_utils.blobstore import Blob, copy_client, BlobNotFoundError
 from terra_notebook_utils.logger import logger
 
 
@@ -195,7 +196,7 @@ def _resolve_local_target(filepath: str, info: DRSInfo) -> str:
 def _do_copy_drs(drs_uri: str,
                  dst: str,
                  multipart_threshold: int,
-                 indicator_type: progress.Indicator,
+                 indicator_type: Indicator,
                  workspace_name: Optional[str]=WORKSPACE_NAME,
                  workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     dst_blob: Union[GSBlob, URLBlob, LocalBlob]
@@ -224,13 +225,14 @@ class DRSCopyClient(copy_client.CopyClient):
 
 def copy(drs_uri: str,
          dst: str,
+         indicator_type: Indicator=Indicator.bar,
          workspace_name: Optional[str]=WORKSPACE_NAME,
          workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with
     "gs://".
     """
     enable_requester_pays(workspace_name, workspace_namespace)
-    with DRSCopyClient(raise_on_error=True, indicator_type=progress.Indicator.bar) as cc:
+    with DRSCopyClient(raise_on_error=True, indicator_type=indicator_type) as cc:
         cc.workspace = workspace_name
         cc.workspace_namespace = workspace_namespace
         cc.copy(drs_uri, dst or ".")
@@ -238,6 +240,7 @@ def copy(drs_uri: str,
 def copy_to_bucket(drs_uri: str,
                    dst_key: str="",
                    dst_bucket_name: Optional[str]=None,
+                   indicator_type: Indicator=Indicator.bar,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
                    workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.  If `dst_bucket` is None, copy into
@@ -247,7 +250,7 @@ def copy_to_bucket(drs_uri: str,
     dst_url = f"gs://{dst_bucket_name}"
     if dst_key:
         dst_url += f"/{dst_key}"
-    copy(drs_uri, dst_url, workspace_name, workspace_namespace)
+    copy(drs_uri, dst_url, indicator_type, workspace_name, workspace_namespace)
 
 manifest_schema = {
     "type": "array",
@@ -262,12 +265,13 @@ manifest_schema = {
 }
 
 def copy_batch(manifest: List[Dict[str, str]],
+               indicator_type: Indicator=Indicator.log,
                workspace_name: Optional[str]=WORKSPACE_NAME,
                workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     from jsonschema import validate
     validate(instance=manifest, schema=manifest_schema)
     enable_requester_pays(workspace_name, workspace_namespace)
-    with DRSCopyClient(indicator_type=progress.Indicator.log) as cc:
+    with DRSCopyClient(indicator_type=indicator_type) as cc:
         cc.workspace = workspace_name
         cc.workspace_namespace = workspace_namespace
         for item in manifest:

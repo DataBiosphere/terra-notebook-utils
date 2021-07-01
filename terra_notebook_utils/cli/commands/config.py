@@ -30,6 +30,19 @@ def set_config_workspace_namespace(args: argparse.Namespace):
     CLIConfig.info["workspace_namespace"] = args.workspace_namespace
     CLIConfig.write()
 
+@config_cli.command("set-copy-progress-indicator-type", arguments={
+    "copy_progress_indicator_type": dict(type=str, choices=["auto", "log"])
+})
+def set_indicator_type(args: argparse.Namespace):
+    """
+    Set the indicator type for DRS copy operations.
+
+    When 'copy-progress-indicator-type' is set to 'auto', terra-notebook-utils chooses the most appropriate
+    indicator type for copy operations.
+    """
+    CLIConfig.info["copy_progress_indicator_type"] = args.copy_progress_indicator_type
+    CLIConfig.write()
+
 @config_cli.command("print")
 def config_print(args: argparse.Namespace):
     """

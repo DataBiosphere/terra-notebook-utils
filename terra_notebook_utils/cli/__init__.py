@@ -14,11 +14,22 @@ from typing import Optional, Tuple
 import cli_builder
 
 from terra_notebook_utils import version, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
+from terra_notebook_utils.blobstore.progress import Indicator
 
 
 class CLIConfig:
-    info = dict(workspace=None, workspace_namespace=None)
+    info = dict(workspace=None, workspace_namespace=None, copy_progress_indicator_type="auto")
     path = os.path.join(os.path.expanduser("~"), ".tnu_config")
+
+    @classmethod
+    def progress_indicator_type(cls) -> Optional[Indicator]:
+        val = CLIConfig.info['copy_progress_indicator_type']
+        if "log" == val:
+            return Indicator.log
+        elif "auto" == val:
+            return None
+        else:
+            raise ValueError(f"Unsupported copy progress indicator type '{val}'")
 
     @classmethod
     def load(cls):
