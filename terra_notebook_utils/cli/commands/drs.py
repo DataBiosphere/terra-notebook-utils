@@ -46,7 +46,10 @@ def drs_copy(args: argparse.Namespace):
         tnu drs copy drs://my-drs-id gs://my-cool-bucket/my-cool-bucket-key/
     """
     args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
-    drs.copy(args.drs_url, args.dst, args.workspace, args.workspace_namespace)
+    kwargs: Dict[str, Any] = dict(workspace_name=args.workspace, workspace_namespace=args.workspace_namespace)
+    if CLIConfig.progress_indicator_type() is not None:
+        kwargs['indicator_type'] = CLIConfig.progress_indicator_type()
+    drs.copy(args.drs_url, args.dst, **kwargs)
 
 @drs_cli.command("copy-batch", arguments={
     "drs_uris": dict(type=str, nargs="*", help="space separated list of drs:// URIs"),
@@ -87,7 +90,10 @@ def drs_copy_batch(args: argparse.Namespace):
     else:
         raise RuntimeError("Must supply either 'drs_uris' or '--manifest'")
     args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
-    drs.copy_batch(manifest, args.workspace, args.workspace_namespace)
+    kwargs: Dict[str, Any] = dict(workspace_name=args.workspace, workspace_namespace=args.workspace_namespace)
+    if CLIConfig.progress_indicator_type() is not None:
+        kwargs['indicator_type'] = CLIConfig.progress_indicator_type()
+    drs.copy_batch(manifest, **kwargs)
 
 @drs_cli.command("head", arguments={
     "drs_url": dict(type=str),
