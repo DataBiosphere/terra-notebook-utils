@@ -24,7 +24,7 @@ class CLIConfig:
     def load(cls):
         if os.path.isfile(cls.path):
             with open(cls.path) as fh:
-                cls.info = json.loads(fh.read())
+                cls.info.update(json.loads(fh.read()))
 
     @classmethod
     def write(cls):
