@@ -13,7 +13,7 @@ from terra_notebook_utils.http import http
 from terra_notebook_utils.blobstore.gs import GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlob
 from terra_notebook_utils.blobstore.url import URLBlob
-from terra_notebook_utils.blobstore import Blob, copy_client, BlobNotFoundError
+from terra_notebook_utils.blobstore import Blob, copy_client, BlobNotFoundError, progress
 from terra_notebook_utils.logger import logger
 
 
@@ -195,6 +195,7 @@ def _resolve_local_target(filepath: str, info: DRSInfo) -> str:
 def _do_copy_drs(drs_uri: str,
                  dst: str,
                  multipart_threshold: int,
+                 indicator_type: progress.Indicator,
                  workspace_name: Optional[str]=WORKSPACE_NAME,
                  workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     dst_blob: Union[GSBlob, URLBlob, LocalBlob]
@@ -206,7 +207,7 @@ def _do_copy_drs(drs_uri: str,
     else:
         info = get_drs_info(drs_uri)
         dst_blob = copy_client.blob_for_url(_resolve_local_target(dst, info))
-    copy_client._do_copy(src_blob, dst_blob, multipart_threshold)
+    copy_client._do_copy(src_blob, dst_blob, multipart_threshold, indicator_type)
 
 class DRSCopyClient(copy_client.CopyClient):
     workspace: Optional[str] = None
@@ -217,6 +218,7 @@ class DRSCopyClient(copy_client.CopyClient):
                         drs_uri,
                         dst,
                         self.multipart_threshold,
+                        self.indicator_type,
                         self.workspace,
                         self.workspace_namespace)
 
@@ -228,7 +230,7 @@ def copy(drs_uri: str,
     "gs://".
     """
     enable_requester_pays(workspace_name, workspace_namespace)
-    with DRSCopyClient(raise_on_error=True, progress_indicator="bar") as cc:
+    with DRSCopyClient(raise_on_error=True, indicator_type=progress.Indicator.bar) as cc:
         cc.workspace = workspace_name
         cc.workspace_namespace = workspace_namespace
         cc.copy(drs_uri, dst or ".")
@@ -265,7 +267,7 @@ def copy_batch(manifest: List[Dict[str, str]],
     from jsonschema import validate
     validate(instance=manifest, schema=manifest_schema)
     enable_requester_pays(workspace_name, workspace_namespace)
-    with DRSCopyClient(progress_indicator="log") as cc:
+    with DRSCopyClient(indicator_type=progress.Indicator.log) as cc:
         cc.workspace = workspace_name
         cc.workspace_namespace = workspace_namespace
         for item in manifest:
