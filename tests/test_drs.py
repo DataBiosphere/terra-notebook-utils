@@ -19,7 +19,7 @@ pkg_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # noq
 sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config  # initialize the test environment
-from tests import CLITestMixin, ConfigOverride
+from tests import CLITestMixin
 from tests.infra import SuppressWarningsMixin, get_env
 from tests.infra.testmode import testmode
 from terra_notebook_utils import drs, gs, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME

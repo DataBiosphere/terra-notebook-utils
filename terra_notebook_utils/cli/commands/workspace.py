@@ -5,7 +5,7 @@ import argparse
 from firecloud import fiss
 
 from terra_notebook_utils import workspace
-from terra_notebook_utils.cli import Config, dispatch
+from terra_notebook_utils.cli import CLIConfig, dispatch
 
 
 workspace_cli = dispatch.group("workspace", help=workspace.__doc__)
@@ -35,7 +35,7 @@ def get_workspace(args: argparse.Namespace):
     print(json.dumps(data, indent=2))
 
 @workspace_cli.command("get-bucket", arguments={
-    "--workspace": dict(type=str, required=False, default=Config.info['workspace'], help="workspace name"),
+    "--workspace": dict(type=str, required=False, default=CLIConfig.info['workspace'], help="workspace name"),
     "--workspace-namespace": dict(type=str, required=False, default=None, help="workspace namespace"),
 })
 def get_workspace_bucket(args: argparse.Namespace):
@@ -48,7 +48,7 @@ def get_workspace_bucket(args: argparse.Namespace):
 
 @workspace_cli.command("delete-workflow-logs", arguments={
     "--workspace": dict(type=str,
-                        default=Config.info['workspace'],
+                        default=CLIConfig.info['workspace'],
                         help="If ommitted, the CLI configured workspace will be used.")
 })
 def delete_workflow_logs(args: argparse.Namespace):

@@ -10,7 +10,7 @@ sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config  # initialize the test environment
 from tests.infra.testmode import testmode
-from tests import CLITestMixin, ConfigOverride
+from tests import CLITestMixin
 from tests.infra import SuppressWarningsMixin, upload_data
 from tests.infra.partialize_vcf import partialize_vcf
 

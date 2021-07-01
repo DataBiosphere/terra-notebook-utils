@@ -2,7 +2,7 @@ import json
 import argparse
 
 from terra_notebook_utils import vcf
-from terra_notebook_utils.cli import dispatch, Config
+from terra_notebook_utils.cli import dispatch, CLIConfig
 from terra_notebook_utils.drs import blob_for_url
 
 
@@ -18,7 +18,7 @@ vcf_cli = dispatch.group("vcf", help=vcf.__doc__, arguments={
     "--workspace-namespace": dict(
         type=str,
         required=False,
-        default=Config.info['workspace_namespace'],
+        default=CLIConfig.info['workspace_namespace'],
         help=("The billing project for GS requests. "
               "If omitted, the CLI configured `workspace_google_project` will be used. "
               "Note that DRS URLs also involve a GS request.")
@@ -30,7 +30,7 @@ def head(args: argparse.Namespace):
     """
     Output VCF header.
     """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     blob = blob_for_url(args.path, args.workspace_namespace)
     info = vcf.VCFInfo.with_blob(blob)
     info.print_header()
@@ -40,7 +40,7 @@ def samples(args: argparse.Namespace):
     """
     Output VCF samples.
     """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     blob = blob_for_url(args.path, args.workspace_namespace)
     info = vcf.VCFInfo.with_blob(blob)
     print(json.dumps(info.samples, indent=2))
@@ -50,7 +50,7 @@ def stats(args: argparse.Namespace):
     """
     Output VCF stats.
     """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     blob = blob_for_url(args.path, args.workspace_namespace)
     info = vcf.VCFInfo.with_blob(blob)
     stats = {

@@ -7,7 +7,7 @@ from typing import Any, Tuple, List, Dict
 from firecloud import fiss
 
 from terra_notebook_utils import workflows
-from terra_notebook_utils.cli import Config, dispatch
+from terra_notebook_utils.cli import CLIConfig, dispatch
 
 
 workflow_cli = dispatch.group("workflows", help=workflows.__doc__)
@@ -21,7 +21,7 @@ workspace_args: Dict[str, Dict[str, Any]] = {
     "--workspace-namespace": dict(
         type=str,
         required=False,
-        default=Config.info['workspace_namespace'],
+        default=CLIConfig.info['workspace_namespace'],
         help=("The billing project for GS requests. "
               "If omitted, the CLI configured `workspace_namespace` will be used. "
               "Note that DRS URLs also involve a GS request.")
@@ -33,7 +33,7 @@ def list_submissions(args: argparse.Namespace):
     """
     List workflow submissions in chronological order
     """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     listing = [(s['submissionId'], s['submissionDate'], s['status'])
                for s in workflows.list_submissions(args.workspace, args.workspace_namespace)]
     for submission_id, date, status in sorted(listing, key=lambda item: item[1]):
@@ -47,7 +47,7 @@ def get_submission(args: argparse.Namespace):
     """
     Get information about a submission, including member worklows
     """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     submission = workflows.get_submission(args.submission_id, args.workspace, args.workspace_namespace)
     print(json.dumps(submission, indent=2))
 
@@ -60,7 +60,7 @@ def get_workflow(args: argparse.Namespace):
     """
     Get information about a workflow
     """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     wf = workflows.get_workflow(args.submission_id, args.workflow_id, args.workspace, args.workspace_namespace)
     print(json.dumps(wf, indent=2))
 
@@ -72,7 +72,7 @@ def estimate_submission_cost(args: argparse.Namespace):
     """
     Estimate costs for all workflows in a submission
     """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     workflows_metadata = workflows.get_all_workflows(args.submission_id, args.workspace, args.workspace_namespace)
     reporter = TXTReport([("workflow_id", 37),
                           ("shard", 6),

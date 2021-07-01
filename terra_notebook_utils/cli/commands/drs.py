@@ -4,7 +4,7 @@ import argparse
 from typing import Any, Dict
 
 from terra_notebook_utils import drs
-from terra_notebook_utils.cli import dispatch, Config
+from terra_notebook_utils.cli import dispatch, CLIConfig
 from terra_notebook_utils.drs import DRSResolutionError
 
 
@@ -19,7 +19,7 @@ workspace_args: Dict[str, Dict[str, Any]] = {
     "--workspace-namespace": dict(
         type=str,
         required=False,
-        default=Config.info['workspace_namespace'],
+        default=CLIConfig.info['workspace_namespace'],
         help=("The billing project for GS requests. "
               "If omitted, the CLI configured `workspace_namespace` will be used. "
               "Note that DRS URLs also involve a GS request.")
@@ -45,7 +45,7 @@ def drs_copy(args: argparse.Namespace):
         tnu drs copy drs://my-drs-id gs://my-cool-bucket/my-cool-bucket-key
         tnu drs copy drs://my-drs-id gs://my-cool-bucket/my-cool-bucket-key/
     """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     drs.copy(args.drs_url, args.dst, args.workspace, args.workspace_namespace)
 
 @drs_cli.command("copy-batch", arguments={
@@ -86,7 +86,7 @@ def drs_copy_batch(args: argparse.Namespace):
             manifest = json.loads(fh.read())
     else:
         raise RuntimeError("Must supply either 'drs_uris' or '--manifest'")
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     drs.copy_batch(manifest, args.workspace, args.workspace_namespace)
 
 @drs_cli.command("head", arguments={
@@ -101,7 +101,7 @@ def drs_head(args: argparse.Namespace):
     Example:
         tnu drs head drs://crouching-drs-hidden-access
     """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     the_bytes = drs.head(args.drs_url,
                          num_bytes=args.bytes,
                          workspace_name=args.workspace,
@@ -129,7 +129,7 @@ def drs_extract_tar_gz(args: argparse.Namespace):
     example:
         tnu drs extract-tar-gz drs://my-tar-gz gs://my-dst-bucket/root
     """
-    args.workspace, args.workspace_namespace = Config.resolve(args.workspace, args.workspace_namespace)
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     drs.extract_tar_gz(args.drs_url, args.dst, args.workspace, args.workspace_namespace)
 
 @drs_cli.command("info", arguments={
