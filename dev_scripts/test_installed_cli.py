@@ -127,7 +127,7 @@ class TestTerraNotebookUtilsReleaseCLI(unittest.TestCase):
 
     @unittest.skip("Awkward to test")
     def test_workspace_delete_workflow_logs(self):
-        run_json(f"{TNU} workspace get-bucket --workspace {TNU_TEST_WORKSPACE}")
+        run_json(f"{TNU} workspace delete-workflow-logs --workspace {TNU_TEST_WORKSPACE}")
 
     def test_profile_list_workspace_namespaces(self):
         run_json(f"{TNU} profile list-workspace-namespaces")
@@ -188,7 +188,7 @@ class TestTerraNotebookUtilsReleaseCLI(unittest.TestCase):
             d = run_json(f"{TNU} workflows get-workflow {WORKSPACE_ARGS}"
                          f" --submission-id {submission_id} --workflow-id {workflow_id}")
 
-        with self.subTest("get-submission"):
+        with self.subTest("estimate-submission-cost"):
             run(f"{TNU} workflows estimate-submission-cost {WORKSPACE_ARGS} --submission-id {submission_id}")
 
 class BColors:
