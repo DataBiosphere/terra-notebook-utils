@@ -19,5 +19,3 @@ if WORKSPACE_BUCKET is not None and WORKSPACE_BUCKET.startswith(_GS_SCHEMA):
 IO_CONCURRENCY = 3
 
 MARTHA_URL = f"https://us-central1-broad-dsde-{TERRA_DEPLOYMENT_ENV}.cloudfunctions.net/{MARTHA_URL_VERSION}"
-
-from terra_notebook_utils import drs, profile, table, vcf, workspace
