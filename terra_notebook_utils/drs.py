@@ -9,6 +9,7 @@ from requests import Response
 
 from terra_notebook_utils import utils, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
 from terra_notebook_utils import workspace, gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
+from terra_notebook_utils.utils import is_notebook
 from terra_notebook_utils.http import http
 from terra_notebook_utils.blobstore.gs import GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlob
@@ -225,7 +226,7 @@ class DRSCopyClient(copy_client.CopyClient):
 
 def copy(drs_uri: str,
          dst: str,
-         indicator_type: Indicator=Indicator.bar,
+         indicator_type: Indicator=Indicator.notebook_bar if is_notebook() else Indicator.bar,
          workspace_name: Optional[str]=WORKSPACE_NAME,
          workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with
@@ -240,7 +241,7 @@ def copy(drs_uri: str,
 def copy_to_bucket(drs_uri: str,
                    dst_key: str="",
                    dst_bucket_name: Optional[str]=None,
-                   indicator_type: Indicator=Indicator.bar,
+                   indicator_type: Indicator=Indicator.notebook_bar if is_notebook() else Indicator.bar,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
                    workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.  If `dst_bucket` is None, copy into
@@ -265,7 +266,7 @@ manifest_schema = {
 }
 
 def copy_batch(manifest: List[Dict[str, str]],
-               indicator_type: Indicator=Indicator.log,
+               indicator_type: Indicator=Indicator.notebook_bar if is_notebook() else Indicator.log,
                workspace_name: Optional[str]=WORKSPACE_NAME,
                workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     from jsonschema import validate
