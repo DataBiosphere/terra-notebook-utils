@@ -18,6 +18,7 @@ sys.path.insert(0, pkg_root)  # noqa
 
 from terra_notebook_utils.blobstore import BlobStore, BlobNotFoundError
 from terra_notebook_utils.blobstore.gs import GSBlobStore
+from terra_notebook_utils.blobstore.azure_blob_store import AzureBlobStore
 from terra_notebook_utils.blobstore.local import LocalBlobStore
 from terra_notebook_utils.blobstore.url import URLBlobStore
 
@@ -25,6 +26,7 @@ from tests import infra
 
 
 gs_blobstore = GSBlobStore(infra.get_env("TNU_BLOBSTORE_TEST_GS_BUCKET"))
+azure_blobstore = AzureBlobStore(infra.get_env("TNU_BLOBSTORE_TEST_AZ_STORAGE_ACCOUNT"), infra.get_env("TNU_BLOBSTORE_TEST_AZ_CONTAINER_NAME"))
 local_test_tempdir = tempfile.TemporaryDirectory()
 local_test_bucket = local_test_tempdir.name
 local_blobstore = LocalBlobStore(local_test_tempdir.name)
@@ -97,6 +99,7 @@ test_data = TestData()
 class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
     def test_schema(self):
         self.assertEqual("gs://", GSBlobStore.schema)
+        self.assertEqual("https://", AzureBlobStore.schema)
 
     def test_gs_md5(self):
         data = os.urandom(32)
@@ -108,13 +111,14 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
     def test_put_get_delete(self):
         key = f"{uuid4()}"
         expected_data = os.urandom(1021)
-        for bs in (local_blobstore, gs_blobstore):
+        for bs in (local_blobstore, gs_blobstore, azure_blobstore):
             with self.subTest(blobstore=bs, key=key):
-                bs.blob(key).put(expected_data)
-                self.assertEqual(expected_data, bs.blob(key).get())
-                bs.blob(key).delete()
+                client = bs.blob(key)
+                client.put(expected_data)
+                self.assertEqual(expected_data, client.get())
+                client.delete()
                 with self.assertRaises(BlobNotFoundError):
-                    bs.blob(key).get()
+                    client.get()
 
         with self.subTest(blobstore=url_blobstore, key=key):
             url = _put_blob(url_blobstore, expected_data)
@@ -184,7 +188,7 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
     def test_size(self):
         expected_size = randint(1, 509)
         data = os.urandom(expected_size)
-        for bs in (local_blobstore, gs_blobstore, url_blobstore):
+        for bs in (local_blobstore, gs_blobstore, url_blobstore, azure_blobstore):
             key = _put_blob(bs, data)
             with self.subTest(blobstore=bs, key=key):
                 self.assertEqual(expected_size, bs.blob(key).size())
@@ -224,7 +228,7 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
                 bs.blob(_fake_key(bs)).iter_content()
 
     def test_exists(self):
-        for bs in (local_blobstore, gs_blobstore):
+        for bs in (local_blobstore, gs_blobstore, azure_blobstore):
             with self.subTest(blobstore=bs):
                 key = _fake_key(bs)
                 self.assertFalse(bs.blob(key).exists())
