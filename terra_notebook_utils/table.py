@@ -7,7 +7,7 @@ from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Set,
 
 import requests
 
-from terra_notebook_utils.http import Retry, http_session
+from terra_notebook_utils.http_session import Retry, http_session
 from terra_notebook_utils.utils import _AsyncContextManager
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME
 

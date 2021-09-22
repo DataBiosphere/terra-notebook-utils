@@ -1,5 +1,8 @@
 """Utilities for working with DRS objects."""
 import os
+
+from azure.storage import blob
+from terra_notebook_utils.blobstore.azure_blob_store import AzureBlob
 import traceback
 from functools import lru_cache
 from collections import namedtuple
@@ -10,7 +13,7 @@ from requests import Response
 from terra_notebook_utils import utils, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
 from terra_notebook_utils import workspace, gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 from terra_notebook_utils.utils import is_notebook
-from terra_notebook_utils.http import http
+from terra_notebook_utils.http_session import http
 from terra_notebook_utils.blobstore.gs import GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlob
 from terra_notebook_utils.blobstore.url import URLBlob
@@ -55,7 +58,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
 
 def get_drs(drs_url: str) -> Response:
     """Request DRS infromation from martha."""
-    access_token = gs.get_access_token()
+    access_token =  gs.get_access_token()
 
     headers = {
         'authorization': f"Bearer {access_token}",
@@ -188,6 +191,14 @@ def _resolve_bucket_target(url: str, info: DRSInfo) -> Tuple[str, str]:
         key = pfx
     return bucket_name, key
 
+
+def _resolve_azure_blob_path(azure_url: str) -> Tuple[str, str, str]:
+    assert azure_url.startswith("https://")
+    storage_account_with_endpoint, container_and_blob_name = azure_url[8:].split("/", 1)
+    storage_account = storage_account_with_endpoint.split(".", 1)[0]
+    container, blob_name = container_and_blob_name.split("/", 1)
+    return storage_account, container, blob_name
+
 def _resolve_local_target(filepath: str, info: DRSInfo) -> str:
     if filepath.endswith(os.path.sep) or os.path.isdir(filepath):
         filename = info.name or info.key.rsplit("/", 1)[-1]
@@ -206,6 +217,9 @@ def _do_copy_drs(drs_uri: str,
     if dst.startswith("gs://"):
         bucket_name, key = _resolve_bucket_target(dst, src_info)
         dst_blob = GSBlob(bucket_name, key)
+    if dst.startswith("https://"):
+        storage_account, container_name, blob_name = _resolve_azure_blob_path(dst)
+        dst_blob = AzureBlob(storage_account, container_name, blob_name)
     else:
         info = get_drs_info(drs_uri)
         dst_blob = copy_client.blob_for_url(_resolve_local_target(dst, info))
@@ -229,8 +243,8 @@ def copy(drs_uri: str,
          indicator_type: Indicator=Indicator.notebook_bar if is_notebook() else Indicator.bar,
          workspace_name: Optional[str]=WORKSPACE_NAME,
          workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    """Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with
-    "gs://".
+    """Copy a DRS object to either the local filesystem, to a Google Storage location if `dst` starts with
+    "gs://", an Azure Storage Account blob service if `dst` starts with "https://".
     """
     enable_requester_pays(workspace_name, workspace_namespace)
     with DRSCopyClient(raise_on_error=True, indicator_type=indicator_type) as cc:
@@ -300,3 +314,4 @@ def _bucket_name_and_key(gs_url: str) -> Tuple[str, str]:
     else:
         bucket_name, key = parts
     return bucket_name, key
+

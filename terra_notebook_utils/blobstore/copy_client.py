@@ -1,6 +1,7 @@
 import os
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
+from terra_notebook_utils.blobstore.azure_blob_store import AzureBlob
 from typing import Optional, Union
 
 from getm import default_chunk_size
@@ -16,7 +17,7 @@ from terra_notebook_utils.logger import logger
 
 AnyBlobStore = Union[GSBlobStore, URLBlobStore, LocalBlobStore]
 AnyBlob = Union[GSBlob, URLBlob, LocalBlob]
-CloudBlob = GSBlob
+CloudBlob = Union[GSBlob, AzureBlob]
 
 def _download(src_blob: AnyBlob, dst_blob: LocalBlob, indicator_type: Indicator):
     logger.debug(f"Starting download {src_blob.url} to {dst_blob.url}")
@@ -51,6 +52,13 @@ def _copy_oneshot_passthrough(src_blob: Union[URLBlob, CloudBlob], dst_blob: Clo
     if dst_blob.md5 != src_blob.md5:
         logger.error(f"Checksum failed for {src_blob.url} to {dst_blob.url}")
         raise BlobstoreChecksumError()
+
+def _copy_azure(src_blob: AnyBlob, dst_blob: CloudBlob, indicator_type: Indicator):
+    logger.debug(f"Starting copying passthrough {src_blob.url} to {dst_blob.url}")
+    with Indicator.get(indicator_type, dst_blob.url, src_blob.size()) as indicator:
+        data = src_blob.get()
+        dst_blob.put(data)
+        indicator.add(len(data))
 
 def _copy_multipart_passthrough(src_blob: Union[URLBlob, CloudBlob], dst_blob: CloudBlob, indicator_type: Indicator):
     logger.debug(f"Starting multipart passthrough {src_blob.url} to {dst_blob.url}")

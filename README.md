@@ -169,8 +169,8 @@ For local development:
 1. Make the decision whether you want to run this using your local environment, or develop from within a docker image.
 Developing within a docker image is recommended, since that most closely models how users will use this. Additionally, there are some issues with installing the requirements.txt on mac.
 If you don't wish to run this within a docker image, skip to step 5.
-2. run `docker pull us.gcr.io/broad-dsp-gcr-public/terra-jupyter-python:0.0.12`
-3. run the image from *one directory above* the root directory of this repo via `docker run -itd --entrypoint='/bin/bash' -v $PWD/terra-notebook-utils:/work -u root -e PIP_USER=false --name test-image us.gcr.io/broad-dsp-gcr-public/terra-jupyter-python:0.0.12`
+2. run `docker pull us.gcr.io/broad-dsp-gcr-public/terra-jupyter-python:1.0.1`
+3. run the image from *one directory above* the root directory of this repo via `docker run -itd --entrypoint='/bin/bash' -v $PWD/terra-notebook-utils:/work -u root -e PIP_USER=false --name test-image us.gcr.io/broad-dsp-gcr-public/terra-jupyter-python:1.0.1`
 4. Attach your terminal to the image via `docker exec -it test-image bash`, then navigate to the directory the code is mounted to via `cd /work`. Note that the above command ensures any changes you make to files in the repo will be updated in the image as well.
 5. log in with your Google credentials using `gcloud auth application-default login`,
 6. install requirements with `pip install -r requirements.txt`
@@ -181,6 +181,9 @@ If you don't wish to run this within a docker image, skip to step 5.
     - `export WORKSPACE_BUCKET=[bucketWithinWorkspace]`
     - `export GCLOUD_PROJECT=[validGoogleProject]` (set this if your DRS uri does not return Google SA)
     - if you would like to run DRS methods against `martha_v2`, run `export MARTHA_URL_VERSION=martha_v2` (it is set to `martha_v3` by default)
+8. If you're testing against Azure blob storage, run the following commands as root inside the container.
+    - `curl -sL https://aka.ms/InstallAzureCLIDeb | bash`
+    - `az login --identity`
 
 For Python API
   - run the python shell via `python`, and import any modules you wish to use. For example, `from terra_notebook_utils import drs`
