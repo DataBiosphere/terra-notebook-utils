@@ -80,7 +80,9 @@ class TestCopyClient(infra.SuppressWarningsMixin, unittest.TestCase):
 
     def test_copy_client(self):
         with self.subTest("should work"):
-            expected_data_map, completed_keys = self._do_blobstore_copies()
+            # The copy client is general enough to upload local files to cloud locations. However, TNU is not expected
+            # to handle this use case, and the copy client contains assertions to prevent this. For now.
+            expected_data_map, completed_keys = self._do_blobstore_copies(src_blobstores=[gs_blobstore])
             self.assertEqual(len(expected_data_map), len(completed_keys))
             for blob, expected_data in expected_data_map.items():
                 with self.subTest(blob.url):
