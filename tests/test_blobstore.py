@@ -4,6 +4,7 @@ import sys
 import tempfile
 import datetime
 import unittest
+from hashlib import md5
 from math import ceil
 from uuid import uuid4
 from random import randint
@@ -168,6 +169,17 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
                 with self.subTest("Subdirectories don't exist", blobstore=bs):
                     with self.assertRaises(FileNotFoundError):
                         bs.blob(src_blob.key).download(dst_subdir_path)
+
+    def test_url_download_md5(self):
+        dst_path = local_blobstore.blob(f"{uuid4()}").url
+        bs = url_blobstore
+        for expected_data, src_blob in [(test_data.oneshot_data, test_data.oneshot_blob(bs)),
+                                        (test_data.multipart_data, test_data.multipart_blob(bs))]:
+            src_blob.md5 = md5(expected_data).hexdigest()
+            src_blob.download(dst_path)
+            with self.assertRaises(AssertionError):
+                src_blob.md5 = "this is a bogus md5 download should fail"
+                src_blob.download(dst_path)
 
     def test_size(self):
         expected_size = randint(1, 509)

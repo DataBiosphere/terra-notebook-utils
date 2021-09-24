@@ -38,9 +38,10 @@ class URLBlobStore(blobstore.BlobStore):
         return URLBlob(url)
 
 class URLBlob(blobstore.Blob):
-    def __init__(self, url: str):
+    def __init__(self, url: str, md5: str=""):
         assert url.startswith(URLBlobStore.schema)
         self.url = self.key = url
+        self.md5 = md5
 
     # The next two methods customize pickling behavior. Some modules such as multiprocessing/ProcessPoolExecutor
     # require picklable objects. Let's make pickling snappy.
@@ -63,16 +64,19 @@ class URLBlob(blobstore.Blob):
 
     @catch_blob_not_found_generator
     def download_iter(self, path: str) -> Generator[int, None, None]:
-        checksums = http.checksums(self.url)
-        if 'gs_crc32c' in checksums:
-            cs = checksum.GETMChecksum(checksums['gs_crc32c'], "gs_crc32c")
-        elif 'gs_md5' in checksum:
-            cs = checksum.GETMChecksum(checksums['gs_md5'], "md5")
-        elif 'etag' in checksum:
-            cs = checksum.GETMChecksum(checksums['gs_md5'], "md5")
+        if self.md5:
+            cs = checksum.GETMChecksum(self.md5, "md5")
         else:
-            # TODO: warn user that data integrity checking is disabled
-            cs = checksum.GETMChecksum("", checksum.Algorithms.null)
+            checksums = http.checksums(self.url)
+            if 'gs_crc32c' in checksums:
+                cs = checksum.GETMChecksum(checksums['gs_crc32c'], "gs_crc32c")
+            elif 'gs_md5' in checksum:
+                cs = checksum.GETMChecksum(checksums['gs_md5'], "md5")
+            elif 'etag' in checksum:
+                cs = checksum.GETMChecksum(checksums['gs_md5'], "md5")
+            else:
+                # TODO: warn user that data integrity checking is disabled
+                cs = checksum.GETMChecksum("", checksum.Algorithms.null)
 
         with indirect_open(path) as fh:
             if http.size(self.url) < URLBlobStore.chunk_size:
