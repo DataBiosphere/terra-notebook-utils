@@ -1,4 +1,5 @@
 import io
+import base64
 import multiprocessing
 from math import ceil
 from concurrent.futures import ThreadPoolExecutor
@@ -156,6 +157,11 @@ class GSBlob(blobstore.Blob):
 
     def cloud_native_checksum(self) -> str:
         return self._get_native_blob().crc32c
+
+    @property
+    def md5(self) -> str:
+        gs_md5 = self._get_native_blob().md5_hash
+        return base64.b64decode(gs_md5).hex()
 
     @property
     def Hasher(self) -> checksum._Hasher:

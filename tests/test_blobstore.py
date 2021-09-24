@@ -97,6 +97,13 @@ class TestBlobStore(infra.SuppressWarningsMixin, unittest.TestCase):
     def test_schema(self):
         self.assertEqual("gs://", GSBlobStore.schema)
 
+    def test_gs_md5(self):
+        data = os.urandom(32)
+        blob = gs_blobstore.blob(f"{uuid4()}")
+        blob.put(data)
+        self.assertEqual(blob.md5,
+                         checksum.MD5(data)._checksum.hexdigest())
+
     def test_put_get_delete(self):
         key = f"{uuid4()}"
         expected_data = os.urandom(1021)
