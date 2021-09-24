@@ -19,7 +19,7 @@ from terra_notebook_utils.blobstore import Blob, copy_client, BlobNotFoundError
 from terra_notebook_utils.logger import logger
 
 
-DRSInfo = namedtuple("DRSInfo", "credentials access_url bucket_name key name size updated")
+DRSInfo = namedtuple("DRSInfo", "credentials access_url bucket_name key name size updated md5")
 
 class DRSResolutionError(Exception):
     pass
@@ -64,7 +64,15 @@ def get_drs(drs_url: str) -> Response:
 
     logger.debug(f"Resolving DRS uri '{drs_url}' through '{MARTHA_URL}'.")
 
-    json_body = dict(url=drs_url)
+    json_body = dict(url=drs_url, fields=["fileName",
+                                          "hashes",
+                                          "size",
+                                          "gsUri",
+                                          "bucket",
+                                          "name",
+                                          "timeUpdated",
+                                          "googleServiceAccount",
+                                          "accessUrl"])
     resp = http.post(MARTHA_URL, headers=headers, json=json_body)
 
     if 200 != resp.status_code:
@@ -87,8 +95,11 @@ def get_drs(drs_url: str) -> Response:
 def info(drs_url: str) -> dict:
     """Return a curated subset of data from `get_drs`."""
     info = get_drs_info(drs_url)
-    out = dict(name=info.name, size=info.size, updated=info.updated)
-    out['url'] = f"gs://{info.bucket_name}/{info.key}"
+    if info.access_url is not None:
+        url = info.access_url
+    else:
+        url = f"gs://{info.bucket_name}/{info.key}"
+    out = dict(name=info.name, size=info.size, updated=info.updated, url=url, md5=info.md5)
     return out
 
 def _get_drs_gs_creds(response: dict) -> Optional[dict]:
@@ -117,6 +128,7 @@ def _drs_info_from_martha_v2(drs_url: str, drs_data: dict) -> DRSInfo:
         bucket_name, key = _parse_gs_url(data_url)
         return DRSInfo(credentials=_get_drs_gs_creds(drs_data),
                        access_url=None,
+                       md5=None,
                        bucket_name=bucket_name,
                        key=key,
                        name=data_object.get('name'),
@@ -127,11 +139,16 @@ def _drs_info_from_martha_v2(drs_url: str, drs_data: dict) -> DRSInfo:
 
 def _drs_info_from_martha_v3(drs_url: str, drs_data: dict) -> DRSInfo:
     """Convert response from martha_v3 to DRSInfo."""
-    if 'gsUri' not in drs_data:
-        raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
+    access_url: Optional[str] = None
+    if drs_data.get('accessUrl') is not None:
+        access_url = drs_data['accessUrl'].get('url')
+
+    if 'gsUri' not in drs_data and not access_url:
+        raise DRSResolutionError(f"Neither GS URL or access URL found in DRS response for '{drs_url}'")
 
     return DRSInfo(credentials=_get_drs_gs_creds(drs_data),
-                   access_url=drs_data.get('accessUrl'),
+                   access_url=access_url,
+                   md5=drs_data.get('hashes', dict()).get('md5'),
                    bucket_name=drs_data.get('bucket'),
                    key=drs_data.get('name'),
                    name=drs_data.get('fileName'),
@@ -148,14 +165,22 @@ def get_drs_info(drs_url: str) -> DRSInfo:
         return _drs_info_from_martha_v3(drs_url, drs_data)
 
 def get_drs_blob(drs_url_or_info: Union[str, DRSInfo],
-                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> GSBlob:
+                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Union[GSBlob, URLBlob]:
     if isinstance(drs_url_or_info, str):
         info = get_drs_info(drs_url_or_info)
     elif isinstance(drs_url_or_info, DRSInfo):
         info = drs_url_or_info
     else:
         raise TypeError()
-    return GSBlob(info.bucket_name, info.key, info.credentials, workspace_namespace)
+    blob: Union[URLBlob, GSBlob]
+    if info.access_url is not None:
+        blob = URLBlob(info.access_url, info.md5)
+    else:
+        assert info.credentials
+        assert info.bucket_name
+        assert info.key
+        blob = GSBlob(info.bucket_name, info.key, info.credentials, workspace_namespace)
+    return blob
 
 def blob_for_url(url: str, workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Blob:
     if url.startswith("drs://"):

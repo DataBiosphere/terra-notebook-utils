@@ -67,7 +67,8 @@ class TestTerraNotebookUtilsDRSInDev(SuppressWarningsMixin, unittest.TestCase):
 
 
 class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
-    drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
+    drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"  # DRS response contains GS native url + credentials
+    drs_url_signed = "drs://dg.4DFC:dg.4DFC/00040a6f-b7e5-4e5c-ab57-ee92a0ba8201"  # DRS response contains signed URL
     jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-2a2bfaa24c7a_" \
                    "c0e40912-8b14-43f6-9a2f-b278144d0060"
 
@@ -237,6 +238,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         for name in (expected_name, None):
             info = drs.DRSInfo(credentials=None,
                                access_url=None,
+                               md5=None,
                                bucket_name=None,
                                key=f"/foo/bar/{expected_name}",
                                name=name,
@@ -297,18 +299,19 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
 
     @testmode("controlled_access")
     def test_copy(self):
-        with self.subTest("Test copy to local location"):
-            with tempfile.NamedTemporaryFile() as tf:
-                drs.copy(self.drs_url, tf.name)
-                self.assertTrue(os.path.isfile(tf.name))
-        with self.subTest("Test copy to bucket location"):
-            key = f"test_oneshot_object_{uuid4()}"
-            drs.copy(self.drs_url, f"gs://{TNU_TEST_GS_BUCKET}/{key}")
-            self.assertTrue(self._gs_obj_exists(key))
-        with self.subTest("Test copy to bare bucket"):
-            name = drs.info(self.drs_url)['name']
-            drs.copy(self.drs_url, f"gs://{TNU_TEST_GS_BUCKET}")
-            self.assertTrue(self._gs_obj_exists(name))
+        for drs_url in [self.drs_url, self.drs_url_signed]:
+            with self.subTest("Test copy to local location"):
+                with tempfile.NamedTemporaryFile() as tf:
+                    drs.copy(drs_url, tf.name)
+                    self.assertTrue(os.path.isfile(tf.name))
+            with self.subTest("Test copy to bucket location"):
+                key = f"test_oneshot_object_{uuid4()}"
+                drs.copy(drs_url, f"gs://{TNU_TEST_GS_BUCKET}/{key}")
+                self.assertTrue(self._gs_obj_exists(key))
+            with self.subTest("Test copy to bare bucket"):
+                name = drs.info(drs_url)['name']
+                drs.copy(drs_url, f"gs://{TNU_TEST_GS_BUCKET}")
+                self.assertTrue(self._gs_obj_exists(name))
 
     def _gs_obj_exists(self, key: str) -> bool:
         return gs.get_client().bucket(TNU_TEST_GS_BUCKET).blob(key).exists()
@@ -455,6 +458,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             self.assertEqual(None, actual_info.updated)
 
     # test for when 'gsUrl' is missing in martha_v3 response. It should throw error
+    @unittest.skip("TODO: Test no gsUri _and_ no accessUrl")
     def test_martha_v3_response_without_gs_uri(self):
         resp_json = mock.MagicMock(return_value=self.mock_martha_v3_response_without_gs_uri)
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
@@ -517,7 +521,8 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             size=183312787601,
             updated="2019-12-26T20:20:39.396Z",
             url=("gs://nih-nhlbi-topmed-released-phs001416-c2/"
-                 "phg001275.v1.TOPMed_WGS_MESA_v2.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz")
+                 "phg001275.v1.TOPMed_WGS_MESA_v2.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz"),
+            md5="aec4c2708e3a7ecaf6b66f12d63318ff",
         )
         self.assertEqual(drs.info(uri), expected_info)
 
