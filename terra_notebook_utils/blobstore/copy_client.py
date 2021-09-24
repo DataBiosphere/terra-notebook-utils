@@ -42,26 +42,24 @@ def _copy_intra_cloud(src_blob: AnyBlob, dst_blob: AnyBlob, indicator_type: Indi
         logger.error(f"Checksum failed for {src_blob.url} to {dst_blob.url}")
         raise BlobstoreChecksumError()
 
-def _copy_oneshot_passthrough(src_blob: AnyBlob, dst_blob: CloudBlob, indicator_type: Indicator):
+def _copy_oneshot_passthrough(src_blob: Union[URLBlob, CloudBlob], dst_blob: CloudBlob, indicator_type: Indicator):
     logger.debug(f"Starting oneshot passthrough {src_blob.url} to {dst_blob.url}")
     with Indicator.get(indicator_type, dst_blob.url, src_blob.size()) as indicator:
         data = src_blob.get()
         dst_blob.put(data)
         indicator.add(len(data))
-    if not dst_blob.Hasher(data).matches(dst_blob.cloud_native_checksum()):
+    if dst_blob.md5 != src_blob.md5:
         logger.error(f"Checksum failed for {src_blob.url} to {dst_blob.url}")
         raise BlobstoreChecksumError()
 
-def _copy_multipart_passthrough(src_blob: AnyBlob, dst_blob: CloudBlob, indicator_type: Indicator):
+def _copy_multipart_passthrough(src_blob: Union[URLBlob, CloudBlob], dst_blob: CloudBlob, indicator_type: Indicator):
     logger.debug(f"Starting multipart passthrough {src_blob.url} to {dst_blob.url}")
-    cs = dst_blob.Hasher()
     with Indicator.get(indicator_type, dst_blob.url, src_blob.size()) as indicator:
         with dst_blob.part_writer() as writer:
             for part in src_blob.iter_content():
                 writer.put_part(part)
-                cs.update(part)
                 indicator.add(len(part))
-    if not cs.matches(dst_blob.cloud_native_checksum()):
+    if dst_blob.md5 != src_blob.md5:
         logger.error(f"Checksum failed for {src_blob.url} to {dst_blob.url}")
         raise BlobstoreChecksumError()
 
@@ -72,6 +70,9 @@ def _do_copy(src_blob: AnyBlob, dst_blob: AnyBlob, multipart_threshold: int, ind
         elif isinstance(src_blob, type(dst_blob)):
             _copy_intra_cloud(src_blob, dst_blob, indicator_type)
         elif isinstance(dst_blob, CloudBlob):
+            # The following assert prevents LocalBlob -> CloudBlob, i.e. upload. This should be removed in TNU is
+            # expected to upload local files to cloud locations. Checksumming logic will also need updates.
+            assert isinstance(src_blob, (URLBlob, CloudBlob))
             if src_blob.size() <= multipart_threshold:
                 _copy_oneshot_passthrough(src_blob, dst_blob, indicator_type)
             else:
