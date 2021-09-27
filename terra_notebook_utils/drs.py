@@ -95,12 +95,7 @@ def get_drs(drs_url: str) -> Response:
 def info(drs_url: str) -> dict:
     """Return a curated subset of data from `get_drs`."""
     info = get_drs_info(drs_url)
-    if info.access_url is not None:
-        url = info.access_url
-    else:
-        url = f"gs://{info.bucket_name}/{info.key}"
-    out = dict(name=info.name, size=info.size, updated=info.updated, url=url, md5=info.md5)
-    return out
+    return dict(name=info.name, size=info.size, updated=info.updated, md5=info.md5)
 
 def _get_drs_gs_creds(response: dict) -> Optional[dict]:
     service_account_info = response.get('googleServiceAccount')
