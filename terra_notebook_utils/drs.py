@@ -58,7 +58,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
 
 def get_drs(drs_url: str) -> Response:
     """Request DRS infromation from martha."""
-    access_token =  gs.get_access_token()
+    access_token = gs.get_access_token()
 
     headers = {
         'authorization': f"Bearer {access_token}",
@@ -217,7 +217,8 @@ def _do_copy_drs(drs_uri: str,
     if dst.startswith("gs://"):
         bucket_name, key = _resolve_bucket_target(dst, src_info)
         dst_blob = GSBlob(bucket_name, key)
-    if dst.startswith("https://"):
+    # Azure url looks like https://qijlbdgpc4zqdee.blob.core.windows.net/qi-test-container/subdir/another/qi-blob3 
+    if "windows.net" in dst:
         storage_account, container_name, blob_name = _resolve_azure_blob_path(dst)
         dst_blob = AzureBlob(storage_account, container_name, blob_name)
     else:
