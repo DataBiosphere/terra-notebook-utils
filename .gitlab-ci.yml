@@ -1,8 +1,13 @@
 image: ubuntu:latest
 
+variables:
+  PYTHONIOENCODING: "utf-8"
+  DEBIAN_FRONTEND: "noninteractive"
+
 before_script:
   - date && date -u
-  - apt-get install -y virtualenv
+  - apt-get update
+  - apt-get install -y software-properties-common build-essential virtualenv
   - virtualenv ~/venv
   - source ~/venv/bin/activate
   - pip install -r requirements-dev.txt
