@@ -2,6 +2,7 @@ image: ubuntu:latest
 
 before_script:
   - date && date -u
+  - apt-get install -y virtualenv
   - virtualenv ~/venv
   - source ~/venv/bin/activate
   - pip install -r requirements-dev.txt
