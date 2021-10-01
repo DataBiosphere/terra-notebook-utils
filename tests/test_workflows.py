@@ -21,9 +21,9 @@ import terra_notebook_utils.cli.commands.workflows
 class TestTerraNotebookUtilsWorkflows(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.submissions = [s for s in workflows.list_submissions()]
+        cls.submissions = sorted([s for s in workflows.list_submissions()], key=lambda info: info['submissionDate'])
         assert cls.submissions, "No submissions available in test workspace. Maybe run a workflow?"
-        cls.submission_id = cls.submissions[0]['submissionId']
+        cls.submission_id = cls.submissions[-1]['submissionId']
 
     def test_get_submission(self):
         workflows.get_submission(self.submission_id)

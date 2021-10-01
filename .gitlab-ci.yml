@@ -1,7 +1,13 @@
 image: ubuntu:latest
 
+variables:
+  PYTHONIOENCODING: "utf-8"
+  DEBIAN_FRONTEND: "noninteractive"
+
 before_script:
   - date && date -u
+  - apt-get update
+  - apt-get install -y software-properties-common build-essential virtualenv python3 python3-dev
   - virtualenv ~/venv
   - source ~/venv/bin/activate
   - pip install -r requirements-dev.txt
@@ -15,3 +21,4 @@ stages:
 test:
   script:
     - make -j4 test
+
