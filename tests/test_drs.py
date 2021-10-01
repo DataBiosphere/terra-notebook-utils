@@ -520,8 +520,6 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             name="phg001275.v1.TOPMed_WGS_MESA_v2.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz",
             size=183312787601,
             updated="2019-12-26T20:20:39.396Z",
-            url=("gs://nih-nhlbi-topmed-released-phs001416-c2/"
-                 "phg001275.v1.TOPMed_WGS_MESA_v2.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz"),
             md5="aec4c2708e3a7ecaf6b66f12d63318ff",
         )
         self.assertEqual(drs.info(uri), expected_info)
