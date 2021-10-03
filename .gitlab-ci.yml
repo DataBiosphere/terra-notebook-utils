@@ -21,3 +21,4 @@ stages:
 test:
   script:
     - make -j4 test
+
