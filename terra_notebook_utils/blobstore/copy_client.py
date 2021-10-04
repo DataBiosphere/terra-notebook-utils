@@ -16,7 +16,7 @@ from terra_notebook_utils.logger import logger
 
 
 AnyBlobStore = Union[GSBlobStore, URLBlobStore, LocalBlobStore]
-AnyBlob = Union[GSBlob, URLBlob, LocalBlob]
+AnyBlob = Union[GSBlob, URLBlob, LocalBlob, AzureBlob]
 CloudBlob = Union[GSBlob]
 
 def _download(src_blob: AnyBlob, dst_blob: LocalBlob, indicator_type: Indicator):

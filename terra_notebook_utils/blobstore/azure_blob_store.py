@@ -26,10 +26,8 @@ class AzureBlob(blobstore.Blob):
         self.storage_account = storage_account
         self.container_name = container_name
         self.blob_name = blob_name
-
-    @property
-    def url(self) -> str:
-        return f"https://{self.storage_account}.blob.core.windows.net/{self.container_name}/{self.blob_name}"    
+        self.key = f"{self.container_name}/{self.blob_name}"    
+        self.url = f"https://{self.storage_account}.blob.core.windows.net/{self.container_name}/{self.blob_name}" 
 
     @property
     def _azure_blob_client(self):

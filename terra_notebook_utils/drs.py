@@ -245,7 +245,7 @@ def _do_copy_drs(drs_uri: str,
                  indicator_type: Indicator,
                  workspace_name: Optional[str]=WORKSPACE_NAME,
                  workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
-    dst_blob: Union[GSBlob, URLBlob, LocalBlob]
+    dst_blob: Union[GSBlob, URLBlob, LocalBlob, AzureBlob]
     src_info = get_drs_info(drs_uri)
     src_blob = get_drs_blob(src_info, workspace_namespace)
     if dst.startswith("gs://"):
