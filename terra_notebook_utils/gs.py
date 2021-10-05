@@ -104,7 +104,7 @@ def get_signed_url(bucket: str,
     canonical_query_params["x-goog-algorithm"] = "GOOG4-RSA-SHA256"
     canonical_query_params["x-goog-credential"] = credential
     canonical_query_params["x-goog-date"] = request_timestamp
-    canonical_query_params["x-goog-expires"] = 3600
+    canonical_query_params["x-goog-expires"] = '3600'
     canonical_query_params["x-goog-signedheaders"] = signed_headers
 
     ordered_query_parameters = collections.OrderedDict(
