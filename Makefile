@@ -46,16 +46,13 @@ version: terra_notebook_utils/version.py
 terra_notebook_utils/version.py: setup.py
 	echo "__version__ = '$$(python setup.py --version)'" > $@
 
-clean:
-	git clean -dfx
-
-build: version clean
+build: version
 	python setup.py bdist_wheel
 
-sdist: clean
+sdist:
 	python setup.py sdist
 
 install: build
 	pip install --upgrade dist/*.whl
 
-.PHONY: test lint mypy tests clean build install dev_scripts/test_installed_cli.py dev_scripts/test_notebook.py wdl_tests/copy_batch.wdl
+.PHONY: test lint mypy tests build install dev_scripts/test_installed_cli.py dev_scripts/test_notebook.py wdl_tests/copy_batch.wdl
