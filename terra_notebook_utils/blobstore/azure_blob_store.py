@@ -19,13 +19,13 @@ class AzureBlobStore(blobstore.BlobStore):
 
 class AzureBlob(blobstore.Blob):
     def __init__(self,
-                storage_account: str,
-                container_name: str,
-                blob_name: str):
+                 storage_account: str,
+                 container_name: str,
+                 blob_name: str):
         self.storage_account = storage_account
         self.container_name = container_name
         self.blob_name = blob_name
-        self.key = f"{self.container_name}/{self.blob_name}"    
+        self.key = f"{self.container_name}/{self.blob_name}"
         self.url = f"https://{self.storage_account}.blob.core.windows.net/{self.container_name}/{self.blob_name}"
 
     @property
@@ -34,11 +34,12 @@ class AzureBlob(blobstore.Blob):
             if os.environ.get("TERRA_NOTEBOOK_AZURE_ACCESS_KEY"):
                 logger.info("Using Access Key")
                 access_key = os.environ.get("TERRA_NOTEBOOK_AZURE_ACCESS_KEY")
-                connection_str = f"DefaultEndpointsProtocol=https;AccountName={self.storage_account};AccountKey=#{access_key}"
+                connection_str = (f"DefaultEndpointsProtocol=https;AccountName"
+                                  f"={self.storage_account};AccountKey=#{access_key}")
                 self._blob_client = BlobServiceClient.from_connection_string(
-                        connection_str
-                    ).get_blob_client(self.container_name, 
-                                      self.blob_name)
+                    connection_str
+                ).get_blob_client(self.container_name,
+                                  self.blob_name)
             else:
                 logger.info("Using DefaultAzureCredential")
                 token_credential = DefaultAzureCredential(logging_enable=True)

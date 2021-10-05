@@ -26,7 +26,8 @@ from tests import infra
 
 
 gs_blobstore = GSBlobStore(infra.get_env("TNU_BLOBSTORE_TEST_GS_BUCKET"))
-azure_blobstore = AzureBlobStore(infra.get_env("TNU_BLOBSTORE_TEST_AZ_STORAGE_ACCOUNT"), infra.get_env("TNU_BLOBSTORE_TEST_AZ_CONTAINER_NAME"))
+azure_blobstore = AzureBlobStore(infra.get_env("TNU_BLOBSTORE_TEST_AZ_STORAGE_ACCOUNT"),
+                                 infra.get_env("TNU_BLOBSTORE_TEST_AZ_CONTAINER_NAME"))
 local_test_tempdir = tempfile.TemporaryDirectory()
 local_test_bucket = local_test_tempdir.name
 local_blobstore = LocalBlobStore(local_test_tempdir.name)

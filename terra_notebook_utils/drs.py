@@ -251,7 +251,7 @@ def _do_copy_drs(drs_uri: str,
     if dst.startswith("gs://"):
         bucket_name, key = _resolve_bucket_target(dst, src_info)
         dst_blob = GSBlob(bucket_name, key)
-    # Azure url looks like https://qijlbdgpc4zqdee.blob.core.windows.net/qi-test-container/subdir/another/qi-blob3 
+    # Azure url looks like https://qijlbdgpc4zqdee.blob.core.windows.net/qi-test-container/subdir/another/qi-blob3
     if "windows.net" in dst:
         storage_account, container_name, blob_name = _resolve_azure_blob_path(dst)
         dst_blob = AzureBlob(storage_account, container_name, blob_name)
@@ -349,4 +349,3 @@ def _bucket_name_and_key(gs_url: str) -> Tuple[str, str]:
     else:
         bucket_name, key = parts
     return bucket_name, key
-
