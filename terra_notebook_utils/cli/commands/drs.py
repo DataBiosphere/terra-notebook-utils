@@ -150,12 +150,14 @@ def drs_info(args: argparse.Namespace):
 
 @drs_cli.command("access", arguments={
     "drs_url": dict(type=str),
+    ** workspace_args,
 })
 def drs_access(args: argparse.Namespace):
     """
     Get a signed url for a drs:// URI
     """
-    signed_url = drs.access(args.drs_url)['access_url']
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
+    signed_url = drs.access(args.drs_url, args.workspace, args.workspace_namespace)['access_url']
     print(json.dumps({'url': signed_url}, indent=2))
 
 @drs_cli.command("credentials", arguments={

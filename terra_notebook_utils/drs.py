@@ -89,16 +89,18 @@ def info(drs_url: str) -> dict:
     info = get_drs_info(drs_url)
     return dict(name=info.name, size=info.size, updated=info.updated, md5=info.md5)
 
-def access(drs_url: str) -> dict:
+def access(drs_url: str,
+           workspace_name: Optional[str]=WORKSPACE_NAME,
+           workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> dict:
     """Return a signed url for a drs:// URI, if available."""
+    enable_requester_pays(workspace_name, workspace_namespace)
     info = get_drs_info(drs_url)
-    if info.access_url:
-        return dict(access_url=info.access_url)
 
-    gs_client = storage.Client.from_service_account_info(info.credentials)
-    blob = gs_client.bucket(info.bucket_name).blob(info.key)
-    return dict(access_url=blob.generate_signed_url(datetime.timedelta(days=1), version="v4"))
-
+    url = info.access_url or gs.get_signed_url(bucket=info.bucket_name,
+                                               key=info.key,
+                                               sa_credentials=info.credentials,
+                                               requester_pays_user_project=workspace_namespace)
+    return dict(access_url=url)
 
 def _get_drs_gs_creds(response: dict) -> Optional[dict]:
     service_account_info = response.get('googleServiceAccount')
