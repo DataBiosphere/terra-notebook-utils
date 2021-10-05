@@ -100,7 +100,7 @@ def access(drs_url: str,
                                                key=info.key,
                                                sa_credentials=info.credentials,
                                                requester_pays_user_project=workspace_namespace)
-    return dict(access_url=url)
+    return dict(url=url)
 
 def _get_drs_gs_creds(response: dict) -> Optional[dict]:
     service_account_info = response.get('googleServiceAccount')

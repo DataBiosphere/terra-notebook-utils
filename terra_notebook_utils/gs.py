@@ -107,7 +107,6 @@ def get_signed_url(bucket: str,
     canonical_query_params["x-goog-expires"] = 3600
     canonical_query_params["x-goog-signedheaders"] = signed_headers
 
-    # sort params for deterministic hashing
     ordered_query_parameters = collections.OrderedDict(
         sorted(canonical_query_params.items())
     )
