@@ -1,5 +1,4 @@
 from terra_notebook_utils.blobstore import url
-from typing import Container
 from terra_notebook_utils import blobstore
 from azure.storage.blob import BlobServiceClient
 import os
@@ -27,7 +26,7 @@ class AzureBlob(blobstore.Blob):
         self.container_name = container_name
         self.blob_name = blob_name
         self.key = f"{self.container_name}/{self.blob_name}"    
-        self.url = f"https://{self.storage_account}.blob.core.windows.net/{self.container_name}/{self.blob_name}" 
+        self.url = f"https://{self.storage_account}.blob.core.windows.net/{self.container_name}/{self.blob_name}"
 
     @property
     def _azure_blob_client(self):
@@ -36,7 +35,10 @@ class AzureBlob(blobstore.Blob):
                 logger.info("Using Access Key")
                 access_key = os.environ.get("TERRA_NOTEBOOK_AZURE_ACCESS_KEY")
                 connection_str = f"DefaultEndpointsProtocol=https;AccountName={self.storage_account};AccountKey=#{access_key}"
-                self._blob_client = BlobServiceClient.from_connection_string(connection_str).get_blob_client(self.container_name, self.blob_name)
+                self._blob_client = BlobServiceClient.from_connection_string(
+                        connection_str
+                    ).get_blob_client(self.container_name, 
+                                      self.blob_name)
             else:
                 logger.info("Using DefaultAzureCredential")
                 token_credential = DefaultAzureCredential(logging_enable=True)
@@ -55,7 +57,6 @@ class AzureBlob(blobstore.Blob):
         except ResourceNotFoundError:
             raise blobstore.BlobNotFoundError(f"Could not find {url}")
         return blob
-
 
     def cloud_native_checksum(self) -> str:
         blob = self._azure_blob_client.get_blob_properties()
