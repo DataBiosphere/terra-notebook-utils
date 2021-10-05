@@ -10,7 +10,7 @@ sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config
 from tests.infra.server import ThreadedLocalServer, BaseHTTPRequestHandler
-from terra_notebook_utils.http_session import HTTPAdapter, Retry, http_session
+from terra_notebook_utils.http import HTTPAdapter, Retry, http_session
 
 
 class TestHandler(BaseHTTPRequestHandler):

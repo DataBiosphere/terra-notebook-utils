@@ -13,7 +13,7 @@ from requests import Response
 from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
 from terra_notebook_utils import workspace, gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 from terra_notebook_utils.utils import is_notebook
-from terra_notebook_utils.http_session import http
+from terra_notebook_utils.http import http
 from terra_notebook_utils.blobstore.gs import GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlob
 from terra_notebook_utils.blobstore.url import URLBlob
