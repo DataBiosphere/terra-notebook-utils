@@ -1,13 +1,14 @@
 """Utilities for working with DRS objects."""
 import os
-import traceback
+import datetime
+
 from functools import lru_cache
 from collections import namedtuple
 from typing import Dict, List, Tuple, Optional, Union
-
+from google.cloud import storage
 from requests import Response
 
-from terra_notebook_utils import utils, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
+from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
 from terra_notebook_utils import workspace, gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 from terra_notebook_utils.utils import is_notebook
 from terra_notebook_utils.http import http
@@ -54,7 +55,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
                        "You will not be able to access DRS URIs that interact with requester pays buckets.")
 
 def get_drs(drs_url: str) -> Response:
-    """Request DRS infromation from martha."""
+    """Request DRS information from martha."""
     access_token = gs.get_access_token()
 
     headers = {
@@ -77,16 +78,7 @@ def get_drs(drs_url: str) -> Response:
 
     if 200 != resp.status_code:
         logger.warning(resp.content)
-        response_json = resp.json()
-
-        if 'response' in response_json:
-            if 'text' in response_json['response']:
-                error_details = f"Error: {response_json['response']['text']}"
-            else:
-                error_details = ""
-        else:
-            error_details = ""
-
+        error_details = resp.json().get('response', {}).get('text', '')
         raise DRSResolutionError(f"Unexpected response while resolving DRS URI. Expected status 200, got "
                                  f"{resp.status_code}. {error_details}")
 
@@ -96,6 +88,17 @@ def info(drs_url: str) -> dict:
     """Return a curated subset of data from `get_drs`."""
     info = get_drs_info(drs_url)
     return dict(name=info.name, size=info.size, updated=info.updated, md5=info.md5)
+
+def access(drs_url: str) -> dict:
+    """Return a signed url for a drs:// URI, if available."""
+    info = get_drs_info(drs_url)
+    if info.access_url:
+        return dict(access_url=info.access_url)
+
+    gs_client = storage.Client.from_service_account_info(info.credentials)
+    blob = gs_client.bucket(info.bucket_name).blob(info.key)
+    return dict(access_url=blob.generate_signed_url(datetime.timedelta(days=1), version="v4"))
+
 
 def _get_drs_gs_creds(response: dict) -> Optional[dict]:
     service_account_info = response.get('googleServiceAccount')

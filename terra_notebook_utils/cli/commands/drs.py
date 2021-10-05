@@ -143,10 +143,20 @@ def drs_extract_tar_gz(args: argparse.Namespace):
 })
 def drs_info(args: argparse.Namespace):
     """
-    Get information about drs:// objects
+    Get information about a drs:// URI
     """
     info = drs.info(args.drs_url)
     print(json.dumps(info, indent=2))
+
+@drs_cli.command("access", arguments={
+    "drs_url": dict(type=str),
+})
+def drs_access(args: argparse.Namespace):
+    """
+    Get a signed url for a drs:// URI
+    """
+    signed_url = drs.access(args.drs_url)['access_url']
+    print(json.dumps({'url': signed_url}, indent=2))
 
 @drs_cli.command("credentials", arguments={
     "drs_url": dict(type=str),
