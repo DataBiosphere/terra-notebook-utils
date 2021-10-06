@@ -1,5 +1,6 @@
 """Utilities for working with DRS objects."""
 import os
+import requests
 import datetime
 
 from functools import lru_cache
@@ -96,11 +97,24 @@ def access(drs_url: str,
     enable_requester_pays(workspace_name, workspace_namespace)
     info = get_drs_info(drs_url)
 
-    url = info.access_url or gs.get_signed_url(bucket=info.bucket_name,
-                                               key=info.key,
-                                               sa_credentials=info.credentials,
-                                               requester_pays_user_project=workspace_namespace)
-    return dict(url=url)
+    if info.access_url:
+        return info.access_url
+
+    try:
+        url = gs.get_signed_url(bucket=info.bucket_name,
+                                key=info.key,
+                                sa_credentials=info.credentials)
+        # attempt to get the first byte; we'll get a requester pays error if we need requester pays
+        # TODO: hopefully Martha returns this information eventually and we can avoid this check,
+        #  but even in the meantime, there's probably a better way of doing this
+        response = requests.get(url, headers={'Range': 'bytes=0-1'})
+        response.raise_for_status()
+        return url
+    except requests.exceptions.HTTPError:
+        return gs.get_signed_url(bucket=info.bucket_name,
+                                 key=info.key,
+                                 sa_credentials=info.credentials,
+                                 requester_pays_user_project=workspace_namespace)
 
 def _get_drs_gs_creds(response: dict) -> Optional[dict]:
     service_account_info = response.get('googleServiceAccount')

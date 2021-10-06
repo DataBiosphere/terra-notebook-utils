@@ -528,12 +528,10 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
 
     @testmode("controlled_access")
     def test_access(self):
-        uri = "drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d"
-        signed_url = drs.access(uri)['access_url']
+        signed_url = drs.access('drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d')['access_url']
         # Use 'Range' header to only download the first two bytes
         # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
-        headers = {'Range': 'bytes=0-1'}
-        response = requests.get(signed_url, headers=headers)
+        response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
         response.raise_for_status()
 
 # These tests will only run on `make dev_env_access_test` command as they are testing DRS against Terra Dev env
