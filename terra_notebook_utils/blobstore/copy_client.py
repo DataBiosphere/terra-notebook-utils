@@ -73,6 +73,7 @@ def _copy_multipart_passthrough(src_blob: Union[URLBlob, CloudBlob], dst_blob: C
 
 def _do_copy(src_blob: AnyBlob, dst_blob: AnyBlob, multipart_threshold: int, indicator_type: Indicator):
     try:
+        logger.info(f"dst {dst_blob}")
         if isinstance(dst_blob, LocalBlob):
             _download(src_blob, dst_blob, indicator_type)
         elif isinstance(src_blob, type(dst_blob)):
