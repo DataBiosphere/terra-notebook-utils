@@ -225,14 +225,6 @@ def _resolve_bucket_target(url: str, info: DRSInfo) -> Tuple[str, str]:
         key = pfx
     return bucket_name, key
 
-
-def _resolve_azure_blob_path(azure_url: str) -> Tuple[str, str, str]:
-    assert azure_url.startswith("https://")
-    storage_account_with_endpoint, container_and_blob_name = azure_url[8:].split("/", 1)
-    storage_account = storage_account_with_endpoint.split(".", 1)[0]
-    container, blob_name = container_and_blob_name.split("/", 1)
-    return storage_account, container, blob_name
-
 def _resolve_local_target(filepath: str, info: DRSInfo) -> str:
     if filepath.endswith(os.path.sep) or os.path.isdir(filepath):
         filename = info.name or info.key.rsplit("/", 1)[-1]
@@ -253,8 +245,7 @@ def _do_copy_drs(drs_uri: str,
         dst_blob = GSBlob(bucket_name, key)
     # Azure url looks like https://qijlbdgpc4zqdee.blob.core.windows.net/qi-test-container/subdir/another/qi-blob3
     if "windows.net" in dst:
-        storage_account, container_name, blob_name = _resolve_azure_blob_path(dst)
-        dst_blob = AzureBlob(storage_account, container_name, blob_name)
+        dst_blob = copy_client.resolve_azure_blob_path(dst)
     else:
         info = get_drs_info(drs_uri)
         dst_blob = copy_client.blob_for_url(_resolve_local_target(dst, info))
