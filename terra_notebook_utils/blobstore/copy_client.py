@@ -78,7 +78,7 @@ def _do_copy(src_blob: AnyBlob, dst_blob: AnyBlob, multipart_threshold: int, ind
         elif isinstance(src_blob, type(dst_blob)):
             _copy_intra_cloud(src_blob, dst_blob, indicator_type)
         elif isinstance(dst_blob, AzureBlob):
-            assert isinstance(src_blob, (URLBlob, AzureBlob))
+            assert isinstance(src_blob, (URLBlob, GSBlob))
             _copy_azure(src_blob, dst_blob, indicator_type)
         elif isinstance(dst_blob, GSBlob):
             # The following assert prevents LocalBlob -> CloudBlob, i.e. upload. This should be removed in TNU is
