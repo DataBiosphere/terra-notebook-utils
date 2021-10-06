@@ -73,7 +73,6 @@ def _copy_multipart_passthrough(src_blob: Union[URLBlob, CloudBlob], dst_blob: C
 
 def _do_copy(src_blob: AnyBlob, dst_blob: AnyBlob, multipart_threshold: int, indicator_type: Indicator):
     try:
-        logger.info(f"dst {dst_blob}")
         if isinstance(dst_blob, LocalBlob):
             _download(src_blob, dst_blob, indicator_type)
         elif isinstance(src_blob, type(dst_blob)):
@@ -101,13 +100,6 @@ def _do_copy(src_blob: AnyBlob, dst_blob: AnyBlob, multipart_threshold: int, ind
             pass
         raise
 
-def resolve_azure_blob_path(azure_url: str) -> Tuple[str, str, str]:
-    assert azure_url.startswith("https://")
-    storage_account_with_endpoint, container_and_blob_name = azure_url[8:].split("/", 1)
-    storage_account = storage_account_with_endpoint.split(".", 1)[0]
-    container, blob_name = container_and_blob_name.split("/", 1)
-    return AzureBlob(storage_account, container, blob_name)
-
 def blob_for_url(url: str) -> AnyBlob:
     if url.startswith(GSBlobStore.schema):
         parts = url[len(GSBlobStore.schema):].split("/", 1)
@@ -115,9 +107,6 @@ def blob_for_url(url: str) -> AnyBlob:
             raise ValueError(f"Incorrect GS url '{url}'")
         bucket, key = parts
         return GSBlob(bucket, key)
-    elif "windows.net" in url:
-        azure_blob = resolve_azure_blob_path(url)
-        return azure_blob
     elif url.startswith(URLBlobStore.schema):
         return URLBlob(url)
     else:
