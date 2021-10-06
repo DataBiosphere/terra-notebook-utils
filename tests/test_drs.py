@@ -528,7 +528,24 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
 
     @testmode("controlled_access")
     def test_access(self):
-        signed_url = drs.access('drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d')['access_url']
+        with self.subTest('Testing DRS Access: drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d'):
+            signed_url = drs.access('drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d')
+            # Use 'Range' header to only download the first two bytes
+            # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
+            response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
+            response.raise_for_status()
+        # Proteomics Data Commons (PDC) data
+        with self.subTest('Testing DRS Access: drs://dg.4DFC:dg.4DFC/00040a6f-b7e5-4e5c-ab57-ee92a0ba8201'):
+            signed_url = drs.access('drs://dg.4DFC:dg.4DFC/00040a6f-b7e5-4e5c-ab57-ee92a0ba8201')
+            # Use 'Range' header to only download the first two bytes
+            # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
+            response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
+            response.raise_for_status()
+
+    @testmode("kids_first")
+    def test_access(self):
+        """Kid's First can't be linked while any other projects are linked so this test must be run alone."""
+        signed_url = drs.access('drs://dg.F82A1A:abe28363-7879-4c3a-95f1-e34603e8e3ee')
         # Use 'Range' header to only download the first two bytes
         # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
         response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})

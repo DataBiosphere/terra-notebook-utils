@@ -92,7 +92,7 @@ def info(drs_url: str) -> dict:
 
 def access(drs_url: str,
            workspace_name: Optional[str]=WORKSPACE_NAME,
-           workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> dict:
+           workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> str:
     """Return a signed url for a drs:// URI, if available."""
     enable_requester_pays(workspace_name, workspace_namespace)
     info = get_drs_info(drs_url)
