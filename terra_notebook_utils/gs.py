@@ -123,5 +123,6 @@ def get_signed_url(bucket: str,
                                 request_timestamp,
                                 credential_scope,
                                 hashlib.sha256(canonical_request.encode()).hexdigest()])
+
     signature = binascii.hexlify(creds.signer.sign(string_to_sign)).decode()
     return f'https://{host}{canonical_uri}?{canonical_query_string}&x-goog-signature={signature}'

@@ -100,21 +100,19 @@ def access(drs_url: str,
     if info.access_url:
         return info.access_url
 
-    try:
-        url = gs.get_signed_url(bucket=info.bucket_name,
-                                key=info.key,
-                                sa_credentials=info.credentials)
-        # attempt to get the first byte; we'll get a requester pays error if we need requester pays
-        # TODO: hopefully Martha returns this information eventually and we can avoid this check,
-        #  but even in the meantime, there's probably a better way of doing this
-        response = requests.get(url, headers={'Range': 'bytes=0-1'})
-        response.raise_for_status()
-        return url
-    except requests.exceptions.HTTPError:
+    url = gs.get_signed_url(bucket=info.bucket_name,
+                            key=info.key,
+                            sa_credentials=info.credentials)
+    # attempt to get the first byte; we'll get an HTTPError error if we need requester pays
+    # TODO: hopefully Martha returns this information eventually and we can avoid this check,
+    #  but even in the meantime, there's probably a better way of doing this
+    response = requests.get(url, headers={'Range': 'bytes=0-1'})
+    if b'Bucket is a requester pays bucket' in response.content and response.status_code >= 400:
         return gs.get_signed_url(bucket=info.bucket_name,
                                  key=info.key,
                                  sa_credentials=info.credentials,
                                  requester_pays_user_project=workspace_namespace)
+    return url
 
 def _get_drs_gs_creds(response: dict) -> Optional[dict]:
     service_account_info = response.get('googleServiceAccount')
