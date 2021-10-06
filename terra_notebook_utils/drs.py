@@ -152,7 +152,7 @@ def _drs_info_from_martha_v3(drs_url: str, drs_data: dict) -> DRSInfo:
 
 def get_drs_info(drs_url: str) -> DRSInfo:
     """Attempt to resolve gs:// url and credentials for a DRS object."""
-    assert drs_url.startswith("drs://"), "Expected DRS URI of the form 'drs://...', got '{drs_url}'"
+    assert drs_url.startswith("drs://"), f"Expected DRS URI of the form 'drs://...', got '{drs_url}'"
     drs_data = get_drs(drs_url).json()
     if 'dos' in drs_data:
         return _drs_info_from_martha_v2(drs_url, drs_data)
@@ -166,14 +166,13 @@ def get_drs_blob(drs_url_or_info: Union[str, DRSInfo],
     elif isinstance(drs_url_or_info, DRSInfo):
         info = drs_url_or_info
     else:
-        raise TypeError()
+        raise TypeError(f'Unexpected DRS input type ({type(drs_url_or_info)}): {drs_url_or_info}')
     blob: Union[URLBlob, GSBlob]
     if info.access_url is not None:
         blob = URLBlob(info.access_url, info.md5)
     else:
-        assert info.credentials
-        assert info.bucket_name
-        assert info.key
+        if not (info.credentials or info.bucket_name or info.key):
+            raise ValueError(f'DRS information is missing.  Check:\n{info}')
         blob = GSBlob(info.bucket_name, info.key, info.credentials, workspace_namespace)
     return blob
 
