@@ -543,7 +543,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             response.raise_for_status()
 
     @testmode("kids_first")
-    def test_access(self):
+    def test_kids_first_access(self):
         """Kid's First can't be linked while any other projects are linked so this test must be run alone."""
         signed_url = drs.access('drs://dg.F82A1A:abe28363-7879-4c3a-95f1-e34603e8e3ee')
         # Use 'Range' header to only download the first two bytes
