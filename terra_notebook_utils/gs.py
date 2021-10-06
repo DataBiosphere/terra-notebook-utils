@@ -16,19 +16,19 @@ from terra_notebook_utils import TERRA_DEPLOYMENT_ENV
 from terra_notebook_utils.logger import logger
 
 
-logging.getLogger("google.resumable_media.requests.download").setLevel(logger.getEffectiveLevel())
-logging.getLogger("gs_chunked_io.writer").setLevel(logger.getEffectiveLevel())
+logging.getLogger('google.resumable_media.requests.download').setLevel(logger.getEffectiveLevel())
+logging.getLogger('gs_chunked_io.writer').setLevel(logger.getEffectiveLevel())
 
 # Suppress the annoying google gcloud _CLOUD_SDK_CREDENTIALS_WARNING warnings
-warnings.filterwarnings("ignore", "Your application has authenticated using end user credentials")
+warnings.filterwarnings('ignore', 'Your application has authenticated using end user credentials')
 
 def get_access_token():
     """Retrieve the access token using the default GCP account returns the same result as
     `gcloud auth print-access-token`.
     """
-    if os.environ.get("TERRA_NOTEBOOK_GOOGLE_ACCESS_TOKEN"):
+    if os.environ.get('TERRA_NOTEBOOK_GOOGLE_ACCESS_TOKEN'):
         token = os.environ['TERRA_NOTEBOOK_GOOGLE_ACCESS_TOKEN']
-    elif os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+    elif os.environ.get('GOOGLE_APPLICATION_CREDENTIALS'):
         from oauth2client.service_account import ServiceAccountCredentials
         scopes = ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email']
         creds = ServiceAccountCredentials.from_json_keyfile_name(os.environ['GOOGLE_APPLICATION_CREDENTIALS'],
@@ -45,10 +45,10 @@ def reset_bond_cache():
     from terra_notebook_utils.http import http
     token = get_access_token()
     headers = {
-        'authorization': f"Bearer {token}",
-        'content-type': "application/json"
+        'authorization': f'Bearer {token}',
+        'content-type': 'application/json'
     }
-    resp = http.delete(f"http://broad-bond-{TERRA_DEPLOYMENT_ENV}.appspot.com/api/link/v1/fence/", headers=headers)
+    resp = http.delete(f'http://broad-bond-{TERRA_DEPLOYMENT_ENV}.appspot.com/api/link/v1/fence/', headers=headers)
     print(resp.content)
 
 def get_client(credentials_data: dict=None, project: str=None):
@@ -73,62 +73,55 @@ def get_signed_url(bucket: str,
     If requester_pays_user_project is included, that project will be billed for requester pays objects.
 
     See: https://cloud.google.com/storage/docs/access-control/signing-urls-manually
+
+    :param str bucket: The name of the Google bucket
+    :param str key: The name of the key referencing the Google bucket object
+    :param str sa_credentials: A dictionary containing service account credentials with access to the
+                               Google key being referenced.
+    :param str requester_pays_user_project: (Optional) Name of a Google project to bill if requester pays.
     """
     creds = service_account.Credentials.from_service_account_info(sa_credentials)
 
-    canonical_uri = f'/{quote(key.encode(), safe=b"/~")}'
+    canonical_uri = f'/{quote(key.encode("utf-8"), safe=b"/~")}'
 
     datetime_now = datetime.datetime.utcnow()
-    request_timestamp = datetime_now.strftime("%Y%m%dT%H%M%SZ")
-    datestamp = datetime_now.strftime("%Y%m%d")
+    request_timestamp = datetime_now.strftime('%Y%m%dT%H%M%SZ')
+    datestamp = datetime_now.strftime('%Y%m%d')
 
     client_email = creds.service_account_email
-    credential_scope = f"{datestamp}/auto/storage/goog4_request"
-    credential = f"{client_email}/{credential_scope}"
+    credential_scope = f'{datestamp}/auto/storage/goog4_request'
+    credential = f'{client_email}/{credential_scope}'
 
     host = f'{bucket}.storage.googleapis.com'
-    extension_headers = {"host": host}
-    ordered_headers = collections.OrderedDict(sorted(extension_headers.items()))
+    ordered_headers = collections.OrderedDict({'host': host})
 
-    canonical_headers = ""
+    canonical_headers = ''
     for k, v in ordered_headers.items():
-        lower_k = str(k).lower()
-        strip_v = str(v).lower()
-        canonical_headers += f"{lower_k}:{strip_v}\n"
+        canonical_headers += f'{str(k).lower()}:{str(v).lower()}\n'
 
-    signed_headers = ";".join([str(k).lower() for k in ordered_headers])
+    signed_headers = ';'.join([str(k).lower() for k in ordered_headers])
 
     canonical_query_params = dict()
+    canonical_query_params['x-goog-algorithm'] = 'GOOG4-RSA-SHA256'
+    canonical_query_params['x-goog-credential'] = credential
+    canonical_query_params['x-goog-date'] = request_timestamp
+    canonical_query_params['x-goog-expires'] = '3600'
+    canonical_query_params['x-goog-signedheaders'] = signed_headers
     if requester_pays_user_project:
-        canonical_query_params["userProject"] = requester_pays_user_project
-    canonical_query_params["x-goog-algorithm"] = "GOOG4-RSA-SHA256"
-    canonical_query_params["x-goog-credential"] = credential
-    canonical_query_params["x-goog-date"] = request_timestamp
-    canonical_query_params["x-goog-expires"] = '3600'
-    canonical_query_params["x-goog-signedheaders"] = signed_headers
+        canonical_query_params['userProject'] = requester_pays_user_project
 
-    ordered_query_parameters = collections.OrderedDict(
-        sorted(canonical_query_params.items())
-    )
+    ordered_query_parameters = collections.OrderedDict(sorted(canonical_query_params.items()))
     canonical_query_string = urlencode(ordered_query_parameters)
 
-    canonical_request = "\n".join(
-        [
-            'GET',
-            canonical_uri,
-            canonical_query_string,
-            canonical_headers,
-            signed_headers,
-            "UNSIGNED-PAYLOAD",
-        ]
-    )
-    string_to_sign = "\n".join(
-        [
-            "GOOG4-RSA-SHA256",
-            request_timestamp,
-            credential_scope,
-            hashlib.sha256(canonical_request.encode()).hexdigest(),
-        ]
-    )
+    canonical_request = '\n'.join(['GET',
+                                   canonical_uri,
+                                   canonical_query_string,
+                                   canonical_headers,
+                                   signed_headers,
+                                   'UNSIGNED-PAYLOAD'])
+    string_to_sign = '\n'.join(['GOOG4-RSA-SHA256',
+                                request_timestamp,
+                                credential_scope,
+                                hashlib.sha256(canonical_request.encode()).hexdigest()])
     signature = binascii.hexlify(creds.signer.sign(string_to_sign)).decode()
-    return f"https://{host}{canonical_uri}?{canonical_query_string}&x-goog-signature={signature}"
+    return f'https://{host}{canonical_uri}?{canonical_query_string}&x-goog-signature={signature}'
