@@ -84,7 +84,6 @@ class GSBlob(blobstore.Blob):
     def _gs_bucket(self):
         if not getattr(self, "_bucket", None):
             self._bucket = _get_native_bucket(self.bucket_name, self.credentials, self.billing_project)
-        print(self._bucket)
         return self._bucket
 
     def _get_native_blob(self) -> GSNativeBlob:
