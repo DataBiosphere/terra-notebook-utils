@@ -80,7 +80,22 @@ def get_signed_url(bucket: str,
                                Google key being referenced.
     :param str requester_pays_user_project: (Optional) Name of a Google project to bill if requester pays.
     """
-    creds = service_account.Credentials.from_service_account_info(sa_credentials)
+    default_service_account_credentials = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+
+    # these are the service account credentials returned from Martha
+    if sa_credentials:
+        creds = service_account.Credentials.from_service_account_info(sa_credentials)
+    # if Martha did not give us a service account, try the credentials set at GOOGLE_APPLICATION_CREDENTIALS
+    elif default_service_account_credentials:
+        creds = service_account.Credentials.from_service_account_file(default_service_account_credentials)
+    # we can't access the file
+    # TODO: implement signed urls for open access files?
+    else:
+        raise NotImplementedError(
+            '\n   Signed URLs are not currently supported for this DRS URI.\n'
+              '   If you have a service account that can access this DRS URI, setting GOOGLE_APPLICATION_CREDENTIALS should enable this.\n'
+              '   See: https://cloud.google.com/docs/authentication/production#passing_variable\n'
+        )
 
     canonical_uri = f'/{quote(key.encode("utf-8"), safe=b"/~")}'
 

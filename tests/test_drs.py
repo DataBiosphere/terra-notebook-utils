@@ -541,6 +541,14 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
             response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
             response.raise_for_status()
+        # Test a Jade resource
+        # requires that GOOGLE_APPLICATION_CREDENTIALS be set, because martha does not return a service account
+        with self.subTest('Testing DRS Access: drs://jade-terra.datarepo-prod.broadinstitute.org/v1_c3c588a8-be3f-467f-a244-da614be6889a_635984f0-3267-4201-b1ee-d82f64b8e6d1'):
+            signed_url = drs.access('drs://jade-terra.datarepo-prod.broadinstitute.org/v1_c3c588a8-be3f-467f-a244-da614be6889a_635984f0-3267-4201-b1ee-d82f64b8e6d1')
+            # Use 'Range' header to only download the first two bytes
+            # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
+            response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
+            response.raise_for_status()
 
     @testmode("kids_first")
     def test_kids_first_access(self):
