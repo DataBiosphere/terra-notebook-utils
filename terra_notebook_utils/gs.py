@@ -93,8 +93,9 @@ def get_signed_url(bucket: str,
     else:
         raise NotImplementedError(
             '\n   Signed URLs are not currently supported for this DRS URI.\n'
-              '   If you have a service account that can access this DRS URI, setting GOOGLE_APPLICATION_CREDENTIALS should enable this.\n'
-              '   See: https://cloud.google.com/docs/authentication/production#passing_variable\n'
+            '   If you have a service account that can access this DRS URI, '
+            'setting GOOGLE_APPLICATION_CREDENTIALS should enable this.\n'
+            '   See: https://cloud.google.com/docs/authentication/production#passing_variable\n'
         )
 
     canonical_uri = f'/{quote(key.encode("utf-8"), safe=b"/~")}'

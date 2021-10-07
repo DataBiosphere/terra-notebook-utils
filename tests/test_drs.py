@@ -528,23 +528,27 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
 
     @testmode("controlled_access")
     def test_access(self):
-        with self.subTest('Testing DRS Access: drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d'):
-            signed_url = drs.access('drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d')
+        uri = 'drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d'
+        with self.subTest(f'Testing DRS Access: {uri}'):
+            signed_url = drs.access(uri)
             # Use 'Range' header to only download the first two bytes
             # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
             response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
             response.raise_for_status()
         # Proteomics Data Commons (PDC) data
-        with self.subTest('Testing DRS Access: drs://dg.4DFC:dg.4DFC/00040a6f-b7e5-4e5c-ab57-ee92a0ba8201'):
-            signed_url = drs.access('drs://dg.4DFC:dg.4DFC/00040a6f-b7e5-4e5c-ab57-ee92a0ba8201')
+        pdc_uri = 'drs://dg.4DFC:dg.4DFC/00040a6f-b7e5-4e5c-ab57-ee92a0ba8201'
+        with self.subTest(f'Testing DRS Access: {pdc_uri}'):
+            signed_url = drs.access(pdc_uri)
             # Use 'Range' header to only download the first two bytes
             # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
             response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
             response.raise_for_status()
         # Test a Jade resource
         # requires that GOOGLE_APPLICATION_CREDENTIALS be set, because martha does not return a service account
-        with self.subTest('Testing DRS Access: drs://jade-terra.datarepo-prod.broadinstitute.org/v1_c3c588a8-be3f-467f-a244-da614be6889a_635984f0-3267-4201-b1ee-d82f64b8e6d1'):
-            signed_url = drs.access('drs://jade-terra.datarepo-prod.broadinstitute.org/v1_c3c588a8-be3f-467f-a244-da614be6889a_635984f0-3267-4201-b1ee-d82f64b8e6d1')
+        jade_uri = 'drs://jade-terra.datarepo-prod.broadinstitute.org/' \
+                   'v1_c3c588a8-be3f-467f-a244-da614be6889a_635984f0-3267-4201-b1ee-d82f64b8e6d1'
+        with self.subTest(f'Testing DRS Access: {jade_uri}'):
+            signed_url = drs.access(jade_uri)
             # Use 'Range' header to only download the first two bytes
             # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
             response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
