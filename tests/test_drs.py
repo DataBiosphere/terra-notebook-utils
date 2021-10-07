@@ -238,7 +238,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         for name in (expected_name, None):
             info = drs.DRSInfo(credentials=None,
                                access_url=None,
-                               md5=None,
+                               checksums=None,
                                bucket_name=None,
                                key=f"/foo/bar/{expected_name}",
                                name=name,
@@ -520,7 +520,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             name="phg001275.v1.TOPMed_WGS_MESA_v2.genotype-calls-vcf.WGS_markerset_grc38.c2.HMB-NPU.tar.gz",
             size=183312787601,
             updated="2019-12-26T20:20:39.396Z",
-            md5="aec4c2708e3a7ecaf6b66f12d63318ff",
+            checksums=dict(md5="aec4c2708e3a7ecaf6b66f12d63318ff"),
         )
         self.assertEqual(drs.info(uri), expected_info)
 
