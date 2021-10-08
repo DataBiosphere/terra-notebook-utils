@@ -101,7 +101,13 @@ terra-notebook-utils provides several methods and CLI commands useful for workin
 
 #### Python API
 
-Copy drs object to local file system or bucket:
+Return information about a DRS object:
+```
+from terra_notebook_utils import drs
+drs.info("drs://my-drs-url")
+```
+
+Copy a DRS object to local file system or bucket:
 ```
 from terra_notebook_utils import drs
 drs.copy("drs://my-drs-url", "gs://my-dst-bucket/my-dst-key")
@@ -110,15 +116,26 @@ drs.copy_batch(["drs://my-drs-url1", "drs://my-drs-url2"], "local_directory")
 drs.copy_batch(["drs://my-drs-url1", "drs://my-drs-url2"], "gs://my-dst-bucket/prefix")
 ```
 
-Head drs object:
+Head a DRS object:
 ```
 from terra_notebook_utils import drs
 drs.head("drs://my-drs-url", num_bytes=10)
 ```
 
+Return a signed URL to access a DRS object:
+```
+from terra_notebook_utils import drs
+drs.access("drs://my-drs-url")
+```
+
 #### CLI
 
-Copy drs object to local or bucket:
+Information about a DRS object:
+```
+tnu drs info drs://my-drs-url
+```
+
+Copy a DRS object to local or bucket:
 ```
 tnu drs copy drs://my-drs-url gs://my-dst-bucket/my-dstkey
 tnu drs copy drs://my-drs-url local_filepath
@@ -126,9 +143,14 @@ tnu drs copy-batch drs://my-drs-url1 drs://my-drs-url2 --dst local_directory
 tnu drs copy-batch drs://my-drs-url1 drs://my-drs-url2 --dst gs://my-dst-bucket/prefix
 ```
 
-Head drs object:
+Head a DRS object:
 ```
 tnu drs head drs://my-drs-url --bytes 10
+```
+
+Return a signed URL to access a DRS object:
+```
+tnu drs access drs://my-drs-url
 ```
 
 The CLI outputs error messages, not strack traces. Stack traces are available by defining the environment variable

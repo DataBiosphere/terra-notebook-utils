@@ -6,6 +6,8 @@ import base64
 import unittest
 import tempfile
 import subprocess
+import requests
+
 from uuid import uuid4
 from unittest import mock
 from contextlib import ExitStack
@@ -523,6 +525,43 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             md5="aec4c2708e3a7ecaf6b66f12d63318ff",
         )
         self.assertEqual(drs.info(uri), expected_info)
+
+    @testmode("controlled_access")
+    def test_access(self):
+        uri = 'drs://dg.4503/3677c5b9-3c68-48a7-af1c-62056ba82d1d'
+        with self.subTest(f'Testing DRS Access: {uri}'):
+            signed_url = drs.access(uri)
+            # Use 'Range' header to only download the first two bytes
+            # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
+            response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
+            response.raise_for_status()
+        # Proteomics Data Commons (PDC) data
+        pdc_uri = 'drs://dg.4DFC:dg.4DFC/00040a6f-b7e5-4e5c-ab57-ee92a0ba8201'
+        with self.subTest(f'Testing DRS Access: {pdc_uri}'):
+            signed_url = drs.access(pdc_uri)
+            # Use 'Range' header to only download the first two bytes
+            # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
+            response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
+            response.raise_for_status()
+        # Test a Jade resource
+        # requires that GOOGLE_APPLICATION_CREDENTIALS be set, because martha does not return a service account
+        jade_uri = 'drs://jade-terra.datarepo-prod.broadinstitute.org/' \
+                   'v1_c3c588a8-be3f-467f-a244-da614be6889a_635984f0-3267-4201-b1ee-d82f64b8e6d1'
+        with self.subTest(f'Testing DRS Access: {jade_uri}'):
+            signed_url = drs.access(jade_uri)
+            # Use 'Range' header to only download the first two bytes
+            # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
+            response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
+            response.raise_for_status()
+
+    @testmode("kids_first")
+    def test_kids_first_access(self):
+        """Kid's First can't be linked while any other projects are linked so this test must be run alone."""
+        signed_url = drs.access('drs://dg.F82A1A:abe28363-7879-4c3a-95f1-e34603e8e3ee')
+        # Use 'Range' header to only download the first two bytes
+        # https://cloud.google.com/storage/docs/json_api/v1/parameters#range
+        response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
+        response.raise_for_status()
 
 # These tests will only run on `make dev_env_access_test` command as they are testing DRS against Terra Dev env
 @testmode("dev_env_access")

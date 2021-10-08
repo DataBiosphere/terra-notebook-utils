@@ -74,6 +74,12 @@ class GSBlob(blobstore.Blob):
     def __setstate__(self, state):
         self.__dict__.update(state)
 
+    def __str__(self):
+        return str(dict(bucket_name=self.bucket_name,
+                        key=self.key,
+                        credentials=self.credentials,
+                        billing_project=self.billing_project))
+
     @property
     def _gs_bucket(self):
         if not getattr(self, "_bucket", None):

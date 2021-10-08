@@ -1,13 +1,15 @@
 """Utilities for working with DRS objects."""
 import os
-import traceback
+import requests
+import datetime
+
 from functools import lru_cache
 from collections import namedtuple
 from typing import Dict, List, Tuple, Optional, Union
-
+from google.cloud import storage
 from requests import Response
 
-from terra_notebook_utils import utils, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
+from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
 from terra_notebook_utils import workspace, gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 from terra_notebook_utils.utils import is_notebook
 from terra_notebook_utils.http import http
@@ -54,7 +56,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
                        "You will not be able to access DRS URIs that interact with requester pays buckets.")
 
 def get_drs(drs_url: str) -> Response:
-    """Request DRS infromation from martha."""
+    """Request DRS information from martha."""
     access_token = gs.get_access_token()
 
     headers = {
@@ -77,16 +79,7 @@ def get_drs(drs_url: str) -> Response:
 
     if 200 != resp.status_code:
         logger.warning(resp.content)
-        response_json = resp.json()
-
-        if 'response' in response_json:
-            if 'text' in response_json['response']:
-                error_details = f"Error: {response_json['response']['text']}"
-            else:
-                error_details = ""
-        else:
-            error_details = ""
-
+        error_details = resp.json().get('response', {}).get('text', '')
         raise DRSResolutionError(f"Unexpected response while resolving DRS URI. Expected status 200, got "
                                  f"{resp.status_code}. {error_details}")
 
@@ -96,6 +89,30 @@ def info(drs_url: str) -> dict:
     """Return a curated subset of data from `get_drs`."""
     info = get_drs_info(drs_url)
     return dict(name=info.name, size=info.size, updated=info.updated, md5=info.md5)
+
+def access(drs_url: str,
+           workspace_name: Optional[str]=WORKSPACE_NAME,
+           workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> str:
+    """Return a signed url for a drs:// URI, if available."""
+    enable_requester_pays(workspace_name, workspace_namespace)
+    info = get_drs_info(drs_url)
+
+    if info.access_url:
+        return info.access_url
+
+    url = gs.get_signed_url(bucket=info.bucket_name,
+                            key=info.key,
+                            sa_credentials=info.credentials)
+    # attempt to get the first byte; we'll get an HTTPError error if we need requester pays
+    # TODO: hopefully Martha returns this information eventually and we can avoid this check,
+    #  but even in the meantime, there's probably a better way of doing this
+    response = requests.get(url, headers={'Range': 'bytes=0-1'})
+    if b'Bucket is a requester pays bucket' in response.content and response.status_code >= 400:
+        return gs.get_signed_url(bucket=info.bucket_name,
+                                 key=info.key,
+                                 sa_credentials=info.credentials,
+                                 requester_pays_user_project=workspace_namespace)
+    return url
 
 def _get_drs_gs_creds(response: dict) -> Optional[dict]:
     service_account_info = response.get('googleServiceAccount')

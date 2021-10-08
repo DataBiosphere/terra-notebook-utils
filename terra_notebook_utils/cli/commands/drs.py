@@ -143,10 +143,22 @@ def drs_extract_tar_gz(args: argparse.Namespace):
 })
 def drs_info(args: argparse.Namespace):
     """
-    Get information about drs:// objects
+    Get information about a drs:// URI
     """
     info = drs.info(args.drs_url)
     print(json.dumps(info, indent=2))
+
+@drs_cli.command("access", arguments={
+    "drs_url": dict(type=str),
+    ** workspace_args,
+})
+def drs_access(args: argparse.Namespace):
+    """
+    Get a signed url for a drs:// URI
+    """
+    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
+    signed_url = drs.access(args.drs_url, args.workspace, args.workspace_namespace)
+    print(signed_url)
 
 @drs_cli.command("credentials", arguments={
     "drs_url": dict(type=str),
