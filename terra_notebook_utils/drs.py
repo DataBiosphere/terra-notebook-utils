@@ -21,7 +21,7 @@ from terra_notebook_utils.blobstore import Blob, copy_client, BlobNotFoundError
 from terra_notebook_utils.logger import logger
 
 
-DRSInfo = namedtuple("DRSInfo", "credentials access_url bucket_name key name size updated md5")
+DRSInfo = namedtuple("DRSInfo", "credentials access_url bucket_name key name size updated checksums")
 
 class DRSResolutionError(Exception):
     pass
@@ -88,7 +88,7 @@ def get_drs(drs_url: str) -> Response:
 def info(drs_url: str) -> dict:
     """Return a curated subset of data from `get_drs`."""
     info = get_drs_info(drs_url)
-    return dict(name=info.name, size=info.size, updated=info.updated, md5=info.md5)
+    return dict(name=info.name, size=info.size, updated=info.updated, checksums=info.checksums)
 
 def access(drs_url: str,
            workspace_name: Optional[str]=WORKSPACE_NAME,
@@ -140,7 +140,7 @@ def _drs_info_from_martha_v2(drs_url: str, drs_data: dict) -> DRSInfo:
         bucket_name, key = _parse_gs_url(data_url)
         return DRSInfo(credentials=_get_drs_gs_creds(drs_data),
                        access_url=None,
-                       md5=None,
+                       checksums=None,
                        bucket_name=bucket_name,
                        key=key,
                        name=data_object.get('name'),
@@ -160,7 +160,7 @@ def _drs_info_from_martha_v3(drs_url: str, drs_data: dict) -> DRSInfo:
 
     return DRSInfo(credentials=_get_drs_gs_creds(drs_data),
                    access_url=access_url,
-                   md5=drs_data.get('hashes', dict()).get('md5'),
+                   checksums=drs_data.get('hashes'),
                    bucket_name=drs_data.get('bucket'),
                    key=drs_data.get('name'),
                    name=drs_data.get('fileName'),
@@ -186,7 +186,7 @@ def get_drs_blob(drs_url_or_info: Union[str, DRSInfo],
         raise TypeError(f'Unexpected DRS input type ({type(drs_url_or_info)}): {drs_url_or_info}')
     blob: Union[URLBlob, GSBlob]
     if info.access_url is not None:
-        blob = URLBlob(info.access_url, info.md5)
+        blob = URLBlob(info.access_url, info.checksums.get('md5'))
     else:
         if not (info.credentials or info.bucket_name or info.key):
             raise ValueError(f'DRS information is missing.  Check:\n{info}')
