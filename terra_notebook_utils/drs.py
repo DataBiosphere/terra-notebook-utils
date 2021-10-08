@@ -2,7 +2,6 @@
 import os
 import requests
 import datetime
-from azure.storage import blob
 from terra_notebook_utils.blobstore.azure_blob_store import AzureBlob
 from functools import lru_cache
 from collections import namedtuple
