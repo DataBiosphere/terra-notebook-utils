@@ -1,6 +1,7 @@
 import os
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
+from terra_notebook_utils.blobstore.azure_blob_store import AzureBlob
 from typing import Optional, Union
 
 from getm import default_chunk_size
@@ -15,8 +16,8 @@ from terra_notebook_utils.logger import logger
 
 
 AnyBlobStore = Union[GSBlobStore, URLBlobStore, LocalBlobStore]
-AnyBlob = Union[GSBlob, URLBlob, LocalBlob]
-CloudBlob = GSBlob
+AnyBlob = Union[GSBlob, URLBlob, LocalBlob, AzureBlob]
+CloudBlob = Union[GSBlob]
 
 def _download(src_blob: AnyBlob, dst_blob: LocalBlob, indicator_type: Indicator):
     logger.debug(f"Starting download {src_blob.url} to {dst_blob.url}")
@@ -52,6 +53,13 @@ def _copy_oneshot_passthrough(src_blob: Union[URLBlob, CloudBlob], dst_blob: Clo
         logger.error(f"Checksum failed for {src_blob.url} to {dst_blob.url}")
         raise BlobstoreChecksumError()
 
+def _copy_azure(src_blob: AnyBlob, dst_blob: AzureBlob, indicator_type: Indicator):
+    logger.debug(f"Starting copying passthrough {src_blob.url} to {dst_blob.url}")
+    with Indicator.get(indicator_type, dst_blob.url, src_blob.size()) as indicator:
+        data = src_blob.get()
+        dst_blob.put(data)
+        indicator.add(len(data))
+
 def _copy_multipart_passthrough(src_blob: Union[URLBlob, CloudBlob], dst_blob: CloudBlob, indicator_type: Indicator):
     logger.debug(f"Starting multipart passthrough {src_blob.url} to {dst_blob.url}")
     with Indicator.get(indicator_type, dst_blob.url, src_blob.size()) as indicator:
@@ -69,10 +77,14 @@ def _do_copy(src_blob: AnyBlob, dst_blob: AnyBlob, multipart_threshold: int, ind
             _download(src_blob, dst_blob, indicator_type)
         elif isinstance(src_blob, type(dst_blob)):
             _copy_intra_cloud(src_blob, dst_blob, indicator_type)
-        elif isinstance(dst_blob, CloudBlob):
+        elif isinstance(dst_blob, AzureBlob):
+            assert isinstance(src_blob, (URLBlob, GSBlob))
+            _copy_azure(src_blob, dst_blob, indicator_type)
+        elif isinstance(dst_blob, GSBlob):
             # The following assert prevents LocalBlob -> CloudBlob, i.e. upload. This should be removed in TNU is
             # expected to upload local files to cloud locations. Checksumming logic will also need updates.
-            assert isinstance(src_blob, (URLBlob, CloudBlob))
+            assert isinstance(src_blob, (URLBlob, GSBlob))
+
             if src_blob.size() <= multipart_threshold:
                 _copy_oneshot_passthrough(src_blob, dst_blob, indicator_type)
             else:
