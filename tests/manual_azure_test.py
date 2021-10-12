@@ -18,7 +18,6 @@ def get_service(storage_account_name: str):
     return service
 
 client = get_service("qijlbdgpc4zqdee").get_blob_client("qi-test-container", "qi-blob-1")
-# client = get_service("qinonmanagedapp").get_blob_client("qi-test-container", "qi-blob-1")
 with open("./README.md", "rb") as data:
     client.upload_blob(data)
 

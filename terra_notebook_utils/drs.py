@@ -1,4 +1,5 @@
 """Utilities for working with DRS objects."""
+from logging import error
 import os
 import requests
 import datetime
@@ -224,12 +225,18 @@ def _resolve_bucket_target(url: str, info: DRSInfo) -> Tuple[str, str]:
         key = pfx
     return bucket_name, key
 
-
 def _resolve_azure_blob_path(azure_url: str) -> Tuple[str, str, str]:
-    assert azure_url.startswith("https://")
-    storage_account_with_endpoint, container_and_blob_name = azure_url[8:].split("/", 1)
-    storage_account = storage_account_with_endpoint.split(".", 1)[0]
-    container, blob_name = container_and_blob_name.split("/", 1)
+    try:
+        assert azure_url.startswith("https://")
+        storage_account_with_endpoint, container_and_blob_name = azure_url[8:].split("/", 1)
+        storage_account = storage_account_with_endpoint.split(".", 1)[0]
+        container, blob_name = container_and_blob_name.split("/", 1)
+    except IndexError:
+        logger.warning(f'Error parsing azure blob at: {azure_url}')
+        raise Exception(f'Error parsing azure blob at: {azure_url}')
+    except AssertionError:
+        logger.warning(f'Error parsing azure blob at: {azure_url}')
+        raise Exception('Azure url needs to start with https://')
     return storage_account, container, blob_name
 
 def _resolve_local_target(filepath: str, info: DRSInfo) -> str:
@@ -251,7 +258,7 @@ def _do_copy_drs(drs_uri: str,
         bucket_name, key = _resolve_bucket_target(dst, src_info)
         dst_blob = GSBlob(bucket_name, key)
     # Azure url looks like https://qijlbdgpc4zqdee.blob.core.windows.net/qi-test-container/subdir/another/qi-blob3
-    if "windows.net" in dst:
+    if dst.startswith('https://') and dst[len('https://'):].split('/')[0].endswith('.blob.core.windows.net'):
         storage_account, container_name, blob_name = _resolve_azure_blob_path(dst)
         dst_blob = AzureBlob(storage_account, container_name, blob_name)
     else:
