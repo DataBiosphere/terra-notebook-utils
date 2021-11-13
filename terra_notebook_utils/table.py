@@ -9,8 +9,7 @@ import requests
 
 from terra_notebook_utils.http import Retry, http_session
 from terra_notebook_utils.utils import _AsyncContextManager
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_NAME
-
+from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_NAMESPACE
 
 class Row(namedtuple("Row", "name attributes")):
     def __init__(self, *args, **kwargs):
@@ -57,12 +56,12 @@ class Writer(_AsyncContextManager):
     def __init__(self,
                  name: str,
                  workspace: Optional[str]=WORKSPACE_NAME,
-                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT,
+                 workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE,
                  tsv_upload_size: int=1024):
         self.name = name
         self._init_request_data()
         self._workspace = workspace
-        self._workspace_google_project = workspace_namespace
+        self._workspace_namespace = workspace_namespace
         self._tsv_upload_size = tsv_upload_size
 
     def _init_request_data(self):
@@ -136,7 +135,7 @@ class Writer(_AsyncContextManager):
                     del self._row_update_request_data[column_headers]
 
     def _do_fiss_upload(self, tsv: str, row_update_request_data: List[Tuple[Row, List[Dict[str, Any]]]]):
-        fiss().upload_entities(self._workspace_google_project,
+        fiss().upload_entities(self._workspace_namespace,
                                self._workspace,
                                tsv,
                                model="flexible").raise_for_status()
@@ -145,7 +144,7 @@ class Writer(_AsyncContextManager):
                 self.submit(self._do_fiss_updates, row, request_data)
 
     def _do_fiss_updates(self, row: Row, request_data: UPDATE_OPS):
-        fiss().update_entity(self._workspace_google_project,
+        fiss().update_entity(self._workspace_namespace,
                              self._workspace,
                              self.name,
                              row.name,
@@ -160,7 +159,7 @@ class Deleter(_AsyncContextManager):
     def __init__(self,
                  name: str,
                  workspace: Optional[str]=WORKSPACE_NAME,
-                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT,
+                 workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE,
                  rows_per_api_call: int=2000):
         self.name = name
         self._workspace = workspace
@@ -202,7 +201,7 @@ class Deleter(_AsyncContextManager):
             self._delete()
 
 def list_tables(workspace: Optional[str]=WORKSPACE_NAME,
-                workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Generator[str, None, None]:
+                workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE) -> Generator[str, None, None]:
     resp = fiss().list_entity_types(workspace_namespace, workspace)
     resp.raise_for_status()
     for table_name in resp.json():
@@ -214,7 +213,7 @@ def _get_rows_page(table: str,
                    sort_direction: str="asc",
                    filter_terms: Any=None,
                    workspace: Optional[str]=WORKSPACE_NAME,
-                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Tuple[int, dict]:
+                   workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE) -> Tuple[int, dict]:
     resp = fiss().get_entities_query(workspace_namespace,
                                      workspace,
                                      table,
@@ -232,7 +231,7 @@ def _attributes_from_fiss_response(attributes: Dict[str, Any]) -> ATTRIBUTES:
 
 def list_rows(table: str,
               workspace: Optional[str]=WORKSPACE_NAME,
-              workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Generator[Row, None, None]:
+              workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE) -> Generator[Row, None, None]:
     page_number = total_pages = 1
     while total_pages >= page_number:
         total_pages, rows = _get_rows_page(table,
@@ -246,7 +245,7 @@ def list_rows(table: str,
 def get_row(table: str,
             item: ROW_OR_NAME,
             workspace: Optional[str]=WORKSPACE_NAME,
-            workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Optional[Row]:
+            workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE) -> Optional[Row]:
     row_name = item.name if isinstance(item, Row) else item
     resp = fiss().get_entity(workspace_namespace, workspace, table, row_name)
     try:
@@ -262,20 +261,20 @@ def get_row(table: str,
 def put_rows(table: str,
              items: Iterable[Union[ROW_LIKE, ATTRIBUTES]],
              workspace: Optional[str]=WORKSPACE_NAME,
-             workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> List[str]:
+             workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE) -> List[str]:
     with Writer(table, workspace, workspace_namespace) as tw:
         return [tw.put_row(item) for item in items]
 
 def put_row(table: str,
             item: Union[ROW_LIKE, ATTRIBUTES],
             workspace: Optional[str]=WORKSPACE_NAME,
-            workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> str:
+            workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE) -> str:
     return put_rows(table, [item], workspace, workspace_namespace)[0]
 
 def del_rows(table: str,
              items: Iterable[ROW_OR_NAME],
              workspace: Optional[str]=WORKSPACE_NAME,
-             workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+             workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE):
     with Deleter(table, workspace, workspace_namespace) as td:
         for row in items:
             td.del_row(row)
@@ -283,13 +282,13 @@ def del_rows(table: str,
 def del_row(table: str,
             item: ROW_OR_NAME,
             workspace: Optional[str]=WORKSPACE_NAME,
-            workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+            workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE):
     del_rows(table, [item], workspace, workspace_namespace)
 
 
 def delete(table: str,
            workspace: Optional[str]=WORKSPACE_NAME,
-           workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+           workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE):
     with Deleter(table, workspace, workspace_namespace) as td:
         for row in list_rows(table, workspace, workspace_namespace):
             td.del_row(row)
@@ -297,7 +296,7 @@ def delete(table: str,
 def fetch_drs_url(table: str,
                   file_name: str,
                   workspace: Optional[str]=WORKSPACE_NAME,
-                  workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> str:
+                  workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE) -> str:
     """Fetch the first `object_id` associated with `pfb:file_name` from `table`. DRS urls, when available, are stored
     in `pfb:object_id`.
     Note: prior to 21-October, 2020, column headers omitted the "pfb:" prefix. For the time being, both formats are

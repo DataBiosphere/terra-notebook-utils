@@ -1,8 +1,8 @@
 import json
 import argparse
 
-from terra_notebook_utils import vcf
-from terra_notebook_utils.cli import dispatch, CLIConfig
+from terra_notebook_utils import vcf, WORKSPACE_GOOGLE_PROJECT
+from terra_notebook_utils.cli import dispatch
 from terra_notebook_utils.drs import blob_for_url
 
 
@@ -10,18 +10,13 @@ vcf_cli = dispatch.group("vcf", help=vcf.__doc__, arguments={
     "path": dict(
         help="local path, gs://, or drs://"
     ),
-    "--workspace": dict(
-        type=str,
-        default=None,
-        help="Workspace name. If not provided, the configured CLI workspace will be used."
-    ),
-    "--workspace-namespace": dict(
+    "--billing-project": dict(
         type=str,
         required=False,
-        default=CLIConfig.info['workspace_namespace'],
+        default=WORKSPACE_GOOGLE_PROJECT,
         help=("The billing project for GS requests. "
-              "If omitted, the CLI configured `workspace_google_project` will be used. "
-              "Note that DRS URLs also involve a GS request.")
+              "If omitted, the environment variables GOOGLE_PROJECT, "
+              "GCP_PROJECT, AND GCLOUD_PROJECT will be in that order.")
     ),
 })
 
@@ -30,8 +25,7 @@ def head(args: argparse.Namespace):
     """
     Output VCF header.
     """
-    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
-    blob = blob_for_url(args.path, args.workspace_namespace)
+    blob = blob_for_url(args.path, args.billing_project)
     info = vcf.VCFInfo.with_blob(blob)
     info.print_header()
 
@@ -40,8 +34,7 @@ def samples(args: argparse.Namespace):
     """
     Output VCF samples.
     """
-    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
-    blob = blob_for_url(args.path, args.workspace_namespace)
+    blob = blob_for_url(args.path, args.billing_project)
     info = vcf.VCFInfo.with_blob(blob)
     print(json.dumps(info.samples, indent=2))
 
@@ -50,8 +43,7 @@ def stats(args: argparse.Namespace):
     """
     Output VCF stats.
     """
-    args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
-    blob = blob_for_url(args.path, args.workspace_namespace)
+    blob = blob_for_url(args.path, args.billing_project)
     info = vcf.VCFInfo.with_blob(blob)
     stats = {
         'first data line chromosome': info.chrom,

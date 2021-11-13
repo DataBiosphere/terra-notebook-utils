@@ -18,11 +18,10 @@ workspace_args: Dict[str, Dict[str, Any]] = {
     ),
     "--workspace-namespace": dict(
         type=str,
-        required=False,
         default=CLIConfig.info['workspace_namespace'],
-        help=("The billing project for GS requests. "
-              "If omitted, the CLI configured `workspace_namespace` will be used. "
-              "Note that DRS URLs also involve a GS request.")
+        help=("The workspace namespace represents the parent folder of the workspace "
+              "(the Terra billing project) "
+              "If omitted, the CLI configured `workspace_namespace` will be used. ")
     )
 }
 

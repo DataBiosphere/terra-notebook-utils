@@ -13,7 +13,7 @@ from typing import Optional, Tuple
 
 import cli_builder
 
-from terra_notebook_utils import version, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
+from terra_notebook_utils import version, WORKSPACE_NAME, WORKSPACE_NAMESPACE
 from terra_notebook_utils.blobstore.progress import Indicator
 
 
@@ -45,9 +45,9 @@ class CLIConfig:
     @classmethod
     def resolve(cls, override_workspace: Optional[str], override_namespace: Optional[str]) -> Tuple[str, str]:
         workspace = override_workspace or (cls.info['workspace'] or WORKSPACE_NAME)
-        namespace = override_namespace or (cls.info['workspace_namespace'] or WORKSPACE_GOOGLE_PROJECT)
+        namespace = override_namespace or (cls.info['workspace_namespace'] or WORKSPACE_NAMESPACE)
         if not workspace:
-            raise RuntimeError("This command requies a workspace. Either pass in with `--workspace`,"
+            raise RuntimeError("This command requires a workspace. Either pass in with `--workspace`,"
                                " or configure the CLI (see `tnu config --help`). A default may also be configured by"
                                " setting the `WORKSPACE_NAME` env var")
         if namespace is None:
@@ -56,7 +56,7 @@ class CLIConfig:
         if not namespace:
             raise RuntimeError("This command requies a workspace namespace. Either pass in with `--workspace-namespace`"
                                ", or configure the CLI (see `tnu config --help`). A default may also be"
-                               " configued by setting the `WORKSPACE_GOOGLE_PROJECT` env var")
+                               " configued by setting the `WORKSPACE_NAMESPACE` env var")
         return workspace, namespace
 CLIConfig.load()
 

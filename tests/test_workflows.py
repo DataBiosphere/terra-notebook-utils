@@ -13,7 +13,7 @@ sys.path.insert(0, pkg_root)  # noqa
 from tests import config  # initialize the test environment
 from tests import CLITestMixin
 from tests.infra.testmode import testmode
-from terra_notebook_utils import workflows, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
+from terra_notebook_utils import workflows, WORKSPACE_NAME, WORKSPACE_NAMESPACE
 import terra_notebook_utils.cli.commands.workflows
 
 
@@ -41,7 +41,7 @@ class TestTerraNotebookUtilsWorkflows(unittest.TestCase):
 
 @testmode("workspace_access")
 class TestTerraNotebookUtilsWorkflowsCLI(CLITestMixin, unittest.TestCase):
-    common_kwargs = dict(workspace=WORKSPACE_NAME, workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+    common_kwargs = dict(workspace=WORKSPACE_NAME, workspace_namespace=WORKSPACE_NAMESPACE)
 
     def test_list_submissions(self):
         with mock.patch("terra_notebook_utils.workflows.list_submissions"):

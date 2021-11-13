@@ -12,7 +12,8 @@ sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config
 from terra_notebook_utils.cli import CLIConfig
-from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
+from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_NAMESPACE
+
 
 class CLIConfigOverride:
     def __init__(self, workspace, namespace, path=None):
@@ -38,7 +39,7 @@ class CLITestMixin:
 
     def _test_cmd(self, cmd: Callable, **kwargs):
         with NamedTemporaryFile() as tf:
-            with CLIConfigOverride(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, tf.name):
+            with CLIConfigOverride(WORKSPACE_NAME, WORKSPACE_NAMESPACE, tf.name):
                 CLIConfig.write()
                 args = argparse.Namespace(**dict(**self.common_kwargs, **kwargs))
                 out = io.StringIO()
