@@ -54,9 +54,10 @@ class CLIConfig:
             from terra_notebook_utils.workspace import get_workspace_namespace
             namespace = get_workspace_namespace(workspace)
         if not namespace:
-            raise RuntimeError("This command requies a workspace namespace. Either pass in with `--workspace-namespace`"
-                               ", or configure the CLI (see `tnu config --help`). A default may also be"
-                               " configued by setting the `WORKSPACE_NAMESPACE` env var")
+            raise RuntimeError("This command requires a workspace namespace. "
+                               "Either pass in with `--workspace-namespace`, "
+                               "or configure the CLI (see `tnu config --help`). A default may also be"
+                               " configured by setting the `WORKSPACE_NAMESPACE` env var")
         return workspace, namespace
 CLIConfig.load()
 
