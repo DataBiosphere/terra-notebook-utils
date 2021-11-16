@@ -1,8 +1,8 @@
 import os
 
 WORKSPACE_NAME = os.environ.get('WORKSPACE_NAME', None)
-WORKSPACE_NAMESPACE = os.environ.get('WORKSPACE_NAMESPACE')  # This env var is set in Terra notebooks
-WORKSPACE_GOOGLE_PROJECT = os.environ.get('GOOGLE_PROJECT')  # This env var is set in Terra notebooks
+WORKSPACE_NAMESPACE = os.environ.get('WORKSPACE_NAMESPACE')  # This env var is set in Terra Cloud Environments
+WORKSPACE_GOOGLE_PROJECT = os.environ.get('GOOGLE_PROJECT')  # This env var is set in Terra Cloud Environments
 TERRA_DEPLOYMENT_ENV = os.environ.get('TERRA_DEPLOYMENT_ENV', 'prod')
 MARTHA_URL_VERSION = os.environ.get('MARTHA_URL_VERSION', 'martha_v3')
 

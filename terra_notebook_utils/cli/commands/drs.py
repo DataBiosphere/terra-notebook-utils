@@ -19,7 +19,7 @@ workspace_args: Dict[str, Dict[str, Any]] = {
     "--workspace-namespace": dict(
         type=str,
         default=CLIConfig.info['workspace_namespace'],
-        help=("The workspace namespace represents the parent folder of the workspace "
+        help=("The workspace namespace represents the parent containing the workspace "
               "(the Terra billing project) "
               "If omitted, the CLI configured `workspace_namespace` will be used. ")
     )

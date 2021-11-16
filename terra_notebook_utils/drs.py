@@ -94,6 +94,10 @@ def access(drs_url: str,
            workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE,
            billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> str:
     """Return a signed url for a drs:// URI, if available."""
+    # We enable requester pays by specifying the workspace/namespace combo, not
+    # with the billing project. Rawls then enables requester pays for the attached
+    # project, but this won't work if a user specifies a project unattached to
+    # the Terra workspace.
     enable_requester_pays(workspace_name, workspace_namespace)
     info = get_drs_info(drs_url)
 
