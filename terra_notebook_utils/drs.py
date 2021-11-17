@@ -4,7 +4,7 @@ import requests
 
 from functools import lru_cache
 from collections import namedtuple
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Tuple, Optional, Union, Iterable
 from requests import Response
 
 from terra_notebook_utils import WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL, WORKSPACE_NAMESPACE, \
@@ -230,6 +230,10 @@ def _resolve_bucket_target(url: str, info: DRSInfo) -> Tuple[str, str]:
     return bucket_name, key
 
 def _resolve_local_target(filepath: str, info: DRSInfo) -> str:
+    # Checking for a file also prevents a batch_copy from overwriting
+    # the same file over and over again.
+    if os.path.isfile(filepath):
+        raise FileExistsError(filepath)
     if filepath.endswith(os.path.sep) or os.path.isdir(filepath):
         filename = info.name or info.key.rsplit("/", 1)[-1]
         filepath = os.path.join(os.path.abspath(filepath), filename)
@@ -302,10 +306,22 @@ manifest_schema = {
     },
 }
 
-def copy_batch(manifest: List[Dict[str, str]],
-               indicator_type: Indicator=Indicator.notebook_bar if is_notebook() else Indicator.log,
-               workspace_name: Optional[str]=WORKSPACE_NAME,
-               workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE):
+def copy_batch(drs_urls: Iterable[str],
+               dst_pfx: str,
+               indicator_type: Indicator = Indicator.notebook_bar if is_notebook() else Indicator.log,
+               workspace_name: Optional[str] = WORKSPACE_NAME,
+               workspace_namespace: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
+    enable_requester_pays(workspace_name, workspace_namespace)
+    with DRSCopyClient(indicator_type=indicator_type) as cc:
+        cc.workspace = workspace_name
+        cc.workspace_namespace = workspace_namespace
+        for drs_url in drs_urls:
+            cc.copy(drs_url, dst_pfx)
+
+def copy_batch_manifest(manifest: List[Dict[str, str]],
+                        indicator_type: Indicator=Indicator.notebook_bar if is_notebook() else Indicator.log,
+                        workspace_name: Optional[str]=WORKSPACE_NAME,
+                        workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE):
     from jsonschema import validate
     validate(instance=manifest, schema=manifest_schema)
     enable_requester_pays(workspace_name, workspace_namespace)
