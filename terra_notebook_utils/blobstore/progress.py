@@ -7,7 +7,6 @@ from getm import default_chunk_size
 from getm.progress import ProgressBar, ProgressLogger, sizeof_fmt
 
 from terra_notebook_utils.logger import logger
-from terra_notebook_utils.utils import is_notebook
 
 
 class NotebookProgressBar:
@@ -22,10 +21,10 @@ class NotebookProgressBar:
         self._duration = Label("")
         ui = HBox([self._percent, self._bar, Label(sizeof_fmt(size)), self._rate, self._duration])
         display(ui)
-        logger.info(f"'{type(self)}' displayed IPython widget '{ui}'.")
+        logger.debug(f"'{type(self)}' displayed IPython widget '{ui}'.")
 
     def add(self, sz: int):
-        logger.info(f"'{type(self)}' added progress '{sz}'.")
+        logger.debug(f"'{type(self)}' added progress '{sz}'.")
         duration = time.time() - self._start
         progress = self._bar.value + sz
         self._bar.value = progress
@@ -34,7 +33,7 @@ class NotebookProgressBar:
         self._duration.value = "{:.2f}s".format(duration)
 
     def __enter__(self):
-        logger.info(f"'{type(self)}' entered context.")
+        logger.debug(f"'{type(self)}' entered context.")
         self._start = time.time()
         self.add(0)
         return self
@@ -42,7 +41,7 @@ class NotebookProgressBar:
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is None:
             self.add(0)
-        logger.info(f"'{type(self)}' exited context.")
+        logger.debug(f"'{type(self)}' exited context.")
 
 class Indicator(enum.Enum):
     log = ProgressLogger
