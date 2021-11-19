@@ -24,7 +24,7 @@ from tests import config  # initialize the test environment
 from tests import CLITestMixin
 from tests.infra import SuppressWarningsMixin, get_env
 from tests.infra.testmode import testmode
-from terra_notebook_utils import drs, gs, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME
+from terra_notebook_utils import drs, gs, WORKSPACE_BUCKET, WORKSPACE_NAME, WORKSPACE_NAMESPACE
 import terra_notebook_utils.cli.commands.drs
 
 
@@ -387,15 +387,15 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
                 with self.subTest("Copy to local"):
                     with tempfile.NamedTemporaryFile() as tf:
                         drs.copy(self.drs_url, tf.name)
-                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
+                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
                 with self.subTest("Copy to bucket"):
                     enable_requester_pays.reset_mock()
                     drs.copy(self.drs_url, "gs://some_bucket/some_key")
-                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
+                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
                 with self.subTest("Extract tarball"):
                     enable_requester_pays.reset_mock()
                     drs.extract_tar_gz(self.drs_url)
-                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT)
+                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
 
     # test for when we get everything what we wanted in martha_v3 response
     def test_martha_v3_response(self):
@@ -577,7 +577,7 @@ class TestTerraNotebookUtilsCLI_DRSInDev(CLITestMixin, unittest.TestCase):
                                drs_url=self.jade_dev_url,
                                dst=tf.name,
                                workspace=WORKSPACE_NAME,
-                               workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+                               workspace_namespace=WORKSPACE_NAMESPACE)
                 with open(tf.name, "rb") as fh:
                     data = fh.read()
                 self.assertEqual(_crc32c(data), self.expected_crc32c)
@@ -588,7 +588,7 @@ class TestTerraNotebookUtilsCLI_DRSInDev(CLITestMixin, unittest.TestCase):
                            drs_url=self.jade_dev_url,
                            dst=f"gs://{WORKSPACE_BUCKET}/{key}",
                            workspace=WORKSPACE_NAME,
-                           workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+                           workspace_namespace=WORKSPACE_NAMESPACE)
             blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
             out = io.BytesIO()
             blob.download_to_file(out)
@@ -609,7 +609,7 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
                                drs_url=self.drs_url,
                                dst=tf.name,
                                workspace=WORKSPACE_NAME,
-                               workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+                               workspace_namespace=WORKSPACE_NAMESPACE)
                 with open(tf.name, "rb") as fh:
                     data = fh.read()
                 self.assertEqual(_crc32c(data), self.expected_crc32c)
@@ -620,7 +620,7 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
                            drs_url=self.drs_url,
                            dst=f"gs://{WORKSPACE_BUCKET}/{key}",
                            workspace=WORKSPACE_NAME,
-                           workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+                           workspace_namespace=WORKSPACE_NAMESPACE)
             blob = gs.get_client().bucket(WORKSPACE_BUCKET).get_blob(key)
             out = io.BytesIO()
             blob.download_to_file(out)
@@ -632,7 +632,7 @@ class TestTerraNotebookUtilsCLI_DRS(CLITestMixin, unittest.TestCase):
         def _test_head(uri: str, num_bytes: int, expected_error: Optional[Exception]=None):
             cmd = [f'{pkg_root}/dev_scripts/tnu', 'drs', 'head', uri,
                    f'--workspace={WORKSPACE_NAME}',
-                   f'--workspace-namespace={WORKSPACE_GOOGLE_PROJECT}']
+                   f'--workspace-namespace={WORKSPACE_NAMESPACE}']
             if 1 < num_bytes:
                 cmd.append(f"--bytes={num_bytes}")
             with self.subTest(uri=uri, num_bytes=num_bytes, expected_error=expected_error):

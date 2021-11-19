@@ -14,7 +14,7 @@ sys.path.insert(0, pkg_root)  # noqa
 from tests import config  # initialize the test environment
 from tests import CLITestMixin
 from tests.infra.testmode import testmode
-from terra_notebook_utils import table as tnu_table, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
+from terra_notebook_utils import table as tnu_table, WORKSPACE_NAME, WORKSPACE_NAMESPACE
 from tests.infra import SuppressWarningsMixin
 import terra_notebook_utils.cli.commands.table
 
@@ -135,7 +135,7 @@ class TestTerraNotebookUtilsTable(SuppressWarningsMixin, unittest.TestCase):
 
 @testmode("workspace_access")
 class TestTerraNotebookUtilsCLI_Table(CLITestMixin, unittest.TestCase):
-    common_kwargs = dict(workspace=WORKSPACE_NAME, workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+    common_kwargs = dict(workspace=WORKSPACE_NAME, workspace_namespace=WORKSPACE_NAMESPACE)
 
     @classmethod
     def setUpClass(cls):

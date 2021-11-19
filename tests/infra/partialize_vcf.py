@@ -13,7 +13,7 @@ sys.path.insert(0, pkg_root)  # noqa
 
 from tests import config  # initialize the test environment
 
-from terra_notebook_utils import gs, drs, WORKSPACE_GOOGLE_PROJECT
+from terra_notebook_utils import drs
 
 
 def partialize_vcf(uri: str, number_of_lines: int, zip_format: str="bgzip") -> bytes:

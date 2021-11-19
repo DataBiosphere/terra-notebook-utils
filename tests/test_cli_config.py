@@ -17,7 +17,7 @@ from tests import config  # initialize the test environment
 from tests import CLIConfigOverride
 from tests.infra.testmode import testmode
 from tests.infra import SuppressWarningsMixin
-from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT
+from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_NAMESPACE
 from terra_notebook_utils.cli import CLIConfig
 import terra_notebook_utils.cli.commands.config
 
@@ -45,7 +45,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
             with CLIConfigOverride(None, None):
                 workspace, namespace = CLIConfig.resolve(None, None)
                 self.assertEqual(WORKSPACE_NAME, workspace)
-                self.assertEqual(WORKSPACE_GOOGLE_PROJECT, namespace)
+                self.assertEqual(WORKSPACE_NAMESPACE, namespace)
         with self.subTest("Should fall back to config if arguments are None/False"):
             with CLIConfigOverride(str(uuid4()), str(uuid4())):
                 workspace, namespace = CLIConfig.resolve(None, None)
@@ -55,7 +55,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
             expected_namespace = str(uuid4())
             with mock.patch("terra_notebook_utils.workspace.get_workspace_namespace", return_value=expected_namespace):
                 with CLIConfigOverride(WORKSPACE_NAME, None):
-                    terra_notebook_utils.cli.WORKSPACE_GOOGLE_PROJECT = None
+                    terra_notebook_utils.cli.WORKSPACE_NAMESPACE = None
                     workspace, namespace = CLIConfig.resolve(None, None)
                     self.assertEqual(CLIConfig.info['workspace'], workspace)
                     self.assertEqual(expected_namespace, namespace)
@@ -64,7 +64,7 @@ class TestTerraNotebookUtilsCLI_Config(SuppressWarningsMixin, unittest.TestCase)
             expected_namespace = str(uuid4())
             with mock.patch("terra_notebook_utils.workspace.get_workspace_namespace", return_value=expected_namespace):
                 with CLIConfigOverride(str(uuid4()), str(uuid4())):
-                    terra_notebook_utils.cli.WORKSPACE_GOOGLE_PROJECT = None
+                    terra_notebook_utils.cli.WORKSPACE_NAMESPACE = None
                     workspace, namespace = CLIConfig.resolve(expected_workspace, expected_namespace)
                     self.assertEqual(expected_workspace, workspace)
                     self.assertEqual(expected_namespace, namespace)

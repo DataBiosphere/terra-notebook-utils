@@ -1,15 +1,14 @@
 """Utilities for working with DRS objects."""
 import os
 import requests
-import datetime
 
 from functools import lru_cache
 from collections import namedtuple
 from typing import Dict, List, Tuple, Optional, Union
-from google.cloud import storage
 from requests import Response
 
-from terra_notebook_utils import WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL
+from terra_notebook_utils import WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL, WORKSPACE_NAMESPACE, \
+    WORKSPACE_GOOGLE_PROJECT
 from terra_notebook_utils import workspace, gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 from terra_notebook_utils.utils import is_notebook
 from terra_notebook_utils.http import http
@@ -35,7 +34,7 @@ def _parse_gs_url(gs_url: str) -> Tuple[str, str]:
 
 @lru_cache()
 def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
-                          workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+                          workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE):
     assert workspace_name
     import urllib.parse
     encoded_workspace = urllib.parse.quote(workspace_name)
@@ -92,8 +91,13 @@ def info(drs_url: str) -> dict:
 
 def access(drs_url: str,
            workspace_name: Optional[str]=WORKSPACE_NAME,
-           workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> str:
+           workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE,
+           billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> str:
     """Return a signed url for a drs:// URI, if available."""
+    # We enable requester pays by specifying the workspace/namespace combo, not
+    # with the billing project. Rawls then enables requester pays for the attached
+    # project, but this won't work if a user specifies a project unattached to
+    # the Terra workspace.
     enable_requester_pays(workspace_name, workspace_namespace)
     info = get_drs_info(drs_url)
 
@@ -111,7 +115,7 @@ def access(drs_url: str,
         return gs.get_signed_url(bucket=info.bucket_name,
                                  key=info.key,
                                  sa_credentials=info.credentials,
-                                 requester_pays_user_project=workspace_namespace)
+                                 requester_pays_user_project=billing_project)
     return url
 
 def _get_drs_gs_creds(response: dict) -> Optional[dict]:
@@ -177,7 +181,7 @@ def get_drs_info(drs_url: str) -> DRSInfo:
         return _drs_info_from_martha_v3(drs_url, drs_data)
 
 def get_drs_blob(drs_url_or_info: Union[str, DRSInfo],
-                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Union[GSBlob, URLBlob]:
+                 billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Union[GSBlob, URLBlob]:
     if isinstance(drs_url_or_info, str):
         info = get_drs_info(drs_url_or_info)
     elif isinstance(drs_url_or_info, DRSInfo):
@@ -190,23 +194,24 @@ def get_drs_blob(drs_url_or_info: Union[str, DRSInfo],
     else:
         if not (info.credentials or info.bucket_name or info.key):
             raise ValueError(f'DRS information is missing.  Check:\n{info}')
-        blob = GSBlob(info.bucket_name, info.key, info.credentials, workspace_namespace)
+        blob = GSBlob(info.bucket_name, info.key, info.credentials, billing_project)
     return blob
 
-def blob_for_url(url: str, workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Blob:
+def blob_for_url(url: str, billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Blob:
     if url.startswith("drs://"):
-        return get_drs_blob(url, workspace_namespace)
+        return get_drs_blob(url, billing_project)
     else:
         return copy_client.blob_for_url(url)
 
 def head(drs_url: str,
          num_bytes: int = 1,
          workspace_name: Optional[str]=WORKSPACE_NAME,
-         workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+         workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE,
+         billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Head a DRS object by byte."""
     enable_requester_pays(workspace_name, workspace_namespace)
     try:
-        blob = get_drs_blob(drs_url, workspace_namespace)
+        blob = get_drs_blob(drs_url, billing_project)
         with blob.open(chunk_size=num_bytes) as fh:
             the_bytes = fh.read(num_bytes)
     except (DRSResolutionError, BlobNotFoundError) as e:
@@ -233,12 +238,10 @@ def _resolve_local_target(filepath: str, info: DRSInfo) -> str:
 def _do_copy_drs(drs_uri: str,
                  dst: str,
                  multipart_threshold: int,
-                 indicator_type: Indicator,
-                 workspace_name: Optional[str]=WORKSPACE_NAME,
-                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+                 indicator_type: Indicator):
     dst_blob: Union[GSBlob, URLBlob, LocalBlob]
     src_info = get_drs_info(drs_uri)
-    src_blob = get_drs_blob(src_info, workspace_namespace)
+    src_blob = get_drs_blob(src_info)
     if dst.startswith("gs://"):
         bucket_name, key = _resolve_bucket_target(dst, src_info)
         dst_blob = GSBlob(bucket_name, key)
@@ -256,15 +259,13 @@ class DRSCopyClient(copy_client.CopyClient):
                         drs_uri,
                         dst,
                         self.multipart_threshold,
-                        self.indicator_type,
-                        self.workspace,
-                        self.workspace_namespace)
+                        self.indicator_type)
 
 def copy(drs_uri: str,
          dst: str,
          indicator_type: Indicator=Indicator.notebook_bar if is_notebook() else Indicator.bar,
          workspace_name: Optional[str]=WORKSPACE_NAME,
-         workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+         workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE):
     """Copy a DRS object to either the local filesystem, or to a Google Storage location if `dst` starts with
     "gs://".
     """
@@ -279,7 +280,7 @@ def copy_to_bucket(drs_uri: str,
                    dst_bucket_name: Optional[str]=None,
                    indicator_type: Indicator=Indicator.notebook_bar if is_notebook() else Indicator.bar,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
-                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+                   workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE):
     """Resolve `drs_url` and copy into user-specified bucket `dst_bucket`.  If `dst_bucket` is None, copy into
     workspace bucket.
     """
@@ -304,7 +305,7 @@ manifest_schema = {
 def copy_batch(manifest: List[Dict[str, str]],
                indicator_type: Indicator=Indicator.notebook_bar if is_notebook() else Indicator.log,
                workspace_name: Optional[str]=WORKSPACE_NAME,
-               workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+               workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE):
     from jsonschema import validate
     validate(instance=manifest, schema=manifest_schema)
     enable_requester_pays(workspace_name, workspace_namespace)
@@ -317,13 +318,14 @@ def copy_batch(manifest: List[Dict[str, str]],
 def extract_tar_gz(drs_url: str,
                    dst: Optional[str]=None,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
-                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
+                   workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE,
+                   billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT):
     """Extract a `.tar.gz` archive resolved by a DRS url. 'dst' may be either a local filepath or a 'gs://' url.
     Default extraction is to the bucket for 'workspace'.
     """
     dst = dst or f"gs://{workspace.get_workspace_bucket(workspace_name)}"
     enable_requester_pays(workspace_name, workspace_namespace)
-    blob = get_drs_blob(drs_url, workspace_namespace)
+    blob = get_drs_blob(drs_url, billing_project)
     with blob.open() as fh:
         tar_gz.extract(fh, dst)
 

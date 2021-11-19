@@ -6,7 +6,7 @@ from typing import Dict, Generator, Optional, Tuple
 
 from firecloud import fiss
 
-from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, costs
+from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_NAMESPACE, costs
 from terra_notebook_utils.utils import concurrent_recursion, js_get
 from terra_notebook_utils.logger import logger
 
@@ -17,7 +17,7 @@ class TNUCostException(Exception):
     pass
 
 def list_submissions(workspace_name: Optional[str]=WORKSPACE_NAME,
-                     workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Generator[dict, None, None]:
+                     workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE) -> Generator[dict, None, None]:
     resp = fiss.fapi.list_submissions(workspace_namespace, workspace_name)
     resp.raise_for_status()
     for s in resp.json():
@@ -26,7 +26,7 @@ def list_submissions(workspace_name: Optional[str]=WORKSPACE_NAME,
 @lru_cache()
 def get_submission(submission_id: str,
                    workspace_name: Optional[str]=WORKSPACE_NAME,
-                   workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> dict:
+                   workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE) -> dict:
     """Get information about a submission, including member workflows."""
     resp = fiss.fapi.get_submission(workspace_namespace, workspace_name, submission_id)
     resp.raise_for_status()
@@ -36,7 +36,7 @@ def get_submission(submission_id: str,
 def get_workflow(submission_id: str,
                  workflow_id: str,
                  workspace_name: Optional[str]=WORKSPACE_NAME,
-                 workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> dict:
+                 workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE) -> dict:
     """Get information about a workflow."""
     resp = fiss.fapi.get_workflow_metadata(workspace_namespace, workspace_name, submission_id, workflow_id)
     resp.raise_for_status()
@@ -44,7 +44,7 @@ def get_workflow(submission_id: str,
 
 def get_all_workflows(submission_id: str,
                       workspace: Optional[str]=WORKSPACE_NAME,
-                      workspace_namespace: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Dict[str, dict]:
+                      workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE) -> Dict[str, dict]:
     """Retrieve all workflows, and workflow metadata, for `submission_id`, including sub-workflows."""
     workflows_metadata = dict()
 

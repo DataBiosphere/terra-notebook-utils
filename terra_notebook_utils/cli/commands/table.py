@@ -15,8 +15,9 @@ table_cli = dispatch.group("table", help=tnu_table.__doc__, arguments={
     "--workspace-namespace": dict(
         type=str,
         default=None,
-        help=("workspace namespace. If not provided, the configured CLI google billing "
-              "project will be used.")
+        help=("The workspace namespace represents the parent containing the workspace "
+              "(the Terra billing project) "
+              "If omitted, the CLI configured `workspace_namespace` will be used. ")
     ),
 })
 

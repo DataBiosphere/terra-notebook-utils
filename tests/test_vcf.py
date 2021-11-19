@@ -14,7 +14,7 @@ from tests import CLITestMixin
 from tests.infra import SuppressWarningsMixin, upload_data
 from tests.infra.partialize_vcf import partialize_vcf
 
-from terra_notebook_utils import vcf, drs, WORKSPACE_NAME, WORKSPACE_GOOGLE_PROJECT, WORKSPACE_BUCKET
+from terra_notebook_utils import vcf, drs, WORKSPACE_BUCKET, WORKSPACE_GOOGLE_PROJECT
 import terra_notebook_utils.cli.commands.vcf
 
 
@@ -45,7 +45,7 @@ class TestTerraNotebookUtilsVCF(SuppressWarningsMixin, unittest.TestCase):
                     self.assertEqual("10133", info.pos)
 
 class TestTerraNotebookUtilsCLI_VCF(SuppressWarningsMixin, CLITestMixin, unittest.TestCase):
-    common_kwargs = dict(workspace=WORKSPACE_NAME, workspace_namespace=WORKSPACE_GOOGLE_PROJECT)
+    common_kwargs = dict(billing_project=WORKSPACE_GOOGLE_PROJECT)
     vcf_drs_url = "drs://dg.4503/57f58130-2d66-4d46-9b2b-539f7e6c2080"
 
     @classmethod
