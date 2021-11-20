@@ -87,7 +87,7 @@ def drs_copy_batch(args: argparse.Namespace):
     if args.drs_uris:
         assert args.manifest is None, "Cannot use 'drs_uris' with '--manifest'"
         assert args.dst is not None, "Must specify a destination with '--dst'"
-        drs.copy_batch(args.drs_uris, args.dst, **kwargs)
+        drs.copy_batch_urls(args.drs_uris, args.dst, **kwargs)
     elif args.manifest:
         with open(args.manifest) as fh:
             manifest = json.loads(fh.read())

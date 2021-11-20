@@ -294,6 +294,34 @@ def copy_to_bucket(drs_uri: str,
         dst_url += f"/{dst_key}"
     copy(drs_uri, dst_url, indicator_type, workspace_name, workspace_namespace)
 
+def copy_batch(manifest: List[Dict[str, str]] = None,
+               drs_urls: Iterable[str] = None,
+               dst_pfx: str = None,
+               indicator_type: Indicator = Indicator.notebook_bar if is_notebook() else Indicator.log,
+               workspace_name: Optional[str] = WORKSPACE_NAME,
+               workspace_namespace: Optional[str] = WORKSPACE_NAMESPACE):
+    assert (manifest is None) != (drs_urls is None), "Specify either 'manifest' or 'drs_urls' and 'dst_pfx'"
+    if manifest:
+        assert dst_pfx is None
+        copy_batch_manifest(manifest, indicator_type, workspace_name, workspace_namespace)
+    elif drs_urls:
+        assert dst_pfx is not None, ''
+        copy_batch_urls(drs_urls, dst_pfx, indicator_type, workspace_name, workspace_namespace)
+    else:
+        assert False
+
+def copy_batch_urls(drs_urls: Iterable[str],
+                    dst_pfx: str,
+                    indicator_type: Indicator = Indicator.notebook_bar if is_notebook() else Indicator.log,
+                    workspace_name: Optional[str] = WORKSPACE_NAME,
+                    workspace_namespace: Optional[str] = WORKSPACE_NAMESPACE):
+    enable_requester_pays(workspace_name, workspace_namespace)
+    with DRSCopyClient(indicator_type=indicator_type) as cc:
+        cc.workspace = workspace_name
+        cc.workspace_namespace = workspace_namespace
+        for drs_url in drs_urls:
+            cc.copy(drs_url, dst_pfx)
+
 manifest_schema = {
     "type": "array",
     "items": {
@@ -305,18 +333,6 @@ manifest_schema = {
         "required": ["drs_uri", "dst"],
     },
 }
-
-def copy_batch(drs_urls: Iterable[str],
-               dst_pfx: str,
-               indicator_type: Indicator = Indicator.notebook_bar if is_notebook() else Indicator.log,
-               workspace_name: Optional[str] = WORKSPACE_NAME,
-               workspace_namespace: Optional[str] = WORKSPACE_GOOGLE_PROJECT):
-    enable_requester_pays(workspace_name, workspace_namespace)
-    with DRSCopyClient(indicator_type=indicator_type) as cc:
-        cc.workspace = workspace_name
-        cc.workspace_namespace = workspace_namespace
-        for drs_url in drs_urls:
-            cc.copy(drs_url, dst_pfx)
 
 def copy_batch_manifest(manifest: List[Dict[str, str]],
                         indicator_type: Indicator=Indicator.notebook_bar if is_notebook() else Indicator.log,
