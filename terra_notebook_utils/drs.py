@@ -302,11 +302,11 @@ def copy_batch(manifest: Optional[List[Dict[str, str]]] = None,
                workspace_namespace: Optional[str] = WORKSPACE_NAMESPACE):
     if (manifest is None) == (drs_urls is None):
         raise ValueError("Specify either 'manifest' or 'drs_urls' and 'dst_pfx'")
-    elif manifest:
+    elif manifest is not None:
         if dst_pfx is not None:
             raise ValueError('dst_pfx not compatible with manifest')
         copy_batch_manifest(manifest, indicator_type, workspace_name, workspace_namespace)
-    elif drs_urls:
+    elif drs_urls is not None:
         if dst_pfx is None:
             raise ValueError('dst_pfx required with drs_urls')
         copy_batch_urls(drs_urls, dst_pfx, indicator_type, workspace_name, workspace_namespace)
