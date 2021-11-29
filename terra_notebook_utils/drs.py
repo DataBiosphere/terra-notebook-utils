@@ -233,7 +233,7 @@ def _resolve_local_target(filepath: str, info: DRSInfo) -> str:
     # Checking for a file also prevents a batch_copy from overwriting
     # the same file over and over again.
     if os.path.isfile(filepath):
-        raise FileExistsError(filepath)
+        raise FileExistsError(f'Cannot copy {info.name} to {filepath} because file already exists')
     if filepath.endswith(os.path.sep) or os.path.isdir(filepath):
         filename = info.name or info.key.rsplit("/", 1)[-1]
         filepath = os.path.join(os.path.abspath(filepath), filename)
@@ -294,18 +294,21 @@ def copy_to_bucket(drs_uri: str,
         dst_url += f"/{dst_key}"
     copy(drs_uri, dst_url, indicator_type, workspace_name, workspace_namespace)
 
-def copy_batch(manifest: List[Dict[str, str]] = None,
-               drs_urls: Iterable[str] = None,
-               dst_pfx: str = None,
+def copy_batch(manifest: Optional[List[Dict[str, str]]] = None,
+               drs_urls: Optional[Iterable[str]] = None,
+               dst_pfx: Optional[str] = None,
                indicator_type: Indicator = Indicator.notebook_bar if is_notebook() else Indicator.log,
                workspace_name: Optional[str] = WORKSPACE_NAME,
                workspace_namespace: Optional[str] = WORKSPACE_NAMESPACE):
-    assert (manifest is None) != (drs_urls is None), "Specify either 'manifest' or 'drs_urls' and 'dst_pfx'"
-    if manifest:
-        assert dst_pfx is None
+    if (manifest is None) == (drs_urls is None):
+        raise ValueError("Specify either 'manifest' or 'drs_urls' and 'dst_pfx'")
+    elif manifest:
+        if dst_pfx is not None:
+            raise ValueError('dst_pfx not compatible with manifest')
         copy_batch_manifest(manifest, indicator_type, workspace_name, workspace_namespace)
     elif drs_urls:
-        assert dst_pfx is not None, ''
+        if dst_pfx is None:
+            raise ValueError('dst_pfx required with drs_urls')
         copy_batch_urls(drs_urls, dst_pfx, indicator_type, workspace_name, workspace_namespace)
     else:
         assert False
