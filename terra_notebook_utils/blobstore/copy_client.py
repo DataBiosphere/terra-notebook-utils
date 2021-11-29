@@ -82,6 +82,7 @@ def _do_copy(src_blob: AnyBlob, dst_blob: AnyBlob, multipart_threshold: int, ind
         logger.debug(f"Copied {src_blob.url} to {dst_blob.url}")
     except Exception:
         logger.exception(f"copy failed: '{src_blob.url}' to '{dst_blob.url}'")
+        # FIXME: The finally block is useless, but what was the intent? Probably idempotent delete
         try:
             dst_blob.delete()
         finally:

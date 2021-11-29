@@ -80,19 +80,20 @@ def drs_copy_batch(args: argparse.Namespace):
       }
     ]
     """
-    if args.drs_uris:
-        assert args.manifest is None, "Cannot use 'drs_uris' with '--manifest'"
-        manifest = [dict(drs_uri=uri, dst=args.dst) for uri in args.drs_uris]
-    elif args.manifest:
-        with open(args.manifest) as fh:
-            manifest = json.loads(fh.read())
-    else:
-        raise RuntimeError("Must supply either 'drs_uris' or '--manifest'")
     args.workspace, args.workspace_namespace = CLIConfig.resolve(args.workspace, args.workspace_namespace)
     kwargs: Dict[str, Any] = dict(workspace_name=args.workspace, workspace_namespace=args.workspace_namespace)
     if CLIConfig.progress_indicator_type() is not None:
         kwargs['indicator_type'] = CLIConfig.progress_indicator_type()
-    drs.copy_batch(manifest, **kwargs)
+    if args.drs_uris:
+        assert args.manifest is None, "Cannot use 'drs_uris' with '--manifest'"
+        assert args.dst is not None, "Must specify a destination with '--dst'"
+        drs.copy_batch_urls(args.drs_uris, args.dst, **kwargs)
+    elif args.manifest:
+        with open(args.manifest) as fh:
+            manifest = json.loads(fh.read())
+        drs.copy_batch_manifest(manifest, **kwargs)
+    else:
+        raise RuntimeError("Must supply either 'drs_uris' or '--manifest'")
 
 @drs_cli.command("head", arguments={
     "drs_url": dict(type=str),
