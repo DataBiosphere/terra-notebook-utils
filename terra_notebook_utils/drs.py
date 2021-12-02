@@ -294,12 +294,12 @@ def copy_to_bucket(drs_uri: str,
         dst_url += f"/{dst_key}"
     copy(drs_uri, dst_url, indicator_type, workspace_name, workspace_namespace)
 
-def copy_batch(manifest: Optional[List[Dict[str, str]]] = None,
-               drs_urls: Optional[Iterable[str]] = None,
+def copy_batch(drs_urls: Optional[Iterable[str]] = None,
                dst_pfx: Optional[str] = None,
-               indicator_type: Indicator = Indicator.notebook_bar if is_notebook() else Indicator.log,
                workspace_name: Optional[str] = WORKSPACE_NAME,
-               workspace_namespace: Optional[str] = WORKSPACE_NAMESPACE):
+               workspace_namespace: Optional[str] = WORKSPACE_NAMESPACE,
+               indicator_type: Indicator = Indicator.notebook_bar if is_notebook() else Indicator.log,
+               manifest: Optional[List[Dict[str, str]]] = None):
     if (manifest is None) == (drs_urls is None):
         raise ValueError("Specify either 'manifest' or 'drs_urls' and 'dst_pfx'")
     elif manifest is not None:
