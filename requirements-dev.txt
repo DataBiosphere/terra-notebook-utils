@@ -5,4 +5,5 @@ twine
 google-crc32c >= 1.0.0
 miniwdl
 herzog
+pytz
 -r requirements.txt
