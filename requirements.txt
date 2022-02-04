@@ -7,5 +7,4 @@ oauth2client
 jmespath == 0.10.0
 getm >= 0.0.4, < 0.1.0
 jsonschema
-pytz
 
