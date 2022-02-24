@@ -102,7 +102,7 @@ def access(drs_url: str,
     info = get_drs_info(drs_url)
 
     if info.access_url:
-        return info.access_url
+        return info.access_url.strip()
 
     url = gs.get_signed_url(bucket=info.bucket_name,
                             key=info.key,
@@ -112,11 +112,11 @@ def access(drs_url: str,
     #  but even in the meantime, there's probably a better way of doing this
     response = requests.get(url, headers={'Range': 'bytes=0-1'})
     if b'Bucket is a requester pays bucket' in response.content and response.status_code >= 400:
-        return gs.get_signed_url(bucket=info.bucket_name,
-                                 key=info.key,
-                                 sa_credentials=info.credentials,
-                                 requester_pays_user_project=billing_project)
-    return url
+        url = gs.get_signed_url(bucket=info.bucket_name,
+                                key=info.key,
+                                sa_credentials=info.credentials,
+                                requester_pays_user_project=billing_project)
+    return url.strip()
 
 def _get_drs_gs_creds(response: dict) -> Optional[dict]:
     service_account_info = response.get('googleServiceAccount')
