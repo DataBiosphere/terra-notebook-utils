@@ -142,3 +142,17 @@ def get_signed_url(bucket: str,
 
     signature = binascii.hexlify(creds.signer.sign(string_to_sign)).decode()
     return f'https://{host}{canonical_uri}?{canonical_query_string}&x-goog-signature={signature}'
+
+def list_bucket(prefix="", bucket=os.environ['WORKSPACE_BUCKET']):
+    """
+    Lists blobs in "gs://bucket/prefix/"; used by BYOD notebook. Note that Google's list_blobs()
+    is partially depreciated, and later we may need to call it like this instead:
+    gs.get_client().list_blobs(stripped_bucket, prefix=prefix)
+    """
+    stripped_bucket = strip_gs(bucket)
+    for blob in get_client().bucket(stripped_bucket).list_blobs(prefix=prefix):
+        yield blob.name
+
+def strip_gs(bucket_with_gs):
+    # Turns "gs://some-bucket" into "some-bucket" which is the format list_blobs() requires
+    return bucket_with_gs[5:]
