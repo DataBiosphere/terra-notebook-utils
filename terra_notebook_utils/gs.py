@@ -143,7 +143,7 @@ def get_signed_url(bucket: str,
     signature = binascii.hexlify(creds.signer.sign(string_to_sign)).decode()
     return f'https://{host}{canonical_uri}?{canonical_query_string}&x-goog-signature={signature}'
 
-def list_bucket(prefix: str = '', bucket: Optional[str] = None):
+def list_bucket(bucket: Optional[str] = None, prefix: str = ''):
     """Lists blobs in "gs://bucket/prefix/"."""
     bucket = bucket or os.environ.get('WORKSPACE_BUCKET')
     if bucket.startswith('gs://'):
