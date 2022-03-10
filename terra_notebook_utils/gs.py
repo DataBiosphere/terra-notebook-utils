@@ -145,7 +145,7 @@ def get_signed_url(bucket: str,
 
 def list_bucket(prefix: str = '', bucket: Optional[str] = None):
     """Lists blobs in "gs://bucket/prefix/"."""
-    bucket = bucket or os.environ['WORKSPACE_BUCKET']
+    bucket = bucket or os.environ.get('WORKSPACE_BUCKET')
     if bucket.startswith('gs://'):
         bucket = bucket[len('gs://'):]
 
