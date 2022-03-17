@@ -250,7 +250,7 @@ This will run tests against Terra and Martha Prod (make sure you have proper acc
 The commands mentioned in `common.mk` file are used for the release process.
 Steps:
 - if you don't have a [PyPI](https://pypi.org/) account, please create one
-- you should be a collaborator in PyPI for Terra Notebook Utils. If you are not, please ask Brian Hannafious to add
+- you should be a collaborator in PyPI for Terra Notebook Utils. If you are not, please ask Lon Blauvelt (lblauvel at ucsc dot edu) to add
 you as a collaborator
 - follow the setup instructions as mentioned in `Tests` section above for env Prod; make sure you have access
 to the DRS urls, workspaces and buckets
@@ -261,7 +261,7 @@ Once tests pass, you can move to the release step
     - For breaking API changes, use `make release_minor`
     - For a major release, use `make release_major`
 
-If a release needs to be rolled back for some reason, please contact Brian Hannafious for help.
+If a release needs to be rolled back for some reason, please contact Lon Blauvelt (lblauvel at ucsc dot edu) for help.
 
 ## Links
 Project home page [GitHub](https://github.com/DataBiosphere/terra-notebook-utils)
