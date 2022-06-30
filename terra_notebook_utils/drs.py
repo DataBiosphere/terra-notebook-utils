@@ -35,7 +35,12 @@ def _parse_gs_url(gs_url: str) -> Tuple[str, str]:
 @lru_cache()
 def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
                           workspace_namespace: Optional[str]=WORKSPACE_NAMESPACE):
-    assert workspace_name
+    if not workspace_name:
+        raise RuntimeError('Workspace name is not set.  Please set the environment variable '
+                           'WORKSPACE_NAME with the name of a valid Terra Workspace.')
+    if not workspace_namespace:
+        raise RuntimeError("Workspace namespace is not set.  Please set the environment variable "
+                           "WORKSPACE_NAMESPACE with the name of your valid Terra Workspace Google Billing Project.")
     import urllib.parse
     encoded_workspace = urllib.parse.quote(workspace_name)
     rawls_url = (f"https://rawls.dsde-{TERRA_DEPLOYMENT_ENV}.broadinstitute.org/api/workspaces/"
