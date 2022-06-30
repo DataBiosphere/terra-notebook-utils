@@ -1,3 +1,5 @@
+# Changes for v0.10.0 (2022-06-30)
+
 # Changes for v0.9.0 (2022-06-30)
 Better error handling. (#387)
 Update contact info in README.
