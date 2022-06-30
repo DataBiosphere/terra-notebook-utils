@@ -3,10 +3,11 @@ import os
 from uuid import uuid4
 from functools import lru_cache
 from collections import defaultdict, namedtuple
-from typing import Any, Dict, Generator, Iterable, List, Mapping, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Set, Tuple, Union
 
 import requests
 
+from terra_notebook_utils.compat.typing import Iterable
 from terra_notebook_utils.http import Retry, http_session
 from terra_notebook_utils.utils import _AsyncContextManager
 from terra_notebook_utils import WORKSPACE_NAME, WORKSPACE_NAMESPACE

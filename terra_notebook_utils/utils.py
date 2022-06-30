@@ -2,9 +2,11 @@ import json
 import threading
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor, Future, as_completed
-from typing import Any, Callable, Dict, Optional, Iterable, Set
+from typing import Any, Callable, Dict, Optional, Set
 
 import jmespath
+
+from terra_notebook_utils.compat.typing import Iterable
 
 
 class _AsyncContextManager:

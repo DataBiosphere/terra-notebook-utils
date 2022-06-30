@@ -4,7 +4,6 @@ import os
 import sys
 import gzip
 from functools import lru_cache
-from typing import Iterable
 
 import bgzip
 
@@ -14,6 +13,7 @@ sys.path.insert(0, pkg_root)  # noqa
 from tests import config  # initialize the test environment
 
 from terra_notebook_utils import drs
+from terra_notebook_utils.compat.typing import Iterable
 
 
 def partialize_vcf(uri: str, number_of_lines: int, zip_format: str="bgzip") -> bytes:

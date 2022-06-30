@@ -4,12 +4,13 @@ import requests
 
 from functools import lru_cache
 from collections import namedtuple
-from typing import Dict, List, Tuple, Optional, Union, Iterable
+from typing import Dict, List, Tuple, Optional, Union
 from requests import Response
 
 from terra_notebook_utils import WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL, WORKSPACE_NAMESPACE, \
     WORKSPACE_GOOGLE_PROJECT
 from terra_notebook_utils import workspace, gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
+from terra_notebook_utils.compat.typing import Iterable
 from terra_notebook_utils.utils import is_notebook
 from terra_notebook_utils.http import http
 from terra_notebook_utils.blobstore.gs import GSBlob

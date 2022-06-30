@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest import mock
 from uuid import uuid4
-from typing import Dict, Iterable, Optional
+from typing import Dict, Optional
 
 from getm import default_chunk_size
 
@@ -19,6 +19,7 @@ from terra_notebook_utils.blobstore.gs import GSBlobStore, GSBlob
 from terra_notebook_utils.blobstore.local import LocalBlobStore, LocalBlob
 from terra_notebook_utils.blobstore.url import URLBlob
 from terra_notebook_utils.blobstore import BlobStore, copy_client
+from terra_notebook_utils.compat.typing import Iterable
 
 from tests import infra
 
