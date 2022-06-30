@@ -125,7 +125,7 @@ def access(drs_url: str,
         response = requests.get(url, headers={'Range': 'bytes=0-1'})
 
     if response.status_code >= 400:
-        raise DRSResolutionError(f'Could not generate a valid signed URL for {drs_url} !  Make sure you have access '
+        raise DRSResolutionError(f'Could not generate a valid signed URL for {drs_url} .  Make sure you have access '
                                  f'to this file.  If you believe you have access, relinking your account projects in '
                                  f'your Terra profile may solve this issue (even if it shows your linking is currently '
                                  f'valid).  Otherwise, if you believe you have access and have relinked, please '
