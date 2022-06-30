@@ -59,7 +59,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
                        f"Expected '204', got '{resp.status_code}' for '{rawls_url}'. "
                        "You will not be able to access DRS URIs that interact with requester pays buckets.")
 
-def get_drs(drs_url: str) -> Response:
+def get_drs(drs_url: str, fields: List[str]) -> Response:
     """Request DRS information from martha."""
     access_token = gs.get_access_token()
 
@@ -70,15 +70,7 @@ def get_drs(drs_url: str) -> Response:
 
     logger.debug(f"Resolving DRS uri '{drs_url}' through '{MARTHA_URL}'.")
 
-    json_body = dict(url=drs_url, fields=["fileName",
-                                          "hashes",
-                                          "size",
-                                          "gsUri",
-                                          "bucket",
-                                          "name",
-                                          "timeUpdated",
-                                          "googleServiceAccount",
-                                          "accessUrl"])
+    json_body = dict(url=drs_url, fields=fields)
     resp = http.post(MARTHA_URL, headers=headers, json=json_body)
 
     if 200 != resp.status_code:
@@ -104,7 +96,7 @@ def access(drs_url: str,
     # project, but this won't work if a user specifies a project unattached to
     # the Terra workspace.
     enable_requester_pays(workspace_name, workspace_namespace)
-    info = get_drs_info(drs_url)
+    info = get_drs_info(drs_url, access_url=True)
 
     if info.access_url:
         return info.access_url.strip()
@@ -176,10 +168,21 @@ def _drs_info_from_martha_v3(drs_url: str, drs_data: dict) -> DRSInfo:
                    size=drs_data.get('size'),
                    updated=drs_data.get('timeUpdated'))
 
-def get_drs_info(drs_url: str) -> DRSInfo:
+def get_drs_info(drs_url: str, access_url: bool = False) -> DRSInfo:
     """Attempt to resolve gs:// url and credentials for a DRS object."""
     assert drs_url.startswith("drs://"), f"Expected DRS URI of the form 'drs://...', got '{drs_url}'"
-    drs_data = get_drs(drs_url).json()
+    fields = ["fileName",
+              "hashes",
+              "size",
+              "gsUri",
+              "bucket",
+              "name",
+              "timeUpdated",
+              "googleServiceAccount"]
+    # only include this field if necessary because it significantly increases the time for Martha to respond
+    if access_url:
+        fields.append("accessUrl")
+    drs_data = get_drs(drs_url, fields).json()
     if 'dos' in drs_data:
         return _drs_info_from_martha_v2(drs_url, drs_data)
     else:
@@ -188,7 +191,7 @@ def get_drs_info(drs_url: str) -> DRSInfo:
 def get_drs_blob(drs_url_or_info: Union[str, DRSInfo],
                  billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Union[GSBlob, URLBlob]:
     if isinstance(drs_url_or_info, str):
-        info = get_drs_info(drs_url_or_info)
+        info = get_drs_info(drs_url_or_info, access_url=True)
     elif isinstance(drs_url_or_info, DRSInfo):
         info = drs_url_or_info
     else:
@@ -249,13 +252,13 @@ def _do_copy_drs(drs_uri: str,
                  multipart_threshold: int,
                  indicator_type: Indicator):
     dst_blob: Union[GSBlob, URLBlob, LocalBlob]
-    src_info = get_drs_info(drs_uri)
+    src_info = get_drs_info(drs_uri, access_url=True)
     src_blob = get_drs_blob(src_info)
     if dst.startswith("gs://"):
         bucket_name, key = _resolve_bucket_target(dst, src_info)
         dst_blob = GSBlob(bucket_name, key)
     else:
-        info = get_drs_info(drs_uri)
+        info = get_drs_info(drs_uri, access_url=True)
         dst_blob = copy_client.blob_for_url(_resolve_local_target(dst, info))
     copy_client._do_copy(src_blob, dst_blob, multipart_threshold, indicator_type)
 
