@@ -1,3 +1,6 @@
+# Changes for v0.9.0 (2022-06-30)
+Better error handling. (#387)
+Update contact info in README.
 # Changes for v0.8.1 (2021-02-10)
 Raise TypeError if table object is forbidden (#275)
 Support table cells with dict values (#274)
