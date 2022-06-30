@@ -268,8 +268,7 @@ def _do_copy_drs(drs_uri: str,
         bucket_name, key = _resolve_bucket_target(dst, src_info)
         dst_blob = GSBlob(bucket_name, key)
     else:
-        info = get_drs_info(drs_uri, access_url=True)
-        dst_blob = copy_client.blob_for_url(_resolve_local_target(dst, info))
+        dst_blob = copy_client.blob_for_url(_resolve_local_target(dst, src_info))
     copy_client._do_copy(src_blob, dst_blob, multipart_threshold, indicator_type)
 
 class DRSCopyClient(copy_client.CopyClient):
