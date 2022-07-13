@@ -58,7 +58,7 @@ def get_all_workflows(submission_id: str,
         return subworkflows
 
     submission = get_submission(submission_id, workspace, workspace_namespace)
-    initial_workflow_ids = {wf['workflowId'] for wf in submission['workflows']}
+    initial_workflow_ids = {wf['workflowId'] for wf in submission['workflows'] if "workflowId" in wf}
     concurrent_recursion(get_metadata_and_subworkflows, initial_workflow_ids)
 
     return workflows_metadata
@@ -76,7 +76,7 @@ def estimate_workflow_cost(workflow_id: str, workflow_metadata: dict) -> Generat
                     cost, cpus, memory_gb, runtime, disk_size_gb = 0.0, 0, 0.0, 0.0, 0.0
                 else:
                     cpus, memory_gb = _parse_machine_type(js_get("jes.machineType", call_metadata))
-                    # Assume that Google Lifesciences Pipelines API uses N1 custome machine type
+                    # Assume that Google Lifesciences Pipelines API uses N1 custom machine type
                     start = datetime.strptime(js_get("start", call_metadata), date_format)
                     end = datetime.strptime(js_get("end", call_metadata), date_format)
                     runtime = (end - start).total_seconds()
