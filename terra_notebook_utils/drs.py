@@ -101,7 +101,7 @@ def access(drs_url: str,
     if info.access_url:
         martha_url = info.access_url.strip()
         response = requests.get(martha_url, headers={'Range': 'bytes=0-1'})
-        if response.status_code < 400:
+        if response.status_code < 300:
             return martha_url
         logger.warning('Martha returned an invalid/inaccessible signed url... attempting to generate our own... ')
 
