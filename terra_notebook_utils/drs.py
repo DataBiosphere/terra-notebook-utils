@@ -7,7 +7,7 @@ from collections import namedtuple
 from typing import Dict, List, Tuple, Optional, Union, Iterable
 from requests import Response
 
-from terra_notebook_utils import WORKSPACE_BUCKET, WORKSPACE_NAME, MARTHA_URL, WORKSPACE_NAMESPACE, \
+from terra_notebook_utils import WORKSPACE_BUCKET, WORKSPACE_NAME, DRS_RESOLVER_URL, WORKSPACE_NAMESPACE, \
     WORKSPACE_GOOGLE_PROJECT
 from terra_notebook_utils import workspace, gs, tar_gz, TERRA_DEPLOYMENT_ENV, _GS_SCHEMA
 from terra_notebook_utils.utils import is_notebook
@@ -60,7 +60,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
                        "You will not be able to access DRS URIs that interact with requester pays buckets.")
 
 def get_drs(drs_url: str, fields: List[str]) -> Response:
-    """Request DRS information from martha."""
+    """Request DRS information from DRS Resolver."""
     access_token = gs.get_access_token()
 
     headers = {
@@ -68,10 +68,10 @@ def get_drs(drs_url: str, fields: List[str]) -> Response:
         'content-type': "application/json"
     }
 
-    logger.debug(f"Resolving DRS uri '{drs_url}' through '{MARTHA_URL}'.")
+    logger.debug(f"Resolving DRS uri '{drs_url}' through '{DRS_RESOLVER_URL}'.")
 
     json_body = dict(url=drs_url, fields=fields)
-    resp = http.post(MARTHA_URL, headers=headers, json=json_body)
+    resp = http.post(DRS_RESOLVER_URL, headers=headers, json=json_body)
 
     if 200 != resp.status_code:
         logger.warning(resp.content)
@@ -99,18 +99,18 @@ def access(drs_url: str,
     info = get_drs_info(drs_url, access_url=True)
 
     if info.access_url:
-        martha_url = info.access_url.strip()
-        response = requests.get(martha_url, headers={'Range': 'bytes=0-1'})
+        drs_resolver_url = info.access_url.strip()
+        response = requests.get(drs_resolver_url, headers={'Range': 'bytes=0-1'})
         if response.status_code < 300:
-            return martha_url
+            return drs_resolver_url
         logger.warning('Received an invalid/inaccessible signed URL... attempting to generate an alternate signed URL...')
 
     url = gs.get_signed_url(bucket=info.bucket_name,
                             key=info.key,
                             sa_credentials=info.credentials)
     # attempt to get the first byte; we'll get an HTTPError error if we need requester pays
-    # TODO: hopefully Martha returns this information eventually and we can avoid this check,
-    #  but even in the meantime, there's probably a better way of doing this
+    # TODO: hopefully the DRS Resolver will return this information eventually and
+    #  we can avoid this check, but in the meantime, there's probably a better way of doing this
     response = requests.get(url, headers={'Range': 'bytes=0-1'})
     if b'Bucket is a requester pays bucket' in response.content and response.status_code >= 400:
         url = gs.get_signed_url(bucket=info.bucket_name,
@@ -164,8 +164,8 @@ def _drs_info_from_martha_v2(drs_url: str, drs_data: dict) -> DRSInfo:
     else:
         raise DRSResolutionError(f"No metadata was returned for DRS uri '{drs_url}'")
 
-def _drs_info_from_martha_v3(drs_url: str, drs_data: dict) -> DRSInfo:
-    """Convert response from martha_v3 to DRSInfo."""
+def _drs_info_from_martha_v3_or_drshub(drs_url: str, drs_data: dict) -> DRSInfo:
+    """Convert DRS response to DRSInfo."""
     access_url: Optional[str] = None
     if drs_data.get('accessUrl') is not None:
         access_url = drs_data['accessUrl'].get('url')
@@ -193,14 +193,14 @@ def get_drs_info(drs_url: str, access_url: bool = False) -> DRSInfo:
               "name",
               "timeUpdated",
               "googleServiceAccount"]
-    # only include this field if necessary because it significantly increases the time for Martha to respond
+    # only include this field if necessary because it significantly increases the time for the DRS Resolver to respond
     if access_url:
         fields.append("accessUrl")
     drs_data = get_drs(drs_url, fields).json()
     if 'dos' in drs_data:
         return _drs_info_from_martha_v2(drs_url, drs_data)
     else:
-        return _drs_info_from_martha_v3(drs_url, drs_data)
+        return _drs_info_from_martha_v3_or_drshub(drs_url, drs_data)
 
 def get_drs_blob(drs_url_or_info: Union[str, DRSInfo],
                  billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Union[GSBlob, URLBlob]:

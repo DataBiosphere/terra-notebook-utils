@@ -74,7 +74,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
     jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-2a2bfaa24c7a_" \
                    "c0e40912-8b14-43f6-9a2f-b278144d0060"
 
-    # martha_v3 responses
+    # drs_resolver responses
     mock_jdr_response = {
         'contentType': 'application/octet-stream',
         'size': 15601108255,
@@ -92,7 +92,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             'crc32c': '8a366443'
         }
     }
-    mock_martha_v3_response_missing_fields = {
+    mock_drs_resolver_response_missing_fields = {
         'contentType': 'application/octet-stream',
         'bucket': 'broad-jade-dev-data-bucket',
         'name': 'fd8d8492-ad02-447d-b54e-35a7ffd0e7a5/8b07563a-542f-4b5c-9e00-e8fe6b1861de',
@@ -107,7 +107,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             'md5': '336ea55913bc261b72875bd259753046',
         }
     }
-    mock_martha_v3_response_without_gs_uri = {
+    mock_drs_resolver_response_without_gs_uri = {
         'contentType': 'application/octet-stream',
         'bucket': 'broad-jade-dev-data-bucket',
         'googleServiceAccount': {
@@ -119,7 +119,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             'md5': '336ea55913bc261b72875bd259753046',
         }
     }
-    mock_martha_v3_error_response = {
+    mock_drs_resolver_error_response = {
         "status": 500,
         "response": {
             "req": {
@@ -144,7 +144,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             "text": "{\"msg\":\"User 'null' does not have required action: read_data\",\"status_code\":500}"
         }
     }
-    mock_martha_v3_empty_error_response = {
+    mock_drs_resolver_empty_error_response = {
         "status": 500,
         "response": {
             "status": 500,
@@ -423,8 +423,8 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
                     drs.extract_tar_gz(self.drs_url)
                     enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
 
-    # test for when we get everything what we wanted in martha_v3 response
-    def test_martha_v3_response(self):
+    # test for when we get everything what we wanted in drs_resolver response
+    def test_drs_resolver_response(self):
         resp_json = mock.MagicMock(return_value=self.mock_jdr_response)
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         with ExitStack() as es:
@@ -454,9 +454,9 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             self.assertEqual(15601108255, actual_info.size)
             self.assertEqual('2020-04-27T15:56:09.696Z', actual_info.updated)
 
-    # test for when some fields are missing in martha_v3 response
-    def test_martha_v3_response_with_missing_fields(self):
-        resp_json = mock.MagicMock(return_value=self.mock_martha_v3_response_missing_fields)
+    # test for when some fields are missing in drs_resolver response
+    def test_drs_resolver_response_with_missing_fields(self):
+        resp_json = mock.MagicMock(return_value=self.mock_drs_resolver_response_missing_fields)
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
@@ -485,10 +485,10 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             self.assertEqual(None, actual_info.size)
             self.assertEqual(None, actual_info.updated)
 
-    # test for when 'gsUrl' is missing in martha_v3 response. It should throw error
+    # test for when 'gsUrl' is missing in drs_resolver response. It should throw error
     @unittest.skip("TODO: Test no gsUri _and_ no accessUrl")
-    def test_martha_v3_response_without_gs_uri(self):
-        resp_json = mock.MagicMock(return_value=self.mock_martha_v3_response_without_gs_uri)
+    def test_drs_resolver_response_without_gs_uri(self):
+        resp_json = mock.MagicMock(return_value=self.mock_drs_resolver_response_without_gs_uri)
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
@@ -506,9 +506,9 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             with self.assertRaisesRegex(Exception, f"No GS url found for DRS uri '{self.drs_url}'"):
                 drs.get_drs_blob(self.drs_url)
 
-    # test for when martha_v3 returns error. It should throw error
-    def test_martha_v3_error_response(self):
-        resp_json = mock.MagicMock(return_value=self.mock_martha_v3_error_response)
+    # test for when drs_resolver returns error. It should throw error
+    def test_drs_resolver_error_response(self):
+        resp_json = mock.MagicMock(return_value=self.mock_drs_resolver_error_response)
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=500, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
@@ -516,9 +516,9 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             with self.assertRaises(drs.DRSResolutionError):
                 drs.get_drs_blob(self.jade_dev_url)
 
-    # test for when martha_v3 returns error response with 'text' field. It should throw error
-    def test_martha_v3_empty_error_response(self):
-        resp_json = mock.MagicMock(return_value=self.mock_martha_v3_empty_error_response)
+    # test for when drs_resolver returns error response with 'text' field. It should throw error
+    def test_drs_resolver_empty_error_response(self):
+        resp_json = mock.MagicMock(return_value=self.mock_drs_resolver_empty_error_response)
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=500, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
@@ -570,7 +570,8 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
             response.raise_for_status()
         # Test a Jade resource
-        # requires that GOOGLE_APPLICATION_CREDENTIALS be set, because martha does not return a service account
+        # requires that GOOGLE_APPLICATION_CREDENTIALS be set
+        # because neither Martha nor DRSHub returns a service account
         jade_uri = 'drs://jade-terra.datarepo-prod.broadinstitute.org/' \
                    'v1_c3c588a8-be3f-467f-a244-da614be6889a_635984f0-3267-4201-b1ee-d82f64b8e6d1'
         with self.subTest(f'Testing DRS Access: {jade_uri}'):

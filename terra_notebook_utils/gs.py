@@ -82,10 +82,10 @@ def get_signed_url(bucket: str,
     """
     default_service_account_credentials = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
 
-    # these are the service account credentials returned from Martha
+    # these are the service account credentials returned from the DRS Resolver
     if sa_credentials:
         creds = service_account.Credentials.from_service_account_info(sa_credentials)
-    # if Martha did not give us a service account, try the credentials set at GOOGLE_APPLICATION_CREDENTIALS
+    # if the DRS Resolver did not give us a service account, try the credentials set at GOOGLE_APPLICATION_CREDENTIALS
     elif default_service_account_credentials:
         creds = service_account.Credentials.from_service_account_file(default_service_account_credentials)
     # we can't access the file
