@@ -103,7 +103,7 @@ def access(drs_url: str,
         response = requests.get(martha_url, headers={'Range': 'bytes=0-1'})
         if response.status_code < 300:
             return martha_url
-        logger.warning('Received an invalid/inaccessible signed URL... attempting to generate an alternate signed URL...')
+        logger.warning('Got an invalid/inaccessible signed URL... attempting to generate an alternate signed URL...')
 
     url = gs.get_signed_url(bucket=info.bucket_name,
                             key=info.key,
