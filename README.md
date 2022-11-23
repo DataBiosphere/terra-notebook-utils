@@ -240,7 +240,7 @@ This will run tests against Terra and Martha Dev using Jade Dev DRS url (make su
 This will run tests against Terra and Martha Prod (make sure you have proper access to DRS urls, workspace and Google bucket)
 
 3. log in with your Google credentials using `gcloud auth application-default login` with your Terra Prod account
-4. set `export GOOGLE_PROJECT=firecloud-cgl; export TERRA_DEPLOYMENT_ENV=prod`
+4. set `export GOOGLE_PROJECT=firecloud-cgl; export TERRA_DEPLOYMENT_ENV=prod; export TNU_BLOBSTORE_TEST_GS_BUCKET=tnu-test-bucket`
 5. run in package root:
     - `make test`: skips controlled and dev access tests
     - `make controlled_access_test`: runs tests marked as `controlled_access`
