@@ -570,7 +570,8 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             response = requests.get(signed_url, headers={'Range': 'bytes=0-1'})
             response.raise_for_status()
         # Test a Jade resource
-        # requires that GOOGLE_APPLICATION_CREDENTIALS be set, because neither martha nor DRSHub returns a service account
+        # requires that GOOGLE_APPLICATION_CREDENTIALS be set
+        # because neither martha nor DRSHub returns a service account
         jade_uri = 'drs://jade-terra.datarepo-prod.broadinstitute.org/' \
                    'v1_c3c588a8-be3f-467f-a244-da614be6889a_635984f0-3267-4201-b1ee-d82f64b8e6d1'
         with self.subTest(f'Testing DRS Access: {jade_uri}'):
