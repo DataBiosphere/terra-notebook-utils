@@ -26,6 +26,9 @@ __pycache__/
 /.idea
 /*.iml
 
+# Default virtual environment name used by PyCharm
+/.venv
+
 # JS/node/npm/web dev files
 node_modules
 npm-debug.log
