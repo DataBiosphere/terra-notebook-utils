@@ -1,4 +1,6 @@
 import os
+from dataclasses import dataclass
+from enum import Enum
 
 WORKSPACE_NAME = os.environ.get('WORKSPACE_NAME', None)
 WORKSPACE_NAMESPACE = os.environ.get('WORKSPACE_NAMESPACE')  # This env var is set in Terra Cloud Environments
@@ -26,3 +28,20 @@ if DRS_RESOLVER == "martha":
     DRS_RESOLVER_URL = MARTHA_URL
 else:
     DRS_RESOLVER_URL = DRSHUB_URL
+
+
+class ExecutionEnvironment(Enum):
+    TERRA_WORKSPACE = 1,  # Executing in a Terra Workspace (on any supported platform)
+    OTHER = 2  # Executing outside of a Terra Workspace (e.g., local system)
+
+
+class ExecutionPlatform(Enum):
+    AZURE = 1,  # Executing in an Azure compute environment
+    GOOGLE = 2,  # Executing in a Google compute environment
+    UNKNOWN = 3  # Execution platform not identified (e.g., local system)
+
+
+@dataclass
+class ExecutionContext:
+    execution_environment: ExecutionEnvironment
+    execution_platform: ExecutionPlatform
