@@ -72,16 +72,19 @@ def is_notebook() -> bool:
 def get_execution_context() -> ExecutionContext:
     """
     Identify information about the context in which terra-notebook-utils is executing.
-    Currently, this determination is made based on the presence and value of the WORKSPACE_BUCKET.
-    Other/improved means may be identified in the future.
+    TODO Improve the information available and algorithm to identify these values accurately!
     """
-    execution_environment = ExecutionEnvironment.OTHER
+    # Workaround current insufficient information by assuming
+    # the execution environment is Terra, as that is the most
+    # common and important case.
+    # execution_environment = ExecutionEnvironment.OTHER
+    execution_environment = ExecutionEnvironment.TERRA_WORKSPACE
     execution_platform = ExecutionPlatform.UNKNOWN
     workspace_bucket = os.environ.get('WORKSPACE_BUCKET', None)
-    if workspace_bucket:
-        execution_environment = ExecutionEnvironment.TERRA_WORKSPACE
-        if workspace_bucket.startswith("gs://"):
-            execution_platform = ExecutionPlatform.GOOGLE
-        elif workspace_bucket.startswith("https://"):
-            execution_platform = ExecutionPlatform.AZURE
+    if workspace_bucket and workspace_bucket.startswith("gs://"):
+        execution_platform = ExecutionPlatform.GOOGLE
+    else:
+        # Workaround current insufficient information by assuming
+        # the execution platform is not Google then it is Azure.
+        execution_platform = ExecutionPlatform.AZURE
     return ExecutionContext(execution_environment, execution_platform)
