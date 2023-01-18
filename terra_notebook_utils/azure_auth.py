@@ -1,13 +1,12 @@
 """
-Microsoft Azure specific code.
-Currently limited to Azure auth.
+Microsoft Azure identity/auth support.
 
 See:
 https://azuresdkdocs.blob.core.windows.net/$web/python/azure-identity/1.12.0/index.html
 https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.defaultazurecredential?view=azure-python
 https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/identity/azure-identity/azure/identity/_credentials/default.py
 """
-
+import logging
 import os
 from typing import Optional
 
@@ -22,6 +21,19 @@ from terra_notebook_utils.logger import logger
 # See: https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/identity/
 #              azure-identity/azure/identity/_credentials/default.py
 _AZURE_CREDENTIAL: Optional[DefaultAzureCredential] = None
+
+
+def _set_azure_identity_logging_level(level) -> None:
+    """ Set the logging level for modules participating the Azure default credential flow """
+    import azure.identity
+    logging.getLogger(azure.identity._credentials.environment.__name__).setLevel(level)
+    logging.getLogger(azure.identity._credentials.managed_identity.__name__).setLevel(level)
+    logging.getLogger(azure.identity._credentials.chained.__name__).setLevel(level)
+    logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(level)
+
+
+# Suppress extraneous azure-identity INFO level logging
+_set_azure_identity_logging_level(logging.WARNING)
 
 
 def _get_default_credential() -> DefaultAzureCredential:
