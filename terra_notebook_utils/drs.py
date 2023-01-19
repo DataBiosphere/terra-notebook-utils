@@ -48,8 +48,13 @@ def is_requester_pays(drs_urls: Iterable[str]) -> bool:
         # DRS data requiring requester pays access.
         # Even this will end in when the AnVIL data is hosted in TDR.
         # Note: If the Gen3 AnVIL DRS URI format is retained by TDR, this function must be updated.
-        ANVIL_DRS_URI_PREFIX = "drs://dg.ANV0"
-        if drs_url.strip().startswith(ANVIL_DRS_URI_PREFIX):
+
+        # The DRS specification (v1.2) states compact identifiers must be lowercase alphanumerical values:
+        # https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.2.0/docs/#section/DRS-URIs
+        # Yet for historical reasons the DRS URIs minted by Gen3 use uppercase.
+        # Perform a case-insensitive comparison.
+        anvil_drs_uri_prefix = "drs://dg.ANV0".lower()
+        if drs_url.strip().lower().startswith(anvil_drs_uri_prefix):
             if get_execution_context().execution_platform == ExecutionPlatform.AZURE:
                 raise RequesterPaysNotSupported(
                     f"Requester pays data access is not supported on the Azure platform. Cannot access: {drs_url}"
