@@ -31,14 +31,14 @@ else:
 
 
 class ExecutionEnvironment(Enum):
-    TERRA_WORKSPACE = 1,  # Executing in a Terra Workspace (on any supported platform)
-    OTHER = 2  # Executing outside of a Terra Workspace (e.g., local system)
+    TERRA_WORKSPACE = "TERRA_WORKSPACE",  # Executing in a Terra Workspace (on any supported platform)
+    OTHER = "OTHER"  # Executing outside a Terra Workspace (e.g., local system)
 
 
 class ExecutionPlatform(Enum):
-    AZURE = 1,  # Executing in an Azure compute environment
-    GOOGLE = 2,  # Executing in a Google compute environment
-    UNKNOWN = 3  # Execution platform not identified (e.g., local system)
+    AZURE = "AZURE",  # Executing in an Azure compute environment
+    GOOGLE = "GOOGLE",  # Executing in a Google compute environment
+    UNKNOWN = "UNKNOWN"  # Execution platform not identified (e.g., local system)
 
 
 @dataclass
