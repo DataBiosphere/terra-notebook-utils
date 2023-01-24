@@ -23,7 +23,7 @@ from terra_notebook_utils.logger import logger
 _AZURE_CREDENTIAL: Optional[DefaultAzureCredential] = None
 
 
-def _set_azure_identity_logging_level(level) -> None:
+def _set_azure_identity_logging_level(level: int) -> None:
     """ Set the logging level for modules participating the Azure default credential flow """
     import azure.identity
     logging.getLogger(azure.identity._credentials.environment.__name__).setLevel(level)
