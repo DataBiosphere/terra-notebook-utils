@@ -23,7 +23,7 @@ class TerraAuthTokenProvider:
     @staticmethod
     def _identify_valid_access_token() -> str:
         """
-        Try to obtain an auth bearer tokens suitable for use with Terra backend services
+        Try to obtain an auth bearer token suitable for use with Terra backend services
         from the Terra supported auth providers. First try Google, then try Azure.
         Return the first successfully obtained token, otherwise raise AuthenticationError.
 
