@@ -40,11 +40,13 @@ pip install --upgrade --no-cache-dir terra-notebook-utils
 
 ## Credentials
 Much of the terra-notebook-utilities functionality requires credentialed access through a Google Cloud Platform account.
-Credentials are already available when running in a Terra notebook environment. Otherwise, credentials may be obtained
-with the command
+Credentials are already available when running in a Terra Google notebook environment.
+Otherwise, Google credentials may be obtained with the command
 ```
 gcloud auth application-default login
 ```
+The terra-notebook-utilities `drs` subcommands (only) run successfully in a Terra Azure
+notebook environment using the Azure default credentials.
 
 ## Usage
 
