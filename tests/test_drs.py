@@ -69,8 +69,14 @@ class TestTerraNotebookUtilsDRSInDev(SuppressWarningsMixin, unittest.TestCase):
 
 
 class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
-    drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"  # DRS response contains GS native url + credentials
-    drs_url_signed = "drs://dg.4DFC:dg.4DFC/00040a6f-b7e5-4e5c-ab57-ee92a0ba8201"  # DRS response contains signed URL
+    # BDC data on Google
+    # DRS response contains GS native url + credentials + signed URL if requested
+    drs_url = "drs://dg.4503/95cc4ae1-dee7-4266-8b97-77cf46d83d35"
+    # CRDC PDC data on AWS (only)
+    # DRS response contains signed URL if requested
+    drs_url_signed = "drs://dg.4DFC:dg.4DFC/00040a6f-b7e5-4e5c-ab57-ee92a0ba8201"
+    # DRS response contains GS native url + credentials (no signed URL)
+    drs_url_requester_pays = "drs://dg.ANV0/1b1ee6fc-6560-4b08-9c44-36d46bf4daf1"
     jade_dev_url = "drs://jade.datarepo-dev.broadinstitute.org/v1_0c86170e-312d-4b39-a0a4-2a2bfaa24c7a_" \
                    "c0e40912-8b14-43f6-9a2f-b278144d0060"
 
@@ -396,7 +402,15 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
                 self.assertEqual(data, expected_data)
 
     @testmode("workspace_access")
-    def test_arg_propagation(self):
+    def test_is_requester_pays(self):
+        self.assertFalse(drs.is_requester_pays([self.drs_url]))
+        self.assertFalse(drs.is_requester_pays([self.drs_url_signed]))
+        self.assertTrue(drs.is_requester_pays([self.drs_url_requester_pays]))
+        self.assertTrue(drs.is_requester_pays(
+            [self.drs_url, self.drs_url_requester_pays, self.drs_url_signed]))
+
+    @testmode("workspace_access")
+    def test_arg_propagation_and_enable_requester_pays(self):
         resp_json = mock.MagicMock(return_value={
             'googleServiceAccount': {'data': {'project_id': "foo"}},
             'dos': {'data_object': {'urls': [{'url': 'gs://asdf/asdf'}]}}
@@ -410,18 +424,92 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             es.enter_context(mock.patch("terra_notebook_utils.drs.GSBlob.open"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with mock.patch("terra_notebook_utils.drs.enable_requester_pays") as enable_requester_pays:
+                with self.subTest("Access URL"):
+                    try:
+                        drs.access(self.drs_url_requester_pays)
+                    except Exception:
+                        pass  # Ignore downstream error due to complexity of mocking
+                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
                 with self.subTest("Copy to local"):
+                    enable_requester_pays.reset_mock()
                     with tempfile.NamedTemporaryFile() as tf:
-                        drs.copy(self.drs_url, tf.name)
+                        drs.copy(self.drs_url_requester_pays, tf.name)
                     enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
                 with self.subTest("Copy to bucket"):
                     enable_requester_pays.reset_mock()
-                    drs.copy(self.drs_url, "gs://some_bucket/some_key")
+                    drs.copy(self.drs_url_requester_pays, "gs://some_bucket/some_key")
                     enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
+                with self.subTest("Copy batch urls"):
+                    enable_requester_pays.reset_mock()
+                    with tempfile.TemporaryDirectory() as td_name:
+                        drs.copy_batch_urls([self.drs_url, self.drs_url_requester_pays], td_name)
+                        enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
+                with self.subTest("Copy batch manifest"):
+                    enable_requester_pays.reset_mock()
+                    with tempfile.TemporaryDirectory() as td_name:
+                        manifest = [{"drs_uri": self.drs_url, "dst": td_name},
+                                    {"drs_uri": self.drs_url_requester_pays, "dst": td_name}]
+                        drs.copy_batch_manifest(manifest)
+                        enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
+                with self.subTest("Extract tarball"):
+                    enable_requester_pays.reset_mock()
+                    drs.extract_tar_gz(self.drs_url_requester_pays)
+                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
+                with self.subTest("Head"):
+                    enable_requester_pays.reset_mock()
+                    drs.head(self.drs_url_requester_pays)
+                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
+
+    @testmode("workspace_access")
+    def test_enable_requester_pays_not_called_when_not_necessary(self):
+        resp_json = mock.MagicMock(return_value={
+            'googleServiceAccount': {'data': {'project_id': "foo"}},
+            'dos': {'data_object': {'urls': [{'url': 'gs://asdf/asdf'}]}}
+        })
+        requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
+        with ExitStack() as es:
+            es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.tar_gz"))
+            es.enter_context(mock.patch("terra_notebook_utils.blobstore.gs.GSBlob.download"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.DRSCopyClient"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.GSBlob.open"))
+            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
+            with mock.patch("terra_notebook_utils.drs.enable_requester_pays") as enable_requester_pays:
+                with self.subTest("Access URL"):
+                    try:
+                        drs.access(self.drs_url)
+                    except Exception:
+                        pass  # Ignore downstream error due to complexity of mocking
+                    enable_requester_pays.assert_not_called()
+                with self.subTest("Copy to local"):
+                    enable_requester_pays.reset_mock()
+                    with tempfile.NamedTemporaryFile() as tf:
+                        drs.copy(self.drs_url, tf.name)
+                    enable_requester_pays.assert_not_called()
+                with self.subTest("Copy to bucket"):
+                    enable_requester_pays.reset_mock()
+                    drs.copy(self.drs_url, "gs://some_bucket/some_key")
+                    enable_requester_pays.assert_not_called()
+                with self.subTest("Copy batch urls"):
+                    enable_requester_pays.reset_mock()
+                    with tempfile.TemporaryDirectory() as td_name:
+                        drs.copy_batch_urls([self.drs_url, self.drs_url], td_name)
+                        enable_requester_pays.assert_not_called()
+                with self.subTest("Copy batch manifest"):
+                    enable_requester_pays.reset_mock()
+                    with tempfile.TemporaryDirectory() as td_name:
+                        manifest = [{"drs_uri": self.drs_url, "dst": td_name},
+                                    {"drs_uri": self.drs_url, "dst": td_name}]
+                        drs.copy_batch_manifest(manifest)
+                        enable_requester_pays.assert_not_called()
                 with self.subTest("Extract tarball"):
                     enable_requester_pays.reset_mock()
                     drs.extract_tar_gz(self.drs_url)
-                    enable_requester_pays.assert_called_with(WORKSPACE_NAME, WORKSPACE_NAMESPACE)
+                    enable_requester_pays.assert_not_called()
+                with self.subTest("Head"):
+                    enable_requester_pays.reset_mock()
+                    drs.head(self.drs_url)
+                    enable_requester_pays.assert_not_called()
 
     # test for when we get everything what we wanted in drs_resolver response
     def test_drs_resolver_response(self):
