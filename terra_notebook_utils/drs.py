@@ -18,6 +18,7 @@ from terra_notebook_utils.blobstore.url import URLBlob
 from terra_notebook_utils.blobstore.progress import Indicator
 from terra_notebook_utils.blobstore import Blob, copy_client, BlobNotFoundError
 from terra_notebook_utils.logger import logger
+from terra_notebook_utils.terra_auth import get_terra_access_token
 
 
 DRSInfo = namedtuple("DRSInfo", "credentials access_url bucket_name key name size updated checksums")
@@ -46,7 +47,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
     rawls_url = (f"https://rawls.dsde-{TERRA_DEPLOYMENT_ENV}.broadinstitute.org/api/workspaces/"
                  f"{workspace_namespace}/{encoded_workspace}/enableRequesterPaysForLinkedServiceAccounts")
     logger.info("Enabling requester pays for your workspace. This will only take a few seconds...")
-    access_token = gs.get_access_token()
+    access_token = get_terra_access_token()
 
     headers = {
         'authorization': f"Bearer {access_token}",
@@ -61,7 +62,7 @@ def enable_requester_pays(workspace_name: Optional[str]=WORKSPACE_NAME,
 
 def get_drs(drs_url: str, fields: List[str]) -> Response:
     """Request DRS information from DRS Resolver."""
-    access_token = gs.get_access_token()
+    access_token = get_terra_access_token()
 
     headers = {
         'authorization': f"Bearer {access_token}",

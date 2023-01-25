@@ -1,10 +1,13 @@
 import json
+import os
 import threading
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor, Future, as_completed
 from typing import Any, Callable, Dict, Optional, Iterable, Set
 
 import jmespath
+
+from terra_notebook_utils import ExecutionEnvironment, ExecutionPlatform, ExecutionContext
 
 
 class _AsyncContextManager:
@@ -63,3 +66,25 @@ def is_notebook() -> bool:
         return "ZMQInteractiveShell" == get_ipython().__class__.__name__  # type: ignore
     except NameError:
         return False
+
+
+@lru_cache()
+def get_execution_context() -> ExecutionContext:
+    """
+    Identify information about the context in which terra-notebook-utils is executing.
+    TODO Improve the information available and algorithm to identify these values accurately!
+    """
+    # Workaround current insufficient information by assuming
+    # the execution environment is Terra, as that is the most
+    # common and important case.
+    # execution_environment = ExecutionEnvironment.OTHER
+    execution_environment = ExecutionEnvironment.TERRA_WORKSPACE
+    execution_platform = ExecutionPlatform.UNKNOWN
+    workspace_bucket = os.environ.get('WORKSPACE_BUCKET', None)
+    if workspace_bucket and workspace_bucket.startswith("gs://"):
+        execution_platform = ExecutionPlatform.GOOGLE
+    else:
+        # Workaround current insufficient information by assuming
+        # the execution platform is not Google then it is Azure.
+        execution_platform = ExecutionPlatform.AZURE
+    return ExecutionContext(execution_environment, execution_platform)
