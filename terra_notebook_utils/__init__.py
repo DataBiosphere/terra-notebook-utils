@@ -7,7 +7,14 @@ WORKSPACE_NAMESPACE = os.environ.get('WORKSPACE_NAMESPACE')  # This env var is s
 WORKSPACE_GOOGLE_PROJECT = os.environ.get('GOOGLE_PROJECT')  # This env var is set in Terra Cloud Environments
 TERRA_DEPLOYMENT_ENV = os.environ.get('TERRA_DEPLOYMENT_ENV', 'prod')
 MARTHA_URL_VERSION = os.environ.get('MARTHA_URL_VERSION', 'martha_v3')
-DRS_RESOLVER = os.environ.get('DRS_RESOLVER', 'martha')  # values for DRS_RESOLVER are either 'drshub' or 'martha'
+DRS_RESOLVER = os.environ.get('DRS_RESOLVER', None)  # values for DRS_RESOLVER are either 'drshub' or 'martha'
+DRSHUB_ENVS = list('dev')
+
+if not DRS_RESOLVER:
+    if TERRA_DEPLOYMENT_ENV.lower() in DRSHUB_ENVS:
+        DRS_RESOLVER = 'drshub'
+    else:
+        DRS_RESOLVER = 'martha'
 
 if not WORKSPACE_GOOGLE_PROJECT:
     WORKSPACE_GOOGLE_PROJECT = os.environ.get('GCP_PROJECT')  # Useful for running outside of notebook

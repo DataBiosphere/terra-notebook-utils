@@ -226,7 +226,7 @@ To run tests, follow the same setup from Local Development till step 4. Make sur
 
 **Test Env: Dev** (currently it has tests for DRS methods)
 
-This will run tests against Terra and Martha Dev using Jade Dev DRS url (make sure your Terra Dev account has access to the above mentioned url)
+This will run tests against Terra and DRSHub Dev using Jade Dev DRS url (make sure your Terra Dev account has access to the above mentioned url)
 
 3. log in with your Google credentials using `gcloud auth application-default login` with your Terra Dev account
 4. Set
