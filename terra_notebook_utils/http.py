@@ -9,7 +9,7 @@ default_retry = Retry(total=10,
                       status_forcelist=[429, 500, 502, 503, 504],
                       method_whitelist=["HEAD", "GET"])
 
-def http_session(session: requests.Session=None, retry: Retry=None) -> requests.Session:
+def http_session(session: requests.Session | None = None, retry: Retry | None = None) -> requests.Session:
     session = session or requests.Session()
     retry = retry or default_retry
     adapter = HTTPAdapter(max_retries=retry)
