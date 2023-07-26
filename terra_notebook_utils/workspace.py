@@ -41,7 +41,7 @@ def get_workspace_namespace(workspace: Optional[str]=WORKSPACE_NAME) -> Optional
                 return ws['workspace']['namespace']
         return None
 
-def remove_workflow_logs(bucket_name=WORKSPACE_BUCKET, submission_id: str=None) -> List[str]:
+def remove_workflow_logs(bucket_name=WORKSPACE_BUCKET, submission_id: str | None =None) -> List[str]:
     """Experimental: do not use."""
     bucket = gs.get_client().bucket(bucket_name)
 

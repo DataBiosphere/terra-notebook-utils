@@ -51,7 +51,7 @@ def reset_bond_cache():
     resp = http.delete(f'http://broad-bond-{TERRA_DEPLOYMENT_ENV}.appspot.com/api/link/v1/fence/', headers=headers)
     print(resp.content)
 
-def get_client(credentials_data: dict=None, project: str=None):
+def get_client(credentials_data: dict | None = None, project: str | None = None):
     kwargs = dict()
     if credentials_data is not None:
         creds = service_account.Credentials.from_service_account_info(credentials_data)
@@ -65,7 +65,7 @@ def get_client(credentials_data: dict=None, project: str=None):
 
 def get_signed_url(bucket: str,
                    key: str,
-                   sa_credentials: dict = None,
+                   sa_credentials: dict | None = None,
                    requester_pays_user_project: Optional[str] = None):
     """
     Returns V4 signed URLs based on a Google bucket, key, and service account credentials.

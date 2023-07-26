@@ -1,9 +1,11 @@
 flake8
 coverage
-mypy >= 0.800, < 0.900
+mypy >= 0.991, < 1.0.0
 twine
 google-crc32c >= 1.0.0
 miniwdl
 herzog
 pytz
+types-requests
+types-pytz
 -r requirements.txt
