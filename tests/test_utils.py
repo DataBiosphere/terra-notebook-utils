@@ -54,7 +54,7 @@ class TestUtils(unittest.TestCase):
         See this article for info about clearing the @lru_cache when unit testing:
         https://rishabh-ink.medium.com/testing-lru-cache-functions-in-python-with-pytest-33dd5757d11c
         """
-        from terra_notebook_utils.utils import get_execution_context, ExecutionContext,\
+        from terra_notebook_utils.utils import get_execution_context, ExecutionContext, \
             ExecutionEnvironment, ExecutionPlatform
 
         with self.subTest("Typical: Terra, Google"):
