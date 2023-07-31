@@ -1,3 +1,6 @@
+# Changes for v0.13.0 (2023-07-31)
+Removed `DRS_RESOLVER` environment variable, instead relying on `DRS_RESOLVER_ENDPOINT` to let the endpoint version be controlled externally.
+
 # Changes for v0.11.0 (2022-11-09)
 Added support for calling DRSHub for DRS resolution
 Made DRS Resolver configurable by setting `DRS_RESOLVER` to `martha` or `drshub`
