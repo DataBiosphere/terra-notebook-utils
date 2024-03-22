@@ -18,8 +18,8 @@ class TestTerraNotebookUtilsGS(SuppressWarningsMixin, unittest.TestCase):
     def test_get_access_token(self):
         gs.get_access_token()
 
-    def test_reset_bond_cache(self):
-        gs.reset_bond_cache()
+    def test_reset_ecm_cache(self):
+        gs.reset_ecm_cache()
 
     def test_get_client(self):
         gs.get_client()
