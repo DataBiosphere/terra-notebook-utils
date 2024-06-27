@@ -106,7 +106,7 @@ def get_drs(drs_url: str, fields: List[str]) -> Response:
 
     logger.debug(f"Resolving DRS uri '{drs_url}' through '{DRS_RESOLVER_URL}'.")
 
-    json_body = dict(url=drs_url, fields=fields)
+    json_body = dict(url=drs_url, fields=fields, serviceName='terra_notebook_utils')
     resp = http.post(DRS_RESOLVER_URL, headers=headers, json=json_body)
 
     if 200 != resp.status_code:
