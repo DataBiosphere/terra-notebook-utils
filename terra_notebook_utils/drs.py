@@ -101,7 +101,8 @@ def get_drs(drs_url: str, fields: List[str]) -> Response:
 
     headers = {
         'authorization': f"Bearer {access_token}",
-        'content-type': "application/json"
+        'content-type': "application/json",
+        "X-App-ID": "terra_notebook_utils"
     }
 
     logger.debug(f"Resolving DRS uri '{drs_url}' through '{DRS_RESOLVER_URL}'.")
