@@ -205,7 +205,6 @@ If you don't wish to run this within a docker image, skip to step 5.
     - `export TERRA_DEPLOYMENT_ENV=dev`
     - `export WORKSPACE_BUCKET=[bucketWithinWorkspace]`
     - `export GCLOUD_PROJECT=[validGoogleProject]` (set this if your DRS uri does not return Google SA)
-    - if you would like to run DRS methods against `martha_v2`, run `export MARTHA_URL_VERSION=martha_v2` (it is set to `martha_v3` by default)
 
 For Python API
   - run the python shell via `python`, and import any modules you wish to use. For example, `from terra_notebook_utils import drs`
@@ -240,7 +239,7 @@ This will run tests against Terra and DRSHub Dev using Jade Dev DRS url (make su
 
 **Test Env: Prod**
 
-This will run tests against Terra and Martha Prod (make sure you have proper access to DRS urls, workspace and Google bucket)
+This will run tests against Terra and DRSHub Prod (make sure you have proper access to DRS urls, workspace and Google bucket)
 
 3. log in with your Google credentials using `gcloud auth application-default login` with your Terra Prod account
 4. set `export GOOGLE_PROJECT=firecloud-cgl; export TERRA_DEPLOYMENT_ENV=prod; export TNU_BLOBSTORE_TEST_GS_BUCKET=tnu-test-bucket`

@@ -157,90 +157,6 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         }
     }
 
-    # martha_v2 responses
-    mock_martha_v2_response = {
-        'dos': {
-            'data_object': {
-                'aliases': [],
-                'checksums': [
-                    {
-                        'checksum': "8a366443",
-                        'type': "crc32c"
-                    }, {
-                        'checksum': "336ea55913bc261b72875bd259753046",
-                        'type': "md5"
-                    }
-                ],
-                'created': "2020-04-27T15:56:09.696Z",
-                'description': "",
-                'id': "dg.4503/00e6cfa9-a183-42f6-bb44-b70347106bbe",
-                'name': "my_data",
-                'mime_type': "",
-                'size': 15601108255,
-                'updated': "2020-04-27T15:56:09.696Z",
-                'urls': [
-                    {
-                        'url': 's3://my_bucket/my_data'
-                    },
-                    {
-                        'url': 'gs://bogus/my_data'
-                    }
-                ],
-                'version': "6d60cacf"
-            }
-        },
-        'googleServiceAccount': {
-            'data': {
-                'project_id': "foo"
-            }
-        }
-    }
-    mock_martha_v2_response_missing_fields = {
-        'dos': {
-            'data_object': {
-                'checksums': [
-                    {
-                        'checksum': "8a366443",
-                        'type': "crc32c"
-                    }, {
-                        'checksum': "336ea55913bc261b72875bd259753046",
-                        'type': "md5"
-                    }
-                ],
-                'created': "2020-04-27T15:56:09.696Z",
-                'description': "",
-                'id': "dg.4503/00e6cfa9-a183-42f6-bb44-b70347106bbe",
-                'mime_type': "",
-                'urls': [
-                    {
-                        'url': 'gs://bogus/my_data'
-                    }
-                ],
-                'version': "6d60cacf"
-            }
-        }
-    }
-    mock_martha_v2_response_without_gs_uri = {
-        'dos': {
-            'data_object': {
-                'checksums': [
-                    {
-                        'checksum': "8a366443",
-                        'type': "crc32c"
-                    }, {
-                        'checksum': "336ea55913bc261b72875bd259753046",
-                        'type': "md5"
-                    }
-                ],
-                'created': "2020-04-27T15:56:09.696Z",
-                'description': "",
-                'id': "dg.4503/00e6cfa9-a183-42f6-bb44-b70347106bbe",
-                'mime_type': "",
-                'version': "6d60cacf"
-            }
-        }
-    }
-
     def test_resolve_targets(self):
         expected_name = f"{uuid4()}"
         for name in (expected_name, None):
@@ -541,21 +457,6 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             self.assertEqual(15601108255, actual_info.size)
             self.assertEqual('2020-04-27T15:56:09.696Z', actual_info.updated)
 
-    # test for when we get everything what we wanted in martha_v2 response
-    def test_martha_v2_response(self):
-        resp_json = mock.MagicMock(return_value=self.mock_martha_v2_response)
-        requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
-        with ExitStack() as es:
-            es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
-            actual_info = drs.get_drs_info(self.drs_url)
-            self.assertEqual({'project_id': "foo"}, actual_info.credentials)
-            self.assertEqual('bogus', actual_info.bucket_name)
-            self.assertEqual('my_data', actual_info.key)
-            self.assertEqual('my_data', actual_info.name)
-            self.assertEqual(15601108255, actual_info.size)
-            self.assertEqual('2020-04-27T15:56:09.696Z', actual_info.updated)
-
     # test for when some fields are missing in drs_resolver response
     def test_drs_resolver_response_with_missing_fields(self):
         resp_json = mock.MagicMock(return_value=self.mock_drs_resolver_response_missing_fields)
@@ -572,21 +473,6 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             self.assertEqual(None, actual_info.size)
             self.assertEqual(None, actual_info.updated)
 
-    # test for when some fields are missing in martha_v2 response
-    def test_martha_v2_response_with_missing_fields(self):
-        resp_json = mock.MagicMock(return_value=self.mock_martha_v2_response_missing_fields)
-        requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
-        with ExitStack() as es:
-            es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
-            actual_info = drs.get_drs_info(self.drs_url)
-            self.assertEqual(None, actual_info.credentials)
-            self.assertEqual('bogus', actual_info.bucket_name)
-            self.assertEqual('my_data', actual_info.key)
-            self.assertEqual(None, actual_info.name)
-            self.assertEqual(None, actual_info.size)
-            self.assertEqual(None, actual_info.updated)
-
     # test for when 'gsUrl' is missing in drs_resolver response. It should throw error
     @unittest.skip("TODO: Test no gsUri _and_ no accessUrl")
     def test_drs_resolver_response_without_gs_uri(self):
@@ -597,16 +483,6 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             with self.assertRaisesRegex(drs.DRSResolutionError, f"No GS url found for DRS uri '{self.jade_dev_url}'"):
                 drs.get_drs_blob(self.jade_dev_url)
-
-    # test for when no GS url is found in martha_v2 response. It should throw error
-    def test_martha_v2_response_without_gs_uri(self):
-        resp_json = mock.MagicMock(return_value=self.mock_martha_v2_response_without_gs_uri)
-        requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
-        with ExitStack() as es:
-            es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
-            es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
-            with self.assertRaisesRegex(Exception, f"No GS url found for DRS uri '{self.drs_url}'"):
-                drs.get_drs_blob(self.drs_url)
 
     # test for when drs_resolver returns error. It should throw error
     def test_drs_resolver_error_response(self):
@@ -677,7 +553,7 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
             response.raise_for_status()
         # Test a Jade resource
         # requires that GOOGLE_APPLICATION_CREDENTIALS be set
-        # because neither martha nor DRSHub returns a service account
+        # because DRSHub does not return a service account
         jade_uri = 'drs://jade-terra.datarepo-prod.broadinstitute.org/' \
                    'v1_c3c588a8-be3f-467f-a244-da614be6889a_635984f0-3267-4201-b1ee-d82f64b8e6d1'
         with self.subTest(f'Testing DRS Access: {jade_uri}'):

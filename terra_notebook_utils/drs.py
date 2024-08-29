@@ -188,35 +188,8 @@ def _get_drs_gs_creds(response: dict) -> Optional[dict]:
     else:
         return None
 
-def _drs_info_from_martha_v2(drs_url: str, drs_data: dict) -> DRSInfo:
-    """Convert response from martha_v2 to DRSInfo."""
-    if 'data_object' in drs_data['dos']:
-        data_object = drs_data['dos']['data_object']
 
-        if 'urls' not in data_object:
-            raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
-        else:
-            data_url = None
-            for url_info in data_object['urls']:
-                if 'url' in url_info and url_info['url'].startswith(_GS_SCHEMA):
-                    data_url = url_info['url']
-                    break
-            if data_url is None:
-                raise DRSResolutionError(f"No GS url found for DRS uri '{drs_url}'")
-
-        bucket_name, key = _parse_gs_url(data_url)
-        return DRSInfo(credentials=_get_drs_gs_creds(drs_data),
-                       access_url=None,
-                       checksums=None,
-                       bucket_name=bucket_name,
-                       key=key,
-                       name=data_object.get('name'),
-                       size=data_object.get('size'),
-                       updated=data_object.get('updated'))
-    else:
-        raise DRSResolutionError(f"No metadata was returned for DRS uri '{drs_url}'")
-
-def _drs_info_from_martha_v3_or_drshub(drs_url: str, drs_data: dict) -> DRSInfo:
+def _drs_info_from_drshub(drs_url: str, drs_data: dict) -> DRSInfo:
     """Convert DRS response to DRSInfo."""
     access_url: Optional[str] = None
     if drs_data.get('accessUrl') is not None:
@@ -249,10 +222,7 @@ def get_drs_info(drs_url: str, access_url: bool = False) -> DRSInfo:
     if access_url:
         fields.append("accessUrl")
     drs_data = get_drs(drs_url, fields).json()
-    if 'dos' in drs_data:
-        return _drs_info_from_martha_v2(drs_url, drs_data)
-    else:
-        return _drs_info_from_martha_v3_or_drshub(drs_url, drs_data)
+    return _drs_info_from_drshub(drs_url, drs_data)
 
 def get_drs_blob(drs_url_or_info: Union[str, DRSInfo],
                  billing_project: Optional[str]=WORKSPACE_GOOGLE_PROJECT) -> Union[GSBlob, URLBlob]:
