@@ -429,12 +429,26 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
 
     # test for when we get everything what we wanted in drs_resolver response
     def test_drs_resolver_response(self):
+        fields = ["fileName",
+                  "hashes",
+                  "size",
+                  "gsUri",
+                  "bucket",
+                  "name",
+                  "timeUpdated",
+                  "googleServiceAccount"]
         resp_json = mock.MagicMock(return_value=self.mock_jdr_response)
         requests_post = mock.MagicMock(return_value=mock.MagicMock(status_code=200, json=resp_json))
         with ExitStack() as es:
             es.enter_context(mock.patch("terra_notebook_utils.drs.gs.get_client"))
             es.enter_context(mock.patch("terra_notebook_utils.drs.http", post=requests_post))
             actual_info = drs.get_drs_info(self.jade_dev_url)
+
+            args, kwargs = requests_post.call_args
+            self.assertEqual(kwargs['headers'].get('X-App-ID'), 'terra_notebook_utils')
+            expected_json_body = dict(url=self.jade_dev_url, cloudPlatform="gs", fields=fields)
+            self.assertEqual(kwargs['json'], expected_json_body)
+
             self.assertEqual(None, actual_info.credentials)
             self.assertEqual('broad-jade-dev-data-bucket', actual_info.bucket_name)
             self.assertEqual('fd8d8492-ad02-447d-b54e-35a7ffd0e7a5/8b07563a-542f-4b5c-9e00-e8fe6b1861de',
@@ -504,6 +518,10 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
         with self.subTest("Should raise for non-valid URIs"):
             with self.assertRaises(AssertionError):
                 drs._bucket_name_and_key("not a valid gs url")
+
+    def test_get_drs_cloud_platform(self):
+        cloud_platform = drs.get_drs_cloud_platform()
+        self.assertEqual(cloud_platform, "gs")
 
     @testmode("controlled_access")
     def test_info(self):

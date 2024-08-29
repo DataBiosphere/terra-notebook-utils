@@ -108,6 +108,9 @@ def get_drs(drs_url: str, fields: List[str]) -> Response:
     logger.debug(f"Resolving DRS uri '{drs_url}' through '{DRS_RESOLVER_URL}'.")
 
     json_body = dict(url=drs_url, fields=fields)
+    cloud_platform = get_drs_cloud_platform()
+    if cloud_platform:
+        json_body["cloudPlatform"] = cloud_platform
     resp = http.post(DRS_RESOLVER_URL, headers=headers, json=json_body)
 
     if 200 != resp.status_code:
@@ -117,6 +120,15 @@ def get_drs(drs_url: str, fields: List[str]) -> Response:
                                  f"{resp.status_code}. {error_details}")
 
     return resp
+
+def get_drs_cloud_platform():
+    cloud_platform = None
+    platform = get_execution_context().execution_platform
+    if platform == ExecutionPlatform.AZURE:
+        cloud_platform = "azure"
+    elif platform == ExecutionPlatform.GOOGLE:
+        cloud_platform = "gs"
+    return cloud_platform
 
 def info(drs_url: str) -> dict:
     """Return a curated subset of data from `get_drs`."""

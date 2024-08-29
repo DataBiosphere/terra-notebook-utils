@@ -193,8 +193,9 @@ For local development:
 1. Make the decision whether you want to run this using your local environment, or develop from within a docker image.
 Developing within a docker image is recommended, since that most closely models how users will use this. Additionally, there are some issues with installing the requirements.txt on mac.
 If you don't wish to run this within a docker image, skip to step 5.
-2. run `docker pull us.gcr.io/broad-dsp-gcr-public/terra-jupyter-python:0.0.12`
-3. run the image from *one directory above* the root directory of this repo via `docker run -itd --entrypoint='/bin/bash' -v $PWD/terra-notebook-utils:/work -u root -e PIP_USER=false --name test-image us.gcr.io/broad-dsp-gcr-public/terra-jupyter-python:0.0.12`
+2. Pull the `terra-jupyter-python` docker image currently used by the Terra UI (double-check the version [here](https://storage.googleapis.com/terra-docker-image-documentation/terra-docker-versions-candidate.json)):
+   `docker pull us.gcr.io/broad-dsp-gcr-public/terra-jupyter-python:1.1.5`
+3. run the image from *one directory above* the root directory of this repo via `docker run -itd --entrypoint='/bin/bash' -v $PWD/terra-notebook-utils:/work -u root -e PIP_USER=false --name test-image us.gcr.io/broad-dsp-gcr-public/terra-jupyter-python:1.1.5`
 4. Attach your terminal to the image via `docker exec -it test-image bash`, then navigate to the directory the code is mounted to via `cd /work`. Note that the above command ensures any changes you make to files in the repo will be updated in the image as well.
 5. log in with your Google credentials using `gcloud auth application-default login`,
 6. install requirements with `pip install -r requirements.txt`
