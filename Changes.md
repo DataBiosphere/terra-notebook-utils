@@ -1,3 +1,6 @@
+# Changes for v0.14.0 (2024-03-33)
+Removed all references to Martha and Bond, which have been replace by DRSHub and External Credentials Manager, respectively.
+
 # Changes for v0.13.0 (2023-07-31)
 Removed `DRS_RESOLVER` environment variable, instead relying on `DRS_RESOLVER_ENDPOINT` to let the endpoint version be controlled externally.
 

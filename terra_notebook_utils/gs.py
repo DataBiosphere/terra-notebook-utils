@@ -41,14 +41,14 @@ def get_access_token():
         token = creds.token
     return token
 
-def reset_bond_cache():
+def reset_ecm_cache():
     from terra_notebook_utils.http import http
     token = get_access_token()
     headers = {
         'authorization': f'Bearer {token}',
         'content-type': 'application/json'
     }
-    resp = http.delete(f'http://broad-bond-{TERRA_DEPLOYMENT_ENV}.appspot.com/api/link/v1/fence/', headers=headers)
+    resp = http.delete(f'https://externalcreds.dsde-{TERRA_DEPLOYMENT_ENV}.broadinstitute.org/api/oauth/v1/fence', headers=headers)
     print(resp.content)
 
 def get_client(credentials_data: dict | None = None, project: str | None = None):
