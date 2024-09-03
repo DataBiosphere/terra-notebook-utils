@@ -1,3 +1,8 @@
+# Changes for v0.14.0 (2024-09-03)
+- Pass cloud platform when resolving a DRS URI (#414)
+- Remove Martha and Bond References (#411)
+- Tell DRSHub its TNU a-knockin (#413)
+
 # Changes for v0.14.0 (2024-03-33)
 Removed all references to Martha and Bond, which have been replace by DRSHub and External Credentials Manager, respectively.
 
