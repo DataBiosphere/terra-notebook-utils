@@ -2,7 +2,7 @@ azure-identity >= 1.12.0, < 2
 google-cloud-storage >= 1.38.0, < 2
 gs-chunked-io >= 0.5.1, < 0.6
 firecloud
-bgzip >= 0.3.5, < 0.4
+bgzip >= 0.3.5
 cli-builder >= 0.1.5, < 0.2
 oauth2client
 jmespath == 0.10.0
