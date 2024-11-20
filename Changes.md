@@ -1,3 +1,6 @@
+# Changes for v0.15.0 (2024-11-20)
+- Unpin bgzip upper bound (#416)
+
 # Changes for v0.14.0 (2024-09-03)
 - Pass cloud platform when resolving a DRS URI (#414)
 - Remove Martha and Bond References (#411)
