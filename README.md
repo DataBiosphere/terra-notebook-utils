@@ -54,8 +54,8 @@ terra-notebook-utils exposes a Python API, as well as wrappers to execute some f
 API is best explored with Pythons great `help` function. For instance, issuing the follow commands into a Python
 interpreter or Jupyter notebook will produce help and usage for the `drs` module.
 ```
-import terra_notebook_utils as tnu
-help(tnu.drs)
+import terra_notebook_utils.drs as drs
+help(drs)
 ```
 
 Similarly, the CLI may be explored using the typical `-h` argument. Try the following commands at a bash prompt.
