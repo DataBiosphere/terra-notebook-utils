@@ -446,7 +446,8 @@ class TestTerraNotebookUtilsDRS(SuppressWarningsMixin, unittest.TestCase):
 
             args, kwargs = requests_post.call_args
             self.assertEqual(kwargs['headers'].get('X-App-ID'), 'terra_notebook_utils')
-            expected_json_body = dict(url=self.jade_dev_url, cloudPlatform="gs", fields=fields)
+            expected_json_body = dict(url=self.jade_dev_url, cloudPlatform="gs", fields=fields,
+                                     userProject=terra_notebook_utils.WORKSPACE_GOOGLE_PROJECT)
             self.assertEqual(kwargs['json'], expected_json_body)
 
             self.assertEqual(None, actual_info.credentials)

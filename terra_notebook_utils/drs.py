@@ -111,6 +111,8 @@ def get_drs(drs_url: str, fields: List[str]) -> Response:
     cloud_platform = get_drs_cloud_platform()
     if cloud_platform:
         json_body["cloudPlatform"] = cloud_platform
+    if WORKSPACE_GOOGLE_PROJECT:
+        json_body["userProject"] = WORKSPACE_GOOGLE_PROJECT
     resp = http.post(DRS_RESOLVER_URL, headers=headers, json=json_body)
 
     if 200 != resp.status_code:
