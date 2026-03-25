@@ -1,3 +1,23 @@
+# Changes for v0.16.0 (2026-03-25)
+always send the wokspace google project to the DRSHub request body (#420)
+Refine usage docs for drs module help (#418)
+bump version to 0.15.0 (#417)
+Unpin bgzip upper bound (#416)
+v0.14.0 (#415)
+[ID-1311] Pass cloud platform when resolving a DRS URI (#414)
+ID-1146 Remove Martha and Bond References (#411)
+ID-1207 Tell DRSHub its TNU a-knockin (#413)
+
+# Changes for v0.14.0 (2026-03-25)
+always send the wokspace google project to the DRSHub request body (#420)
+Refine usage docs for drs module help (#418)
+bump version to 0.15.0 (#417)
+Unpin bgzip upper bound (#416)
+v0.14.0 (#415)
+[ID-1311] Pass cloud platform when resolving a DRS URI (#414)
+ID-1146 Remove Martha and Bond References (#411)
+ID-1207 Tell DRSHub its TNU a-knockin (#413)
+
 # Changes for v0.15.0 (2024-11-20)
 - Unpin bgzip upper bound (#416)
 
