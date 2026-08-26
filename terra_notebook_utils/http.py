@@ -7,7 +7,7 @@ from requests.packages.urllib3.util.retry import Retry
 
 default_retry = Retry(total=10,
                       status_forcelist=[429, 500, 502, 503, 504],
-                      method_whitelist=["HEAD", "GET"])
+                      allowed_methods=["HEAD", "GET"])
 
 def http_session(session: requests.Session | None = None, retry: Retry | None = None) -> requests.Session:
     session = session or requests.Session()
