@@ -1,3 +1,5 @@
+# Changes for v0.16.2 (2026-08-26)
+Support urllib3 2.x (#424)
 # Changes for v0.16.1 (2026-08-26)
 Remove the < 2 upper bound on google-cloud-storage (#422)
 Relax jmespath pin to a range instead of an exact version (#423)
