@@ -48,7 +48,8 @@ def reset_ecm_cache():
         'authorization': f'Bearer {token}',
         'content-type': 'application/json'
     }
-    resp = http.delete(f'https://externalcreds.dsde-{TERRA_DEPLOYMENT_ENV}.broadinstitute.org/api/oauth/v1/fence', headers=headers)
+    resp = http.delete(f'https://externalcreds.dsde-{TERRA_DEPLOYMENT_ENV}.broadinstitute.org/api/oauth/v1/fence',
+                       headers=headers)
     print(resp.content)
 
 def get_client(credentials_data: dict | None = None, project: str | None = None):

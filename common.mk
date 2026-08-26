@@ -9,7 +9,7 @@ SHELL=/bin/bash -eo pipefail
 # endif
 
 release_major:
-	$(eval export TAG=$(shell git describe --tags --match 'v*.*.*' | perl -ne '/^v(\d)+\.(\d)+\.(\d+)+/; print "v@{[$$1+1]}.0.0"'))
+	$(eval export TAG=$(shell git describe --tags --match 'v*.*.*' | perl -ne '/^v(\d+)\.(\d+)\.(\d+)+/; print "v@{[$$1+1]}.0.0"'))
 	$(MAKE) release
 
 release_minor:
@@ -17,7 +17,7 @@ release_minor:
 	$(MAKE) release
 
 release_patch:
-	$(eval export TAG=$(shell git describe --tags --match 'v*.*.*' | perl -ne '/^v(\d)+\.(\d)+\.(\d+)+/; print "v$$1.$$2.@{[$$3+1]}"'))
+	$(eval export TAG=$(shell git describe --tags --match 'v*.*.*' | perl -ne '/^v(\d+)\.(\d+)\.(\d+)+/; print "v$$1.$$2.@{[$$3+1]}"'))
 	$(MAKE) release
 
 release:
@@ -25,7 +25,8 @@ release:
 	@if [[ -z $$TAG ]]; then echo "Use release_{major,minor,patch}"; exit 1; fi
 	git pull
 	git clean -x --force $$(python setup.py --name)
-	sed -i -e "s/__version__ = \([\'\"]\)[0-9]*\.[0-9]*\.[0-9]*/__version__ = \1$${TAG:1}/" terra_notebook_utils/version.py
+	sed -i.bak -e "s/__version__ = \([\'\"]\)[0-9]*\.[0-9]*\.[0-9]*/__version__ = \1$${TAG:1}/" terra_notebook_utils/version.py
+	rm -f terra_notebook_utils/version.py.bak
 	git add terra_notebook_utils/version.py
 	TAG_MSG=$$(mktemp); \
 	    echo "# Changes for ${TAG} ($$(date +%Y-%m-%d))" > $$TAG_MSG; \

@@ -1,3 +1,6 @@
+# Changes for v0.16.1 (2026-08-26)
+Remove the < 2 upper bound on google-cloud-storage (#422)
+Relax jmespath pin to a range instead of an exact version (#423)
 # Changes for v0.16.0 (2026-03-25)
 always send the wokspace google project to the DRSHub request body (#420)
 Refine usage docs for drs module help (#418)

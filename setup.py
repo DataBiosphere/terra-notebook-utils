@@ -16,7 +16,7 @@ def get_version():
     return version['__version__']
 
 setup(
-    name="terra-notebook-utils",
+    name="terra_notebook_utils",
     version=get_version(),
     description="Utilities for the Terra notebook environment.",
     long_description=long_description,
